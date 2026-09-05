@@ -1,0 +1,26 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "worddown-app-9923",
+          "appId": "1:851845413646:android:cd2ec98f978bce33e9755f",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "worddown-app-9923",
+          "configurations": {
+            "android": "1:851845413646:android:cd2ec98f978bce33e9755f",
+            "web": "1:851845413646:web:2bf3ecefc9ff3c3ce9755f",
+            "windows": "1:851845413646:web:2def84cd4b27feeee9755f"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

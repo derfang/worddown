@@ -1,0 +1,93 @@
+{
+  "Usage": "A jester is a person in medieval times who entertained the royal court with jokes, tricks, and dances. Nowadays, the term can refer to anyone who performs comedy or jests to entertain others. You might hear someone being called a jester if they make funny jokes and silly actions to make people laugh.",
+  "Senses": [
+    {
+      "id": "07f9b895-3dd5-459c-8c98-de302a599314",
+      "de": "A person in the past who was employed by a king or queen to entertain by telling jokes and performing tricks.",
+      "ty": "noun",
+      "ex": "The court jester used to wear a multicolored outfit with a cap and bells.",
+      "use": "Archaic",
+      "co": "Historical",
+      "sy": "Fool, buffoon, clown",
+      "re": "",
+      "tp": "Historical Role|Understand jesters were important in history for humor and truth-telling in royal courts.|The king would often seek the jester's counsel, as jesters could speak frankly.\r\nIconic Outfit|Remember the jester's outfit with bells is symbolic of their profession and playful nature.|At the medieval fair, many performers dressed as jesters, complete with iconic bells.\r\nNot Just Foolish|Jesters were witty and intelligent, not simply foolish, despite modern misconceptions.|The jester crafted his jokes to cleverly mock the nobility without offending them.",
+      "cl": [
+        ""
+      ]
+    },
+    {
+      "id": "f8852bca-77c3-4154-9397-c70920824bc0",
+      "de": "A person who often makes attempts to be funny or to make people laugh.",
+      "ty": "noun",
+      "ex": "John is always the jester of the group, always ready with a joke or funny comment.",
+      "use": "",
+      "sy": "Comedian, prankster, wag",
+      "op": "Killjoy, grouch",
+      "re": "",
+      "tp": "Group Entertainer|Know that a jester in a group brings laughter to friends but should avoid being offensive.|Sara, the group's jester, lightened the mood with her impersonations.\r\nSocial Balance|Balance humor with sensitivity, as being a jester means knowing when jokes are appropriate.|As the jester, Tom knew to keep his humor appropriate for the workplace setting.",
+      "cl": [
+        ""
+      ]
+    },
+    {
+      "id": "93cf881f-e741-4ebc-8851-a19f650600cc",
+      "de": "A specific card in a deck of playing cards, often used as a wild card.",
+      "ty": "noun",
+      "ex": "In some card games, the jester can substitute for any other card.",
+      "use": "",
+      "co": "Gaming",
+      "sy": "Joker",
+      "re": "",
+      "tp": "Versatile Card|In card games, the jester or joker can often represent any card, making it very powerful.|She won the round with the jester, triumphantly declaring it to be an ace.\r\nNot in All Games|Know that the jester is not used in every card game, so check the rules before playing.|In this game, we don't use the jesters, so please remove them from the deck.",
+      "cl": [
+        ""
+      ]
+    }
+  ],
+  "Phrases": [],
+  "Compounds": [],
+  "Quotes": [
+    "63252|8801|Goldie Hawn|American Actress|Oftentimes, actors are looked at as court jesters. They are not looked at as deep-thinking, smart people who do many other things or have gifts in other areas.",
+    "244420|14101|Kevin Hart|American Actor|An unemployed court jester is nobody's fool.",
+    "151981|11583|Jerry Lewis|American Comedian|I learned from my dad that when you walk in front of an audience, they are the kings and queens, and you're but the jester.",
+    "362292|20775|Richard Simmons|American Celebrity|I consider myself a court jester - motivator.",
+    "256135|14563|Kyle Gass|American Musician|We're the court jesters of rock.",
+    "205258|13556|Joseph Addison|English Writer|Jesters do often prove prophets.",
+    "34008|8070|Frank Caliendo|American Comedian|ESPN takes itself very seriously, but for some reason, I'm allowed to be the court jester.",
+    "262333|27338|Larry Wilmore|American Comedian|It's really not my thing to go after what comedians are doing. Because I always feel like we're jesters at the end of the day.",
+    "327163|20222|Philippe Petit|French Celebrity|My parents wanted me to have an honorable profession and not to be a jester.",
+    "585582|15975|Marcel Wanders|Dutch Designer|I like to be the jester - he is the only one the king doesn't question."
+  ],
+  "Videos": [
+    "38734143|Why tragedies are...|2000-3440╣He's relatable.■3440-5266╣Notice the height of the fall.■5266-8713╣Once a king, but now homeless and blind.■8713-12660╣It's more tragic, after all, if a king falls from a tall throne■12660-15624╣than if a jester falls off his step stool.|eVRU5MVYNiw|126000-144000",
+    "37376747|Safari Live - Day 146 %\\PIPE%...|2000-8750╣apart from them the ticks are these guys■5990-11260╣here this is Aristotle and jester or the■8750-15080╣tehsil 3 or nuts waving around a bit■11260-17030╣castle 3 or and it's called that because■15080-19160╣of these little seeds that they have■17030-22220╣they they have three little ons on them|TW66pnd15PY|2400000-2424000",
+    "10507903|Elizabeth Lindsey:...|2000-5000╣fear, depression and loneliness■5000-7000╣is at an all-time high.■7000-10000╣We must course-correct.■11000-14000╣An African shaman said,■14000-17000╣\"Your society worships the jester■17000-19000╣while the king stands|IPBCxlx_SVk|424000-445000"
+  ],
+  "Collocations": [],
+  "Comparisons": [
+    "Buffoon|A buffoon is someone who is considered foolish and often makes people laugh unintentionally due to their silly behavior, while a jester is a professional entertainer who makes people laugh deliberately.\n\nBuffoon is applicable when describing someone's natural behavior or demeanor, while jester is applicable when someone professionally entertains the public through humor and tricks.\n\nEssentially, a buffoon is a fool, while a jester is someone who gets paid to be funny.",
+    "Clown|The main difference between the words clown and jester is that a jester is usually associated with the medieval courts of kings and queens, while a clown is a professional performer who usually wears makeup and performs at circuses or children's parties.\n\nClowns are performers who wear exaggerated makeup and costumes to create a unique character. They are often associated with circuses and perform a variety of acts, including juggling, magic, and physical comedy.\n\nA jester is a historical figure who provided entertainment for royalty, while a clown is a modern-day performer who entertains audiences at circuses and other events.",
+    "Comedian|A comedian is a person who makes people laugh through jokes, stories, and other forms of humorous entertainment. They are usually professional performers that are hired to provide entertainment.\n\nComedians can be found in various forms of media such as stand-up, television, and movies.",
+    "Entertain|Entertain means to provide enjoyment or amusement to people, often through singing, dancing, telling jokes, or other performances.\n\nA jester is a specific type of entertainer who is known for their humorous and witty remarks. In medieval times, jesters were often employed by royalty to provide them with entertainment and to poke fun at their guests.\n\nSo while both words are related to providing amusement, entertain is a broader term that could refer to many different types of performances, while a jester specifically refers to someone who tells jokes and is known for their humor.",
+    "Fool|A fool is someone who lacks wisdom or common sense and acts foolishly or makes foolish decisions.\n\nWhile both words are associated with humor and jesting, a fool is generally seen as a negative trait or person, while a jester is seen as a positive and entertaining figure.\n\nAdditionally, while a fool's actions or decisions may unintentionally result in humor, a jester's performance is intentionally comedic and skilled.\n\nA fool is someone who lacks wisdom, while a jester is an entertainer who brings joy and humor to their audience.",
+    "Harlequin|Harlequin and jester are both historically associated with entertainment and clowning but they have different meanings.\n\nHarlequin is a character from Italian theater known for his multicolored outfit and acrobatic performances. Harlequin has since been used to describe things that are brightly colored or checkered.\n\nHarlequin is associated with colorful clothing and acrobatic performances, while a jester is known for making jokes and entertaining royalty.",
+    "Mummer|A mummer is a performer who participates in a traditional folk play usually around Christmastime. Mummers wear masks or costumes and go from house to house performing comedic skits.\n\nA jester is a professional entertainer while a mummer is a performer who participates in a specific traditional folk play.",
+    "Prankster|A prankster is someone who enjoys playing tricks on other people. Pranksters often plan and execute elaborate practical jokes, sometimes at other people's expense.\n\nA jester is someone who makes people laugh with jokes and performances, while a prankster is someone who enjoys tricking others with practical jokes.",
+    "Trickster|A trickster is a person or spirit who plays tricks or practical jokes on people, often with a more malicious intention.\n\nTricksters are found in many cultures as figures of folklore, mythology, and literature.\n\nA jester is an entertainer while a trickster is a prankster.\n\nA jester would be applicable in a more formal setting, entertaining a royal court, while a trickster would be applicable in a more informal setting, pulling pranks on friends or enemies."
+  ],
+  "Wisdom": [
+    "A fool is wise when a jester fools no more.",
+    "The jester notes that laughter is the best medicine to cure the soul.",
+    "The jester's sharp wit often reveals greater truths beneath their humor.",
+    "Through the jester we gain insight into the foolishness of mankind.",
+    "Never take the jester's advice too seriously, for it is often given in jest."
+  ],
+  "Facts": [
+    "The court jester was traditionally believed to be a wise fool who had the ability to speak truth to power without fear of retribution.",
+    "The Jester Hat is one of the earliest examples of a costume used in theatrical performance. It was often made with multi-colored patches of velvet to mimic the appearance of a court jester.",
+    "During the Medieval period in Europe, jester performances known as \"foolish antics\" were popular sources of entertainment.",
+    "Jesters were the first class of professional entertainers in Europe during the Middle Ages, typically employed by royalty to perform comedic routines, jokes, and stunts.",
+    "During this time, a jester was also known as a buffoon, fool, or clown."
+  ],
+  "Misspellings": "Gastar|Gestar|Jastar"
+}

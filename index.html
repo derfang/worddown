@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WordUp Custom Client</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header / Search -->
+        <header class="app-header">
+            <div class="header-top">
+                <div class="logo">
+                    <i class="fa-solid fa-book-open-reader"></i>
+                    <h1>VocabClient</h1>
+                </div>
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="searchInput" placeholder="Search words..." value="chirp">
+                    <button id="searchBtn">Search</button>
+                </div>
+            </div>
+            
+            <div class="list-controls">
+                <div class="list-selector">
+                    <label for="curriculumList">Curriculum:</label>
+                    <select id="curriculumList">
+                        <option value="">-- Select a List --</option>
+                        <option value="1500_Essential_Words">1500 Essential Words</option>
+                        <option value="Electrical_Engineering">Electrical Engineering</option>
+                        <option value="Electronics">Electronics</option>
+                        <option value="GRE">GRE</option>
+                        <option value="IELTS">IELTS</option>
+                        <option value="Idioms">Idioms</option>
+                        <option value="Phrasal_Verbs">Phrasal Verbs</option>
+                        <option value="TOEFL">TOEFL</option>
+                    </select>
+                </div>
+                <div class="list-nav" style="display: none;" id="listNav">
+                    <button id="prevBtn" class="nav-btn"><i class="fa-solid fa-chevron-left"></i> Prev</button>
+                    <span id="wordProgress" class="word-progress">Word 1 of 100</span>
+                    <button id="nextBtn" class="nav-btn">Next <i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="word-view" id="wordView">
+            <!-- Dynamically populated by JS -->
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading word data...</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- HTML Template for Word Card -->
+    <template id="wordTemplate">
+        <section class="word-hero glass-panel">
+            <div class="word-header">
+                <h2 class="word-title"></h2>
+                <button class="play-btn" aria-label="Play pronunciation">
+                    <i class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
+            <div class="word-meta">
+                <span class="phonetic"></span>
+                <span class="part-of-speech"></span>
+            </div>
+            <div class="translation-box">
+                <i class="fa-solid fa-language"></i>
+                <span class="translation-text"></span>
+            </div>
+        </section>
+
+        <section class="definitions-section">
+            <h3>Definitions</h3>
+            <ul class="definitions-list"></ul>
+        </section>
+
+        <section class="media-section">
+            <h3>Examples in Context</h3>
+            <div class="media-grid"></div>
+        </section>
+    </template>
+
+    <script src="app.js"></script>
+</body>
+</html>

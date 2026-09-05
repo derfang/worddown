@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /config/secrets {
+      // ONLY allow reading if the user is logged in, and their UID is inside the approvedUsers array
+      allow read: if request.auth != null && (request.auth.uid in resource.data.approvedUsers);
+      allow write: if false; 
+    }
+    
+    // Default fallback
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

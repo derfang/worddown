@@ -1,0 +1,1 @@
+import 'dart:convert'; import 'dart:io'; void main() { var file = File('assets/word_dictionary.json'); var json = jsonDecode(file.readAsStringSync()) as List; for(int i=0; i<10; i++) { print(json[i]['w']); } }
