@@ -37,12 +37,24 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pop(context);
       }
     } on FirebaseAuthException catch (e) {
+      String msg;
+      if (e.code == 'user-not-found') {
+        msg = 'No user found for that email address.';
+      } else if (e.code == 'wrong-password') {
+        msg = 'Incorrect password. Please try again.';
+      } else if (e.code == 'invalid-email') {
+        msg = 'The email address format is invalid.';
+      } else if (e.code == 'network-request-failed') {
+        msg = 'Network connection failed. Please check your internet or VPN.';
+      } else {
+        msg = _formatCleanError(e.message ?? e.toString());
+      }
       setState(() {
-        _errorMessage = '[${e.code}] ${e.message ?? 'An error occurred'}';
+        _errorMessage = msg;
       });
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = _formatCleanError(e.toString());
       });
     } finally {
       if (mounted) {
@@ -51,6 +63,24 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     }
+  }
+
+  String _formatCleanError(String raw) {
+    if (raw.contains('403') ||
+        raw.contains('Forbidden') ||
+        raw.contains('verifyPassword') ||
+        raw.contains('DOCTYPE') ||
+        raw.contains('Json conversion failed') ||
+        raw.contains('permission to get URL')) {
+      return 'Connection blocked by Google (403 Forbidden).\nPlease turn on your VPN (filter-breaker) or anti-sanction DNS (e.g. Shecan) and try again.';
+    }
+    if (raw.contains('network') ||
+        raw.contains('SocketException') ||
+        raw.contains('TimeoutException') ||
+        raw.contains('ClientException')) {
+      return 'Network connection failed. Please check your internet or VPN.';
+    }
+    return raw;
   }
 
   @override

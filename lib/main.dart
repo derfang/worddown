@@ -100,11 +100,16 @@ class _SplashLoadingScreenState extends State<SplashLoadingScreen> {
             throw Exception('Secret keys not found in database.');
           }
         } catch (e) {
-          print('Access Denied or Error: ');
+          print('Access Denied or Error: $e');
           await FirebaseAuth.instance.signOut();
           if (mounted) {
+             String alert = 'Access Denied. You are not on the approved list.';
+             final errStr = e.toString();
+             if (errStr.contains('network') || errStr.contains('unavailable') || errStr.contains('403') || errStr.contains('timeout')) {
+               alert = 'Connection error fetching keys. Please check your VPN/internet connection.';
+             }
              ScaffoldMessenger.of(context).showSnackBar(
-               SnackBar(content: Text('Access Denied. You are not on the approved list.')),
+               SnackBar(content: Text(alert)),
              );
              Navigator.of(context).pushReplacement(
                MaterialPageRoute(builder: (_) => LoginScreen()),
