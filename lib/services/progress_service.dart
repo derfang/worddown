@@ -76,7 +76,10 @@ class ProgressService {
     final dir = await _getAppDir();
     final primaryFile = File('$dir/$filename');
     if (await primaryFile.exists()) {
-      return primaryFile;
+      final len = await primaryFile.length();
+      if (len > 10) {
+        return primaryFile;
+      }
     }
     if (Platform.isAndroid) {
       try {
@@ -84,12 +87,67 @@ class ProgressService {
         if (extDir != null) {
           final extFile = File('${extDir.path}/$filename');
           if (await extFile.exists()) {
-            return extFile;
+            final extLen = await extFile.length();
+            if (extLen > 10) {
+              // Copy over to app documents dir
+              final bytes = await extFile.readAsBytes();
+              await primaryFile.writeAsBytes(bytes);
+              return primaryFile;
+            }
           }
         }
       } catch (_) {}
     }
     return primaryFile;
+  }
+
+  Future<int> importFromExternalStorage() async {
+    int imported = 0;
+    if (Platform.isAndroid) {
+      try {
+        final extDir = await getExternalStorageDirectory();
+        if (extDir != null) {
+          final dir = await _getAppDir();
+          for (var name in [
+            'local_progress.json',
+            'local_known_words.json',
+            'local_to_learn.json',
+            'local_preferred_images.json'
+          ]) {
+            final src = File('${extDir.path}/$name');
+            if (await src.exists()) {
+              final len = await src.length();
+              if (len > 10) {
+                final dst = File('$dir/$name');
+                await dst.writeAsBytes(await src.readAsBytes());
+                imported++;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        print('Error importing from external: $e');
+      }
+    }
+    if (imported > 0) {
+      await _loadKnownWords();
+      await _loadToLearnWords();
+      await _loadPreferredImages();
+      final pFile = await _getFile();
+      if (await pFile.exists()) {
+        final jsonString = await pFile.readAsString();
+        if (jsonString.isNotEmpty) {
+          final List<dynamic> data = json.decode(jsonString);
+          _progressMap.clear();
+          for (var item in data) {
+            final p = WordProgress.fromJson(item);
+            _progressMap[p.wordId] = p;
+          }
+        }
+      }
+      await SyncService().forceSyncUp();
+    }
+    return imported;
   }
 
   Future<File> _getSaveFile(String filename) async {

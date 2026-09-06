@@ -214,6 +214,25 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
               ),
             ],
           ),
+          SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final count = await _progress.importFromExternalStorage();
+              if (mounted) {
+                setState(() {});
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(count > 0 ? 'Successfully imported $count database files & synced to cloud!' : 'No backup files found to import.')),
+                );
+              }
+            },
+            icon: Icon(Icons.file_download, color: Colors.greenAccent),
+            label: Text('Import Local Backup & Push to Cloud', style: TextStyle(color: Colors.greenAccent)),
+            style: OutlinedButton.styleFrom(
+              padding: EdgeInsets.symmetric(vertical: 14),
+              side: BorderSide(color: Colors.greenAccent.withValues(alpha: 0.5)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
           SizedBox(height: 20),
 
           // Diagnostic Log Section
