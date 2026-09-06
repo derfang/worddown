@@ -34,30 +34,31 @@ class SyncService {
         final data = doc.data() as Map<String, dynamic>;
         
         if (data.containsKey('progressMap')) {
-          final progressData = data['progressMap'] as Map<String, dynamic>;
+          final progressData = data['progressMap'] as Map;
           for (var entry in progressData.entries) {
-            ProgressService().updateProgressFromCloud(int.parse(entry.key), entry.value);
+            final wordData = Map<String, dynamic>.from(entry.value as Map);
+            ProgressService().updateProgressFromCloud(int.parse(entry.key.toString()), wordData);
           }
         }
         
         if (data.containsKey('knownWords')) {
           final knownData = data['knownWords'] as List<dynamic>;
           for (var wordId in knownData) {
-            ProgressService().addKnownWordFromCloud(wordId as int);
+            ProgressService().addKnownWordFromCloud((wordId as num).toInt());
           }
         }
 
         if (data.containsKey('queuedWords')) {
           final queuedData = data['queuedWords'] as List<dynamic>;
           for (var wordId in queuedData) {
-            ProgressService().addQueuedWordFromCloud(wordId as int);
+            ProgressService().addQueuedWordFromCloud((wordId as num).toInt());
           }
         }
 
         if (data.containsKey('preferredImages')) {
-          final imageData = data['preferredImages'] as Map<String, dynamic>;
+          final imageData = data['preferredImages'] as Map;
           for (var entry in imageData.entries) {
-            ProgressService().addPreferredImageFromCloud(int.parse(entry.key), entry.value.toString());
+            ProgressService().addPreferredImageFromCloud(int.parse(entry.key.toString()), entry.value.toString());
           }
         }
       }

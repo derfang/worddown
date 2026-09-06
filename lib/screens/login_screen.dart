@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../main.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -34,7 +35,9 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
       if (mounted) {
-        Navigator.pop(context);
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => SplashLoadingScreen()),
+        );
       }
     } on FirebaseAuthException catch (e) {
       String msg;
