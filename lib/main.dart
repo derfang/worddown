@@ -19,30 +19,30 @@ void main() {
 class WordDownApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // This perfectly mimics the native Android 12 splash screen for a seamless transition
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      body: Stack(
-        alignment: Alignment.center,
-        children: [
-          // The logo exactly in the center, matching the Android system splash
-          Center(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: Image.asset(
-                'assets/icon.png',
-                width: 144, // Standard Android 12 splash icon size
-                height: 144,
-              ),
-            ),
-          ),
-          // Loading spinner tucked at the bottom so it fades in cleanly
-          Positioned(
-            bottom: 60,
-            child: CircularProgressIndicator(color: const Color(0xFF6366F1)),
-          ),
-        ],
+    return MaterialApp(
+      title: 'word down',
+      themeMode: ThemeMode.dark,
+      darkTheme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: const Color(0xFF0F172A),
+        primaryColor: const Color(0xFF6366F1),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFF6366F1),
+          secondary: Color(0xFF8B5CF6),
+          surface: Color(0xFF1E293B),
+        ),
+        textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+        ),
+        cardTheme: CardThemeData(
+          color: const Color(0xFF1E293B),
+          elevation: 8,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
       ),
+      home: SplashLoadingScreen(),
     );
   }
 }

@@ -19,77 +19,52 @@ class SyncService {
   final ValueNotifier<bool> isSyncing = ValueNotifier(false);
   final ValueNotifier<DateTime?> lastSynced = ValueNotifier(null);
 
+  DocumentReference get _syncDoc {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw Exception('Not logged in');
+    return _firestore.collection('users').doc(user.uid).collection('data').doc('syncData');
+  }
+
   Future<void> _syncDown(String uid) async {
     isSyncing.value = true;
     try {
-      // 1. Pull ProgressMap
-      final progressDocs = await _firestore.collection('users').doc(uid).collection('progressMap').get();
-      final cloudProgressIds = progressDocs.docs.map((d) => int.parse(d.id)).toSet();
-      for (var doc in progressDocs.docs) {
-        final data = doc.data();
-        ProgressService().updateProgressFromCloud(int.parse(doc.id), data);
-      }
-
-      // 2. Pull KnownWords
-      final knownDocs = await _firestore.collection('users').doc(uid).collection('knownWords').get();
-      final cloudKnownIds = knownDocs.docs.map((d) => int.parse(d.id)).toSet();
-      for (var doc in knownDocs.docs) {
-        ProgressService().addKnownWordFromCloud(int.parse(doc.id));
-      }
-
-      // 3. Pull QueuedWords
-      final queuedDocs = await _firestore.collection('users').doc(uid).collection('queuedWords').get();
-      final cloudQueuedIds = queuedDocs.docs.map((d) => int.parse(d.id)).toSet();
-      for (var doc in queuedDocs.docs) {
-        ProgressService().addQueuedWordFromCloud(int.parse(doc.id));
-      }
-
-      // 4. Pull PreferredImages
-      final imageDocs = await _firestore.collection('users').doc(uid).collection('preferredImages').get();
-      final cloudImageIds = imageDocs.docs.map((d) => int.parse(d.id)).toSet();
-      for (var doc in imageDocs.docs) {
-        final data = doc.data();
-        ProgressService().addPreferredImageFromCloud(int.parse(doc.id), data['imageUrl']);
-      }
+      final doc = await _syncDoc.get();
       
-      // Merge logic: Upload anything we have locally that wasn't in the cloud
-      final pService = ProgressService();
-      
-      final List<Future<void> Function()> uploadTasks = [];
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data() as Map<String, dynamic>;
+        
+        if (data.containsKey('progressMap')) {
+          final progressData = data['progressMap'] as Map<String, dynamic>;
+          for (var entry in progressData.entries) {
+            ProgressService().updateProgressFromCloud(int.parse(entry.key), entry.value);
+          }
+        }
+        
+        if (data.containsKey('knownWords')) {
+          final knownData = data['knownWords'] as List<dynamic>;
+          for (var wordId in knownData) {
+            ProgressService().addKnownWordFromCloud(wordId as int);
+          }
+        }
 
-      for (var p in pService.allProgress) {
-        if (!cloudProgressIds.contains(p.wordId)) {
-          uploadTasks.add(() => pushProgress(p.wordId, p.toJson()));
+        if (data.containsKey('queuedWords')) {
+          final queuedData = data['queuedWords'] as List<dynamic>;
+          for (var wordId in queuedData) {
+            ProgressService().addQueuedWordFromCloud(wordId as int);
+          }
+        }
+
+        if (data.containsKey('preferredImages')) {
+          final imageData = data['preferredImages'] as Map<String, dynamic>;
+          for (var entry in imageData.entries) {
+            ProgressService().addPreferredImageFromCloud(int.parse(entry.key), entry.value.toString());
+          }
         }
       }
       
-      for (var wordId in pService.knownWordIds) {
-        if (!cloudKnownIds.contains(wordId)) {
-          uploadTasks.add(() => pushKnownWord(wordId, true));
-        }
-      }
-      
-      for (var wordId in pService.queuedWordsToLearn) {
-        if (!cloudQueuedIds.contains(wordId)) {
-          uploadTasks.add(() => pushQueuedWord(wordId, true));
-        }
-      }
-      
-      for (var entry in pService.preferredImages.entries) {
-        if (!cloudImageIds.contains(entry.key)) {
-          uploadTasks.add(() => pushPreferredImage(entry.key, entry.value));
-        }
-      }
-      
-      // Process uploads in batches of 20 to avoid freezing the app and exhausting sockets
-      const batchSize = 20;
-      for (var i = 0; i < uploadTasks.length; i += batchSize) {
-        final end = (i + batchSize < uploadTasks.length) ? i + batchSize : uploadTasks.length;
-        final batch = uploadTasks.sublist(i, end).map((f) => f());
-        await Future.wait(batch);
-      }
+      // Upload anything local that isn't in cloud yet
+      await _syncUp(uid);
 
-      // Save all changes locally once after syncing everything down
       await ProgressService().saveAllLocal();
     } catch (e) {
       print('Error syncing down from Firestore: $e');
@@ -103,70 +78,71 @@ class SyncService {
     try {
       final pService = ProgressService();
       
-      // We use batching or just rapid async calls because Firestore handles concurrent writes well.
-      // But for simplicity and to avoid hitting limits immediately, we'll just await them in batches or sequentially.
-      
-      for (var wordId in pService.knownWordIds) {
-        await pushKnownWord(wordId, true);
-      }
-      
-      for (var wordId in pService.queuedWordsToLearn) {
-        await pushQueuedWord(wordId, true);
-      }
-      
+      final Map<String, dynamic> progressMapData = {};
       for (var p in pService.allProgress) {
-        await pushProgress(p.wordId, p.toJson());
+        progressMapData[p.wordId.toString()] = p.toJson();
       }
       
+      final Map<String, dynamic> imageData = {};
       for (var entry in pService.preferredImages.entries) {
-        await pushPreferredImage(entry.key, entry.value);
+        imageData[entry.key.toString()] = entry.value;
       }
+      
+      await _syncDoc.set({
+        'progressMap': progressMapData,
+        'knownWords': pService.knownWordIds.toList(),
+        'queuedWords': pService.queuedWordsToLearn.toList(),
+        'preferredImages': imageData,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
       
       lastSynced.value = DateTime.now();
     } catch (e) {
       print('Error syncing up to Firestore: $e');
-    } finally {
-      isSyncing.value = false;
     }
   }
 
   Future<void> pushProgress(int wordId, Map<String, dynamic>? data) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    final docRef = _firestore.collection('users').doc(user.uid).collection('progressMap').doc(wordId.toString());
-    if (data == null) {
-      await docRef.delete();
-    } else {
-      await docRef.set(data);
-    }
+    try {
+      if (data == null) {
+        await _syncDoc.set({
+          'progressMap': {
+            wordId.toString(): FieldValue.delete()
+          }
+        }, SetOptions(merge: true));
+      } else {
+        await _syncDoc.set({
+          'progressMap': {
+            wordId.toString(): data
+          }
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {}
   }
 
   Future<void> pushKnownWord(int wordId, bool isKnown) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    final docRef = _firestore.collection('users').doc(user.uid).collection('knownWords').doc(wordId.toString());
-    if (isKnown) {
-      await docRef.set({'addedAt': FieldValue.serverTimestamp()});
-    } else {
-      await docRef.delete();
-    }
+    try {
+      await _syncDoc.set({
+        'knownWords': isKnown ? FieldValue.arrayUnion([wordId]) : FieldValue.arrayRemove([wordId])
+      }, SetOptions(merge: true));
+    } catch (e) {}
   }
 
   Future<void> pushQueuedWord(int wordId, bool isQueued) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    final docRef = _firestore.collection('users').doc(user.uid).collection('queuedWords').doc(wordId.toString());
-    if (isQueued) {
-      await docRef.set({'addedAt': FieldValue.serverTimestamp()});
-    } else {
-      await docRef.delete();
-    }
+    try {
+      await _syncDoc.set({
+        'queuedWords': isQueued ? FieldValue.arrayUnion([wordId]) : FieldValue.arrayRemove([wordId])
+      }, SetOptions(merge: true));
+    } catch (e) {}
   }
 
   Future<void> pushPreferredImage(int wordId, String imageUrl) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    final docRef = _firestore.collection('users').doc(user.uid).collection('preferredImages').doc(wordId.toString());
-    await docRef.set({'imageUrl': imageUrl});
+    try {
+      await _syncDoc.set({
+        'preferredImages': {
+          wordId.toString(): imageUrl
+        }
+      }, SetOptions(merge: true));
+    } catch (e) {}
   }
 }

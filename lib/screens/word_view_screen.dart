@@ -48,11 +48,24 @@ class _WordViewScreenState extends State<WordViewScreen> {
   bool _isLoading = true;
   String _error = '';
   bool _isGridView = defaultTargetPlatform != TargetPlatform.android;
+  bool _lastIsUk = false;
+  String? _currentlyPlayingTextId;
+  bool _isSentenceLoading = false;
   Map<String, int> _learningWords = {};
 
   @override
   void initState() {
     super.initState();
+    _audioPlayer.onPlayerStateChanged.listen((state) {
+      if (state == PlayerState.completed || state == PlayerState.stopped) {
+        if (mounted) {
+          setState(() {
+            _currentlyPlayingTextId = null;
+            _isSentenceLoading = false;
+          });
+        }
+      }
+    });
     _loadData();
     _learningWords = _getLearningWords();
   }
@@ -116,6 +129,61 @@ class _WordViewScreenState extends State<WordViewScreen> {
     }
   }
 
+
+  Future<void> _playSentence(String text, String id) async {
+    if (_currentlyPlayingTextId == id && !_isSentenceLoading) {
+      await _audioPlayer.stop();
+      setState(() {
+        _currentlyPlayingTextId = null;
+      });
+      return;
+    }
+    await _audioPlayer.stop();
+    setState(() {
+      _currentlyPlayingTextId = id;
+      _isSentenceLoading = true;
+    });
+    try {
+      final path = await WordupApi.getSentenceAudioPath(text, isUk: _lastIsUk);
+      if (path.startsWith('http')) {
+        await _audioPlayer.play(UrlSource(path));
+      } else {
+        await _audioPlayer.play(DeviceFileSource(path));
+      }
+      if (mounted) {
+        setState(() {
+          _isSentenceLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _currentlyPlayingTextId = null;
+          _isSentenceLoading = false;
+        });
+      }
+    }
+  }
+
+  Widget _buildInlineAudioButton(String text, String id) {
+    if (_currentlyPlayingTextId == id) {
+      if (_isSentenceLoading) {
+        return const Padding(
+          padding: EdgeInsets.all(12.0),
+          child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+        );
+      } else {
+        return IconButton(
+          icon: const Icon(Icons.stop_circle_outlined, color: Colors.redAccent),
+          onPressed: () => _playSentence(text, id),
+        );
+      }
+    }
+    return IconButton(
+      icon: Icon(Icons.volume_up_outlined, color: Theme.of(context).colorScheme.primary),
+      onPressed: () => _playSentence(text, id),
+    );
+  }
   Future<void> _playVideo(WordVideo video) async {
     // Dispose existing controllers
     _webviewController?.dispose();
@@ -385,6 +453,7 @@ class _WordViewScreenState extends State<WordViewScreen> {
   }
 
   Future<void> _playAudio({required bool isUk, required bool useGoogleTts}) async {
+    setState(() { _lastIsUk = isUk; if (_currentlyPlayingTextId != null) { _audioPlayer.stop(); _currentlyPlayingTextId = null; } });
     try {
       final path = await WordupApi.getAudioPath(
         widget.wordId.toString(), 
@@ -870,12 +939,19 @@ class _WordViewScreenState extends State<WordViewScreen> {
                       border: Border(left: BorderSide(color: Colors.blueAccent, width: 4)),
                       color: Colors.blueAccent.withOpacity(0.1),
                     ),
-                    child: HighlightText(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: HighlightText(
                       text: '"$w"',
                       selfWord: widget.wordText?.toLowerCase() ?? '',
                       learningWords: _learningWords,
                       onWordTap: _onWordTap,
                       normalStyle: TextStyle(fontStyle: FontStyle.italic, color: Colors.white, fontSize: 15, height: 1.4),
+                    ),
+                        ),
+                        _buildInlineAudioButton(w, 'wisdom_${w.hashCode}'),
+                      ],
                     ),
                   )).toList(),
                 ],
@@ -897,12 +973,19 @@ class _WordViewScreenState extends State<WordViewScreen> {
                         Icon(Icons.lightbulb_outline, color: Colors.greenAccent, size: 20),
                         SizedBox(width: 12),
                         Expanded(
-                          child: HighlightText(
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: HighlightText(
                             text: f,
                             selfWord: widget.wordText?.toLowerCase() ?? '',
                             learningWords: _learningWords,
                           onWordTap: _onWordTap,
                             normalStyle: TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
+                          ),
+                              ),
+                              _buildInlineAudioButton(f, 'fact_${f.hashCode}'),
+                            ],
                           ),
                         ),
                       ],
@@ -929,7 +1012,13 @@ class _WordViewScreenState extends State<WordViewScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.format_quote_rounded, color: theme.colorScheme.primary, size: 32),
+                        Row(
+                          children: [
+                            Icon(Icons.format_quote_rounded, color: theme.colorScheme.primary, size: 32),
+                            Spacer(),
+                            _buildInlineAudioButton(quote.text, 'quote_${quote.text.hashCode}'),
+                          ],
+                        ),
                         SizedBox(height: 8),
                         HighlightText(
                           text: '"${quote.text}"',
@@ -1172,6 +1261,7 @@ class _WordViewScreenState extends State<WordViewScreen> {
                   normalStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: Colors.white, height: 1.4),
                 ),
               ),
+              _buildInlineAudioButton(sense.de, 'sense_${sense.de.hashCode}'),
             ],
           ),
           if (sense.ex.isNotEmpty) ...[
@@ -1182,12 +1272,19 @@ class _WordViewScreenState extends State<WordViewScreen> {
                 border: Border(left: BorderSide(color: theme.colorScheme.primary, width: 3)),
                 color: Colors.black.withOpacity(0.2),
               ),
-              child: HighlightText(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: HighlightText(
                 text: '"${sense.ex}"',
                 selfWord: widget.wordText?.toLowerCase() ?? '',
                 learningWords: _learningWords,
                 onWordTap: _onWordTap,
                 normalStyle: TextStyle(fontStyle: FontStyle.italic, color: Colors.white70, fontSize: 15, height: 1.4),
+              ),
+                  ),
+                  _buildInlineAudioButton(sense.ex, 'ex_${sense.ex.hashCode}'),
+                ],
               ),
             ),
           ],

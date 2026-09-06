@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'encryption_service.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
@@ -240,4 +241,25 @@ class WordupApi {
       throw Exception('Dictionary audio not found for this accent');
     }
   }
+
+  static Future<String> getSentenceAudioPath(String text, {required bool isUk}) async {
+    final lang = isUk ? 'en-uk' : 'en-us';
+    // Use Google TTS for sentences since dictionary APIs only work well for single words
+    final urlString = '${EncryptionService.decryptString('GMYdOcvHclMrN1/WjlGrHmOwZw4A0OLl4lrHfVFiDFo5ADRT1LBAE6dONVg+MdLjfWI2EojCarPcBZiHivvBCA==')}$lang&client=tw-ob&q=${Uri.encodeComponent(text)}';
+    
+    if (kIsWeb) return urlString;
+    
+    final hash = md5.convert(utf8.encode(text)).toString();
+    final file = await _getLocalFile('sentence_${hash}_$lang.mp3');
+    
+    if (await file.exists()) return file.path;
+    
+    final response = await http.get(Uri.parse(urlString));
+    if (response.statusCode == 200) {
+      await file.writeAsBytes(response.bodyBytes);
+      return file.path;
+    }
+    throw Exception('Failed to load sentence TTS audio');
+  }
+
 }
