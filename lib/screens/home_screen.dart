@@ -8,6 +8,7 @@ import 'word_list_screen.dart';
 import '../services/progress_service.dart';
 import '../services/sync_service.dart';
 import 'learning_session_screen.dart';
+import 'sync_status_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -160,35 +161,38 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          ValueListenableBuilder<bool>(
-            valueListenable: SyncService().isSyncing,
-            builder: (context, isSyncing, child) {
-              if (isSyncing) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Center(
-                    child: SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
-                      ),
-                    ),
-                  ),
-                );
-              }
-              return ValueListenableBuilder<DateTime?>(
-                valueListenable: SyncService().lastSynced,
-                builder: (context, lastSynced, child) {
-                  if (lastSynced == null) return SizedBox.shrink();
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Icon(Icons.cloud_done, size: 20, color: Colors.greenAccent),
-                  );
-                },
+          IconButton(
+            tooltip: 'Cloud Sync Diagnostics',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SyncStatusScreen()),
               );
             },
+            icon: ValueListenableBuilder<bool>(
+              valueListenable: SyncService().isSyncing,
+              builder: (context, isSyncing, child) {
+                if (isSyncing) {
+                  return SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                    ),
+                  );
+                }
+                return ValueListenableBuilder<DateTime?>(
+                  valueListenable: SyncService().lastSynced,
+                  builder: (context, lastSynced, child) {
+                    if (lastSynced == null) {
+                      return Icon(Icons.cloud_queue, size: 22, color: Colors.white60);
+                    }
+                    return Icon(Icons.cloud_done, size: 22, color: Colors.greenAccent);
+                  },
+                );
+              },
+            ),
           ),
           IconButton(
             icon: Icon(Icons.settings),

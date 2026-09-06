@@ -18,6 +18,16 @@ class SyncService {
   
   final ValueNotifier<bool> isSyncing = ValueNotifier(false);
   final ValueNotifier<DateTime?> lastSynced = ValueNotifier(null);
+  final ValueNotifier<String?> lastError = ValueNotifier(null);
+  final ValueNotifier<String> syncStatus = ValueNotifier('Idle');
+  final List<String> logs = [];
+
+  void addLog(String message) {
+    final time = DateTime.now().toIso8601String().substring(11, 19);
+    logs.add('[$time] $message');
+    if (logs.length > 60) logs.removeAt(0);
+    debugPrint('SyncService: $message');
+  }
 
   DocumentReference get _syncDoc {
     final user = FirebaseAuth.instance.currentUser;
@@ -25,13 +35,48 @@ class SyncService {
     return _firestore.collection('users').doc(user.uid).collection('data').doc('syncData');
   }
 
+  Future<void> forceSyncDown() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      lastError.value = 'Not logged in';
+      addLog('Sync aborted: User not logged in');
+      return;
+    }
+    await _syncDown(user.uid);
+  }
+
+  Future<void> forceSyncUp() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      lastError.value = 'Not logged in';
+      addLog('Upload aborted: User not logged in');
+      return;
+    }
+    isSyncing.value = true;
+    syncStatus.value = 'Uploading to Cloud...';
+    try {
+      await _syncUp(user.uid);
+      addLog('Upload completed successfully!');
+      lastError.value = null;
+    } catch (e) {
+      lastError.value = e.toString();
+      addLog('Upload failed: $e');
+    } finally {
+      isSyncing.value = false;
+      syncStatus.value = 'Idle';
+    }
+  }
+
   Future<void> _syncDown(String uid) async {
     isSyncing.value = true;
+    syncStatus.value = 'Downloading from Cloud...';
+    addLog('Connecting to cloud (users/$uid/data/syncData)...');
     try {
       final doc = await _syncDoc.get();
       
       if (doc.exists && doc.data() != null) {
         final data = doc.data() as Map<String, dynamic>;
+        addLog('Found cloud syncData document. Processing keys: ${data.keys.toList()}');
         
         if (data.containsKey('progressMap')) {
           final progressData = data['progressMap'] as Map;
@@ -39,6 +84,7 @@ class SyncService {
             final wordData = Map<String, dynamic>.from(entry.value as Map);
             ProgressService().updateProgressFromCloud(int.parse(entry.key.toString()), wordData);
           }
+          addLog('Loaded ${progressData.length} progress entries from cloud');
         }
         
         if (data.containsKey('knownWords')) {
@@ -46,6 +92,7 @@ class SyncService {
           for (var wordId in knownData) {
             ProgressService().addKnownWordFromCloud((wordId as num).toInt());
           }
+          addLog('Loaded ${knownData.length} known words from cloud');
         }
 
         if (data.containsKey('queuedWords')) {
@@ -53,6 +100,7 @@ class SyncService {
           for (var wordId in queuedData) {
             ProgressService().addQueuedWordFromCloud((wordId as num).toInt());
           }
+          addLog('Loaded ${queuedData.length} queued words from cloud');
         }
 
         if (data.containsKey('preferredImages')) {
@@ -61,16 +109,25 @@ class SyncService {
             ProgressService().addPreferredImageFromCloud(int.parse(entry.key.toString()), entry.value.toString());
           }
         }
+        lastError.value = null;
+      } else {
+        addLog('Cloud syncData document does not exist yet for this user.');
       }
       
       // Upload anything local that isn't in cloud yet
+      addLog('Performing syncUp merge...');
       await _syncUp(uid);
 
       await ProgressService().saveAllLocal();
+      addLog('Sync down and local save finished successfully.');
+      lastError.value = null;
     } catch (e) {
+      lastError.value = e.toString();
+      addLog('Error during syncDown: $e');
       print('Error syncing down from Firestore: $e');
     } finally {
       isSyncing.value = false;
+      syncStatus.value = 'Idle';
       lastSynced.value = DateTime.now();
     }
   }

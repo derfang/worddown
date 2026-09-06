@@ -72,25 +72,35 @@ class ProgressService {
     return dir.path;
   }
 
-  Future<File> _getFile() async {
+  Future<File> _resolveFile(String filename) async {
     final dir = await _getAppDir();
-    return File('$dir/local_progress.json');
+    final primaryFile = File('$dir/$filename');
+    if (await primaryFile.exists()) {
+      return primaryFile;
+    }
+    if (Platform.isAndroid) {
+      try {
+        final extDir = await getExternalStorageDirectory();
+        if (extDir != null) {
+          final extFile = File('${extDir.path}/$filename');
+          if (await extFile.exists()) {
+            return extFile;
+          }
+        }
+      } catch (_) {}
+    }
+    return primaryFile;
   }
 
-  Future<File> _getKnownWordsFile() async {
+  Future<File> _getSaveFile(String filename) async {
     final dir = await _getAppDir();
-    return File('$dir/local_known_words.json');
+    return File('$dir/$filename');
   }
 
-  Future<File> _getToLearnFile() async {
-    final dir = await _getAppDir();
-    return File('$dir/local_to_learn.json');
-  }
-
-  Future<File> _getPreferredImagesFile() async {
-    final dir = await _getAppDir();
-    return File('$dir/local_preferred_images.json');
-  }
+  Future<File> _getFile() => _resolveFile('local_progress.json');
+  Future<File> _getKnownWordsFile() => _resolveFile('local_known_words.json');
+  Future<File> _getToLearnFile() => _resolveFile('local_to_learn.json');
+  Future<File> _getPreferredImagesFile() => _resolveFile('local_preferred_images.json');
 
   Future<void> _loadKnownWords() async {
     try {
@@ -99,7 +109,7 @@ class ProgressService {
         final content = await file.readAsString();
         if (content.isNotEmpty) {
           final List<dynamic> data = json.decode(content);
-          _knownWordIds = data.map((e) => e as int).toSet();
+          _knownWordIds = data.map((e) => (e as num).toInt()).toSet();
         }
       }
     } catch (e) {
@@ -108,7 +118,7 @@ class ProgressService {
   }
 
   Future<void> _saveKnownWords() async {
-    final file = await _getKnownWordsFile();
+    final file = await _getSaveFile('local_known_words.json');
     await file.writeAsString(json.encode(_knownWordIds.toList()));
   }
 
@@ -119,7 +129,7 @@ class ProgressService {
         final content = await file.readAsString();
         if (content.isNotEmpty) {
           final List<dynamic> data = json.decode(content);
-          _queuedWordsToLearn = data.map((e) => e as int).toSet();
+          _queuedWordsToLearn = data.map((e) => (e as num).toInt()).toSet();
         }
       }
     } catch (e) {
@@ -128,7 +138,7 @@ class ProgressService {
   }
 
   Future<void> _saveToLearnWords() async {
-    final file = await _getToLearnFile();
+    final file = await _getSaveFile('local_to_learn.json');
     await file.writeAsString(json.encode(_queuedWordsToLearn.toList()));
   }
 
@@ -148,7 +158,7 @@ class ProgressService {
   }
 
   Future<void> _savePreferredImages() async {
-    final file = await _getPreferredImagesFile();
+    final file = await _getSaveFile('local_preferred_images.json');
     await file.writeAsString(json.encode(_preferredImages.map((key, value) => MapEntry(key.toString(), value))));
   }
 
@@ -196,7 +206,7 @@ class ProgressService {
   }
 
   Future<void> save() async {
-    final file = await _getFile();
+    final file = await _getSaveFile('local_progress.json');
     final data = _progressMap.values.map((p) => p.toJson()).toList();
     await file.writeAsString(json.encode(data));
   }
