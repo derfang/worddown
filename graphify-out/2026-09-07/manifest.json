@@ -252,9 +252,9 @@
     "semantic_hash": ""
   },
   "lib/screens/word_view_screen.dart": {
-    "mtime": 1788801147.4892771,
-    "seen": 1788801196.3197143,
-    "ast_hash": "cebbf20ca52cdf18af089325779c490e",
+    "mtime": 1788795448.8068585,
+    "seen": 1788799836.040276,
+    "ast_hash": "0ee79693d78bb7e56296f224a09cc611",
     "semantic_hash": ""
   },
   "lib/services/database_service.dart": {
@@ -294,9 +294,9 @@
     "semantic_hash": ""
   },
   "lib/services/wordup_api.dart": {
-    "mtime": 1788801180.103573,
-    "seen": 1788801196.3197143,
-    "ast_hash": "0d304c390e5441cccc8ab67315f0401b",
+    "mtime": 1788795271.3844626,
+    "seen": 1788799836.040276,
+    "ast_hash": "37185b4d05cf14386019812ac1f3329e",
     "semantic_hash": ""
   },
   "lib/stubs/webview_windows_stub.dart": {
@@ -773,6 +773,12 @@
     "ast_hash": "9e65f4b9beebb674c0dc252f70a5c177",
     "semantic_hash": ""
   },
+  "build_log.txt": {
+    "mtime": 1788179608.6131282,
+    "seen": 1788528900.736998,
+    "ast_hash": "39ee8703de5acde48aba28899f19db41",
+    "semantic_hash": ""
+  },
   "devtools_options.yaml": {
     "mtime": 1788440907.9997616,
     "seen": 1788528900.736998,
@@ -1185,6 +1191,12 @@
     "mtime": 1788289178.1763127,
     "seen": 1788528900.736998,
     "ast_hash": "99429692216691842a320785fa68a5b1",
+    "semantic_hash": ""
+  },
+  "test_tts.mp3": {
+    "mtime": 1788190660.4400814,
+    "seen": 1788528900.736998,
+    "ast_hash": "fcd684cea67747adeb01f39da75f5254",
     "semantic_hash": ""
   },
   "test/subtitle_highlight_test.dart": {

@@ -17,6 +17,10 @@ class SettingsService {
   bool enableExampleQuestion = true;
   bool enableMisspellingQuestion = true;
 
+  // TTS Providers
+  bool enableEdgeTts = true;
+  bool enableGoogleTts = true;
+
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     
@@ -28,6 +32,13 @@ class SettingsService {
     enableAntonymQuestion = _prefs.getBool('enableAntonymQuestion') ?? true;
     enableExampleQuestion = _prefs.getBool('enableExampleQuestion') ?? true;
     enableMisspellingQuestion = _prefs.getBool('enableMisspellingQuestion') ?? true;
+
+    enableEdgeTts = _prefs.getBool('enableEdgeTts') ?? true;
+    enableGoogleTts = _prefs.getBool('enableGoogleTts') ?? true;
+    // Ensure at least one is enabled if both were somehow false
+    if (!enableEdgeTts && !enableGoogleTts) {
+      enableEdgeTts = true;
+    }
   }
 
   Future<void> setMeaningQuestion(bool val) async {
@@ -68,5 +79,23 @@ class SettingsService {
   Future<void> setMisspellingQuestion(bool val) async {
     enableMisspellingQuestion = val;
     await _prefs.setBool('enableMisspellingQuestion', val);
+  }
+
+  Future<bool> setEdgeTts(bool val) async {
+    if (!val && !enableGoogleTts) {
+      return false; // Prevent disabling all providers
+    }
+    enableEdgeTts = val;
+    await _prefs.setBool('enableEdgeTts', val);
+    return true;
+  }
+
+  Future<bool> setGoogleTts(bool val) async {
+    if (!val && !enableEdgeTts) {
+      return false; // Prevent disabling all providers
+    }
+    enableGoogleTts = val;
+    await _prefs.setBool('enableGoogleTts', val);
+    return true;
   }
 }

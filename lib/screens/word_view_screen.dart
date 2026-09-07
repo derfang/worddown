@@ -1,7 +1,10 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../services/wordup_api.dart';
 import '../services/firebase_service.dart';
@@ -19,6 +22,8 @@ import 'package:webview_windows/webview_windows.dart'
     if (dart.library.js_interop) '../stubs/webview_windows_stub.dart'
     if (dart.library.js) '../stubs/webview_windows_stub.dart';
 
+enum WordCardLayout { list, grid, slide }
+
 class WordViewScreen extends StatefulWidget {
   final int wordId;
   final String? wordText;
@@ -29,12 +34,13 @@ class WordViewScreen extends StatefulWidget {
   _WordViewScreenState createState() => _WordViewScreenState();
 }
 
-class _WordViewScreenState extends State<WordViewScreen> {
+class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProviderStateMixin {
   WordData? _wordData;
   WordProgress? _progress;
   bool _isKnown = false;
   bool _isQueued = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
+  late AnimationController _shimmerController;
   
   WordVideo? _playingVideo;
   // Windows video controller
@@ -47,7 +53,11 @@ class _WordViewScreenState extends State<WordViewScreen> {
 
   bool _isLoading = true;
   String _error = '';
-  bool _isGridView = defaultTargetPlatform != TargetPlatform.android;
+  static WordCardLayout _cardLayout = defaultTargetPlatform == TargetPlatform.android
+      ? WordCardLayout.slide
+      : WordCardLayout.grid;
+  static bool _isShuffledContent = true;
+  int _shuffleSeedOffset = 0;
   bool _lastIsUk = false;
   String? _currentlyPlayingTextId;
   bool _isSentenceLoading = false;
@@ -56,6 +66,16 @@ class _WordViewScreenState extends State<WordViewScreen> {
   @override
   void initState() {
     super.initState();
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
+
+    // Initialize progress and status immediately from local state
+    _progress = ProgressService().getProgress(widget.wordId);
+    _isKnown = ProgressService().knownWordIds.contains(widget.wordId);
+    _isQueued = ProgressService().isInLearningQueue(widget.wordId);
+
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (state == PlayerState.completed || state == PlayerState.stopped) {
         if (mounted) {
@@ -95,6 +115,7 @@ class _WordViewScreenState extends State<WordViewScreen> {
 
   @override
   void dispose() {
+    _shimmerController.dispose();
     _webviewController?.dispose();
     _chewieController?.dispose();
     _videoPlayerController?.dispose();
@@ -102,30 +123,115 @@ class _WordViewScreenState extends State<WordViewScreen> {
     super.dispose();
   }
 
+  Map<String, dynamic>? _pendingZannData;
+
   Future<void> _loadData() async {
     try {
-      final json = await WordupApi.fetchWordData(widget.wordId.toString(), wordText: widget.wordText);
+      final json = await WordupApi.fetchWordData(
+        widget.wordId.toString(),
+        wordText: widget.wordText,
+        onExtraDataLoaded: (extraData) {
+          if (mounted) {
+            if (_wordData != null) {
+              setState(() {
+                _mergeZannData(extraData);
+              });
+            } else {
+              _pendingZannData = extraData;
+            }
+          }
+        },
+      );
       final progress = ProgressService().getProgress(widget.wordId);
       final isKnown = ProgressService().knownWordIds.contains(widget.wordId);
       
       final data = WordData.fromJson(widget.wordId, json);
+      if (_pendingZannData != null) {
+        _wordData = data;
+        _mergeZannData(_pendingZannData!);
+        _pendingZannData = null;
+      }
       MediaCacheService.cacheWordMedia(widget.wordId, data);
       
-      setState(() {
-        _wordData = data;
-        _progress = progress;
-        _isKnown = isKnown;
-        _isQueued = ProgressService().isInLearningQueue(widget.wordId);
-        _isLoading = false;
-      });
-      
-      // Autoplay the audio when the word loads
-      _playAudio(isUk: false, useGoogleTts: false);
+      if (mounted) {
+        setState(() {
+          _wordData = data;
+          _progress = progress;
+          _isKnown = isKnown;
+          _isQueued = ProgressService().isInLearningQueue(widget.wordId);
+          _isLoading = false;
+        });
+        
+        // Autoplay the audio when the word loads
+        _playAudio(isUk: false, useGoogleTts: false);
+      }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _mergeZannData(Map<String, dynamic> extraData) {
+    if (_wordData == null) return;
+
+    // 1. Merge Quotes
+    if (extraData['ZannQuotes'] != null) {
+      final List zannQuotes = extraData['ZannQuotes'] as List;
+      for (var zq in zannQuotes) {
+        final text = zq['Text']?.toString() ?? '';
+        final imageSrc = zq['ImageSrc']?.toString() ?? '';
+        if (imageSrc.isNotEmpty) {
+          for (var q in _wordData!.quotes) {
+            if (text.contains(q.text) || q.text.contains(text) || q.authorName == zq['Name']) {
+              q.imageUrl = imageSrc;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // 2. Merge Senses & Tips Images
+    final zannSenses = extraData['ZannSenses'] as List?;
+    String? mainImageUrl = extraData['ZannWordImage']?.toString();
+    
+    if (zannSenses != null && zannSenses.isNotEmpty) {
+      if (mainImageUrl == null || mainImageUrl.isEmpty) {
+        mainImageUrl = zannSenses.first['ImageSrc']?.toString();
+      }
+      if (_wordData!.imageUrl == null || _wordData!.imageUrl!.isEmpty) {
+        _wordData!.imageUrl = mainImageUrl;
+      }
+
+      for (var sense in _wordData!.senses) {
+        final zSenseList = zannSenses.cast<Map<String, dynamic>>().where((s) => s['id'] == sense.id).toList();
+        if (zSenseList.isNotEmpty) {
+          final zSense = zSenseList.first;
+          final img = zSense['ImageSrc']?.toString();
+          if (img != null && img.isNotEmpty) {
+            sense.imageUrl = img;
+          }
+
+          final zTips = zSense['Tips'] as List?;
+          if (zTips != null) {
+            for (int i = 0; i < sense.tips.length; i++) {
+              if (i < zTips.length) {
+                final tipImg = zTips[i]['imageUrl']?.toString();
+                if (tipImg != null && tipImg.isNotEmpty) {
+                  sense.tips[i].imageUrl = tipImg;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Cache newly retrieved images to disk in background
+      MediaCacheService.cacheWordMedia(widget.wordId, _wordData!);
     }
   }
 
@@ -480,40 +586,36 @@ class _WordViewScreenState extends State<WordViewScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    if (_isLoading) {
+    if (_error.isNotEmpty && _wordData == null) {
       return Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        body: Center(child: CircularProgressIndicator(color: theme.colorScheme.primary)),
-      );
-    }
-    if (_error.isNotEmpty) {
-      return Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: Center(child: Text(_error, style: TextStyle(color: Colors.white))),
+        body: Center(child: Text(_error, style: const TextStyle(color: Colors.white))),
       );
     }
     
-    final data = _wordData!;
+    final data = _wordData;
 
     List<String> availableImages = [];
-    if (data.imageUrl != null && data.imageUrl!.isNotEmpty) {
-      availableImages.add(data.imageUrl!);
-    }
-    for (var sense in data.senses) {
-      if (sense.imageUrl != null && sense.imageUrl!.isNotEmpty) availableImages.add(sense.imageUrl!);
-      for (var tip in sense.tips) {
-        if (tip.imageUrl != null && tip.imageUrl!.isNotEmpty) availableImages.add(tip.imageUrl!);
-      }
-    }
-    availableImages = availableImages.toSet().toList();
-
-    String? preferredUrl = ProgressService().getPreferredImage(widget.wordId);
     String? displayImageUrl;
-    if (availableImages.isNotEmpty) {
-      if (preferredUrl != null && availableImages.contains(preferredUrl)) {
-        displayImageUrl = preferredUrl;
-      } else {
-        displayImageUrl = availableImages.first;
+    if (data != null) {
+      if (data.imageUrl != null && data.imageUrl!.isNotEmpty) {
+        availableImages.add(data.imageUrl!);
+      }
+      for (var sense in data.senses) {
+        if (sense.imageUrl != null && sense.imageUrl!.isNotEmpty) availableImages.add(sense.imageUrl!);
+        for (var tip in sense.tips) {
+          if (tip.imageUrl != null && tip.imageUrl!.isNotEmpty) availableImages.add(tip.imageUrl!);
+        }
+      }
+      availableImages = availableImages.toSet().toList();
+
+      String? preferredUrl = ProgressService().getPreferredImage(widget.wordId);
+      if (availableImages.isNotEmpty) {
+        if (preferredUrl != null && availableImages.contains(preferredUrl)) {
+          displayImageUrl = preferredUrl;
+        } else {
+          displayImageUrl = availableImages.first;
+        }
       }
     }
     
@@ -551,8 +653,8 @@ class _WordViewScreenState extends State<WordViewScreen> {
                         children: [
                           Flexible(
                             child: Text(
-                              widget.wordText != null ? widget.wordText!.toUpperCase() : 'WORD', 
-                              style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 2, fontSize: 20, color: Colors.white),
+                              (widget.wordText ?? DatabaseService.getWordById(widget.wordId)?.text ?? 'WORD').toUpperCase(), 
+                              style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 2, fontSize: 20, color: Colors.white),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -612,8 +714,8 @@ class _WordViewScreenState extends State<WordViewScreen> {
                         children: [
                           Flexible(
                             child: Text(
-                              widget.wordText != null ? widget.wordText!.toUpperCase() : 'WORD', 
-                              style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 2, fontSize: 20, color: Colors.white),
+                              (widget.wordText ?? DatabaseService.getWordById(widget.wordId)?.text ?? 'WORD').toUpperCase(), 
+                              style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 2, fontSize: 20, color: Colors.white),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -646,10 +748,18 @@ class _WordViewScreenState extends State<WordViewScreen> {
                       ],
                     ),
                   ],
-                  SliverPadding(
-                    padding: EdgeInsets.fromLTRB(24, 0, 24, 120),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
+                  if (_isLoading || data == null)
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
+                      sliver: SliverToBoxAdapter(
+                        child: _buildSkeletonBody(theme),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
                 if (displayImageUrl != null) ...[
                   ConstrainedBox(
                     constraints: BoxConstraints(maxHeight: 400),
@@ -710,20 +820,31 @@ class _WordViewScreenState extends State<WordViewScreen> {
                       children: [
                         IconButton(
                           icon: Icon(Icons.view_list),
-                          color: !_isGridView ? theme.colorScheme.primary : Colors.white54,
-                          onPressed: () => setState(() => _isGridView = false),
+                          tooltip: 'List view',
+                          visualDensity: VisualDensity.compact,
+                          color: _cardLayout == WordCardLayout.list ? theme.colorScheme.primary : Colors.white54,
+                          onPressed: () => setState(() => _cardLayout = WordCardLayout.list),
                         ),
                         IconButton(
                           icon: Icon(Icons.grid_view),
-                          color: _isGridView ? theme.colorScheme.primary : Colors.white54,
-                          onPressed: () => setState(() => _isGridView = true),
+                          tooltip: 'Grid view',
+                          visualDensity: VisualDensity.compact,
+                          color: _cardLayout == WordCardLayout.grid ? theme.colorScheme.primary : Colors.white54,
+                          onPressed: () => setState(() => _cardLayout = WordCardLayout.grid),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.view_carousel),
+                          tooltip: 'Slide view',
+                          visualDensity: VisualDensity.compact,
+                          color: _cardLayout == WordCardLayout.slide ? theme.colorScheme.primary : Colors.white54,
+                          onPressed: () => setState(() => _cardLayout = WordCardLayout.slide),
                         ),
                       ],
                     ),
                   ],
                 ),
                 SizedBox(height: 16),
-                if (_isGridView)
+                if (_cardLayout == WordCardLayout.grid)
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -754,6 +875,11 @@ class _WordViewScreenState extends State<WordViewScreen> {
                       ),
                     ],
                   )
+                else if (_cardLayout == WordCardLayout.slide)
+                  SlidingCardsView(
+                    itemCount: data.senses.length,
+                    itemBuilder: (context, index) => _buildSenseCard(data.senses[index], theme),
+                  )
                 else
                   ...data.senses.map((sense) => Padding(
                   padding: const EdgeInsets.only(bottom: 24.0),
@@ -764,7 +890,7 @@ class _WordViewScreenState extends State<WordViewScreen> {
                   SizedBox(height: 32),
                   Text('Pro Tips', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
                   SizedBox(height: 16),
-                  if (_isGridView)
+                  if (_cardLayout == WordCardLayout.grid)
                     ...() {
                       final tips = data.senses.expand((sense) => sense.tips).toList();
                       return [
@@ -797,6 +923,16 @@ class _WordViewScreenState extends State<WordViewScreen> {
                               ),
                             ),
                           ],
+                        ),
+                      ];
+                    }()
+                  else if (_cardLayout == WordCardLayout.slide)
+                    ...() {
+                      final tips = data.senses.expand((sense) => sense.tips).toList();
+                      return [
+                        SlidingCardsView(
+                          itemCount: tips.length,
+                          itemBuilder: (context, index) => _buildTipCard(tips[index]),
                         ),
                       ];
                     }()
@@ -928,267 +1064,106 @@ class _WordViewScreenState extends State<WordViewScreen> {
                     onWordTap: _onWordTap,
                   ),
 
-                if (data.wisdom.isNotEmpty) ...[
-                  SizedBox(height: 32),
-                  Text('Wisdom', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
-                  SizedBox(height: 16),
-                  ...data.wisdom.map((w) => Container(
-                    margin: EdgeInsets.only(bottom: 12),
-                    padding: EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      border: Border(left: BorderSide(color: Colors.blueAccent, width: 4)),
-                      color: Colors.blueAccent.withOpacity(0.1),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: HighlightText(
-                      text: '"$w"',
-                      selfWord: widget.wordText?.toLowerCase() ?? '',
-                      learningWords: _learningWords,
-                      onWordTap: _onWordTap,
-                      normalStyle: TextStyle(fontStyle: FontStyle.italic, color: Colors.white, fontSize: 15, height: 1.4),
-                    ),
-                        ),
-                        _buildInlineAudioButton(w, 'wisdom_${w.hashCode}'),
-                      ],
-                    ),
-                  )).toList(),
-                ],
+                // Extended Content (Wisdom, Facts, Quotes, Videos)
+                ...() {
+                  final bool hasExtendedContent = data.wisdom.isNotEmpty ||
+                      data.facts.isNotEmpty ||
+                      data.quotes.isNotEmpty ||
+                      data.videos.isNotEmpty;
+                  if (!hasExtendedContent) return <Widget>[];
 
-                if (data.facts.isNotEmpty) ...[
-                  SizedBox(height: 32),
-                  Text('Did you know?', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
-                  SizedBox(height: 16),
-                  ...data.facts.map((f) => Container(
-                    margin: EdgeInsets.only(bottom: 12),
-                    padding: EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: Colors.green.withOpacity(0.1),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.lightbulb_outline, color: Colors.greenAccent, size: 20),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: HighlightText(
-                            text: f,
-                            selfWord: widget.wordText?.toLowerCase() ?? '',
-                            learningWords: _learningWords,
-                          onWordTap: _onWordTap,
-                            normalStyle: TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
-                          ),
-                              ),
-                              _buildInlineAudioButton(f, 'fact_${f.hashCode}'),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  )).toList(),
-                ],
+                  if (_isShuffledContent) {
+                    final quotes = List.from(data.quotes)..shuffle(math.Random(widget.wordId + _shuffleSeedOffset));
+                    final wisdoms = List.from(data.wisdom)..shuffle(math.Random(widget.wordId + 1 + _shuffleSeedOffset));
+                    final videos = List.from(data.videos)..shuffle(math.Random(widget.wordId + 2 + _shuffleSeedOffset));
+                    final facts = List.from(data.facts)..shuffle(math.Random(widget.wordId + 3 + _shuffleSeedOffset));
 
-                if (data.quotes.isNotEmpty) ...[
-                  SizedBox(height: 32),
-                  Text('Famous Quotes', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
-                  SizedBox(height: 16),
-                  ...data.quotes.map((quote) => Container(
-                    margin: EdgeInsets.only(bottom: 16),
-                    padding: EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [theme.colorScheme.surface, Colors.black.withOpacity(0.2)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.format_quote_rounded, color: theme.colorScheme.primary, size: 32),
-                            Spacer(),
-                            _buildInlineAudioButton(quote.text, 'quote_${quote.text.hashCode}'),
-                          ],
-                        ),
-                        SizedBox(height: 8),
-                        HighlightText(
-                          text: '"${quote.text}"',
-                          selfWord: widget.wordText?.toLowerCase() ?? '',
-                          learningWords: _learningWords,
-                          onWordTap: _onWordTap,
-                          normalStyle: TextStyle(fontStyle: FontStyle.italic, fontSize: 17, color: Colors.white, height: 1.5),
-                        ),
-                        SizedBox(height: 16),
-                        Row(
-                          children: [
-                            quote.imageUrl != null 
-                              ? ClipOval(child: CachedMediaImage(
-                                  wordId: widget.wordId,
-                                  imageUrl: quote.imageUrl!, 
-                                  width: 40, 
-                                  height: 40, 
-                                  fit: BoxFit.cover,
-                                ))
-                              : CircleAvatar(
-                                  backgroundColor: theme.colorScheme.secondary.withOpacity(0.2),
-                                  radius: 20,
-                                  child: Text(
-                                    quote.authorName.isNotEmpty ? quote.authorName[0] : '?',
-                                    style: TextStyle(color: theme.colorScheme.secondary, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    quote.authorName,
-                                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
-                                  ),
-                                  if (quote.authorRole.isNotEmpty)
-                                    Text(
-                                      quote.authorRole,
-                                      style: TextStyle(color: Colors.white54, fontSize: 13),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  )).toList(),
-                ],
+                    final List<Widget> items = [];
+                    int qIdx = 0, wIdx = 0, vIdx = 0, fIdx = 0;
+                    while (qIdx < quotes.length ||
+                        wIdx < wisdoms.length ||
+                        vIdx < videos.length ||
+                        fIdx < facts.length) {
+                      if (qIdx < quotes.length) {
+                        items.add(_buildQuoteCard(quotes[qIdx++], theme));
+                      }
+                      if (wIdx < wisdoms.length) {
+                        items.add(_buildWisdomCard(wisdoms[wIdx++], theme));
+                      }
+                      if (vIdx < videos.length) {
+                        items.add(_buildVideoCard(videos[vIdx++], theme));
+                      }
+                      if (fIdx < facts.length) {
+                        items.add(_buildFactCard(facts[fIdx++], theme, showBadge: true));
+                      }
+                    }
 
-                // Video Clips
-                if (data.videos.isNotEmpty) ...[
-                  SizedBox(height: 32),
-                  Text('Video Clips', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
-                  SizedBox(height: 16),
-                  ...data.videos.map((video) {
-                    final bool isPlaying = _playingVideo == video;
-                    
-                    return Container(
-                      margin: EdgeInsets.only(bottom: 24),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withOpacity(0.05)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            blurRadius: 10,
-                            offset: Offset(0, 5),
-                          )
-                        ]
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (isPlaying) ...[
-                            Container(
-                              color: Colors.black.withOpacity(0.5),
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Playing Video',
-                                    style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
-                                  ),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      TextButton.icon(
-                                        onPressed: () => launchUrl(Uri.parse('https://www.youtube.com/watch?v=${video.youtubeId}&t=${video.startTimeMs ~/ 1000}s')),
-                                        icon: Icon(Icons.open_in_browser, color: Colors.blueAccent, size: 20),
-                                        label: Text('Open in Browser', style: TextStyle(color: Colors.blueAccent)),
-                                        style: TextButton.styleFrom(
-                                          padding: EdgeInsets.symmetric(horizontal: 8),
-                                          minimumSize: Size.zero,
-                                        ),
-                                      ),
-                                      SizedBox(width: 8),
-                                      TextButton.icon(
-                                        onPressed: _closeVideo,
-                                        icon: Icon(Icons.close, color: Colors.white, size: 20),
-                                        label: Text('Close', style: TextStyle(color: Colors.white)),
-                                        style: TextButton.styleFrom(
-                                          padding: EdgeInsets.symmetric(horizontal: 8),
-                                          minimumSize: Size.zero,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            AspectRatio(
-                              aspectRatio: 16 / 9,
-                              child: Container(
-                                width: double.infinity,
-                                color: Colors.black,
-                                child: theme.platform == TargetPlatform.windows
-                                    ? (_webviewController != null && _webviewController!.value.isInitialized
-                                        ? Webview(_webviewController!)
-                                        : Center(child: CircularProgressIndicator(color: theme.colorScheme.primary)))
-                                    : (_videoError != null
-                                        ? Center(child: Padding(
-                                            padding: const EdgeInsets.all(16),
-                                            child: Text(_videoError!, style: const TextStyle(color: Colors.white70), textAlign: TextAlign.center),
-                                          ))
-                                        : _chewieController != null
-                                            ? Chewie(controller: _chewieController!)
-                                            : Center(child: CircularProgressIndicator(color: theme.colorScheme.primary))),
-                              ),
-                            ),
-                          ] else ...[
-                            // Thumbnail view
-                            GestureDetector(
-                              onTap: () => _playVideo(video),
-                              child: AspectRatio(
-                                aspectRatio: 16 / 9,
-                                child: Container(
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      CachedMediaImage(
-                                        wordId: widget.wordId,
-                                        imageUrl: 'https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg',
-                                        fit: BoxFit.cover,
-                                      ),
-                                      Container(
-                                        color: Colors.black.withOpacity(0.4),
-                                        child: Center(
-                                          child: Icon(Icons.play_circle_fill, size: 64, color: Colors.white.withOpacity(0.9)),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                          
-                          // Synchronized & Highlighted Subtitles below the frame
-                          if (video.subtitles.isNotEmpty)
-                            _buildVideoSubtitles(video, theme),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ],
+                    return <Widget>[
+                      const SizedBox(height: 32),
+                      _buildExtendedContentHeader(theme, 'Explore'),
+                      const SizedBox(height: 16),
+                      ...items,
+                    ];
+                  } else {
+                    // Grouped Mode
+                    bool headerShown = false;
+                    final List<Widget> grouped = [];
+
+                    if (data.wisdom.isNotEmpty) {
+                      grouped.add(const SizedBox(height: 32));
+                      grouped.add(_buildExtendedContentHeader(theme, 'Wisdom'));
+                      grouped.add(const SizedBox(height: 16));
+                      for (var w in data.wisdom) {
+                        grouped.add(_buildWisdomCard(w, theme));
+                      }
+                      headerShown = true;
+                    }
+
+                    if (data.facts.isNotEmpty) {
+                      grouped.add(const SizedBox(height: 32));
+                      if (!headerShown) {
+                        grouped.add(_buildExtendedContentHeader(theme, 'Did you know?'));
+                        headerShown = true;
+                      } else {
+                        grouped.add(Text('Did you know?', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)));
+                      }
+                      grouped.add(const SizedBox(height: 16));
+                      for (var f in data.facts) {
+                        grouped.add(_buildFactCard(f, theme, showBadge: false));
+                      }
+                    }
+
+                    if (data.quotes.isNotEmpty) {
+                      grouped.add(const SizedBox(height: 32));
+                      if (!headerShown) {
+                        grouped.add(_buildExtendedContentHeader(theme, 'Famous Quotes'));
+                        headerShown = true;
+                      } else {
+                        grouped.add(Text('Famous Quotes', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)));
+                      }
+                      grouped.add(const SizedBox(height: 16));
+                      for (var q in data.quotes) {
+                        grouped.add(_buildQuoteCard(q, theme));
+                      }
+                    }
+
+                    if (data.videos.isNotEmpty) {
+                      grouped.add(const SizedBox(height: 32));
+                      if (!headerShown) {
+                        grouped.add(_buildExtendedContentHeader(theme, 'Video Clips'));
+                        headerShown = true;
+                      } else {
+                        grouped.add(Text('Video Clips', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)));
+                      }
+                      grouped.add(const SizedBox(height: 16));
+                      for (var v in data.videos) {
+                        grouped.add(_buildVideoCard(v, theme));
+                      }
+                    }
+
+                    return grouped;
+                  }
+                }(),
 
                 // Misspellings
                 if (data.misspellings.isNotEmpty) ...[
@@ -1210,6 +1185,454 @@ class _WordViewScreenState extends State<WordViewScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonBody(ThemeData theme) {
+    final dictWord = DatabaseService.getWordById(widget.wordId);
+    final localMeaning = dictWord?.meaning ?? '';
+
+    return AnimatedBuilder(
+      animation: _shimmerController,
+      builder: (context, child) {
+        final opacity = 0.15 + (_shimmerController.value * 0.20);
+        final shimmerColor = Colors.white.withOpacity(opacity);
+        final cardBg = Colors.white.withOpacity(0.04);
+        final borderColor = Colors.white.withOpacity(0.08);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: borderColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        width: 100,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: shimmerColor,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: shimmerColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (localMeaning.isNotEmpty)
+                    Text(
+                      localMeaning,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.white70,
+                        height: 1.4,
+                      ),
+                    )
+                  else ...[
+                    Container(
+                      width: double.infinity,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: shimmerColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      width: 220,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: shimmerColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      color: shimmerColor,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.image_outlined,
+                        size: 40,
+                        color: Colors.white.withOpacity(0.15),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: borderColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 120,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: shimmerColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: shimmerColor,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 200,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: shimmerColor,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildExtendedContentHeader(ThemeData theme, String title) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
+        Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.view_agenda_outlined),
+              tooltip: 'Grouped',
+              visualDensity: VisualDensity.compact,
+              color: !_isShuffledContent ? theme.colorScheme.primary : Colors.white54,
+              onPressed: () => setState(() => _isShuffledContent = false),
+            ),
+            IconButton(
+              icon: const Icon(Icons.shuffle_rounded),
+              tooltip: _isShuffledContent ? 'Re-shuffle' : 'Shuffled',
+              visualDensity: VisualDensity.compact,
+              color: _isShuffledContent ? theme.colorScheme.primary : Colors.white54,
+              onPressed: () {
+                setState(() {
+                  if (_isShuffledContent) {
+                    _shuffleSeedOffset++;
+                  } else {
+                    _isShuffledContent = true;
+                  }
+                });
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWisdomCard(String w, ThemeData theme) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: const Border(left: BorderSide(color: Colors.blueAccent, width: 4)),
+        color: Colors.blueAccent.withOpacity(0.1),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: HighlightText(
+              text: '"$w"',
+              selfWord: widget.wordText?.toLowerCase() ?? '',
+              learningWords: _learningWords,
+              onWordTap: _onWordTap,
+              normalStyle: const TextStyle(fontStyle: FontStyle.italic, color: Colors.white, fontSize: 15, height: 1.4),
+            ),
+          ),
+          _buildInlineAudioButton(w, 'wisdom_${w.hashCode}'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFactCard(String f, ThemeData theme, {bool showBadge = true}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.green.withOpacity(0.1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (showBadge) ...[
+            Row(
+              children: [
+                const Icon(Icons.lightbulb_outline, color: Colors.greenAccent, size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  'Did you know?',
+                  style: TextStyle(
+                    color: Colors.greenAccent.shade100,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (!showBadge) ...[
+                const Icon(Icons.lightbulb_outline, color: Colors.greenAccent, size: 20),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: HighlightText(
+                        text: f,
+                        selfWord: widget.wordText?.toLowerCase() ?? '',
+                        learningWords: _learningWords,
+                        onWordTap: _onWordTap,
+                        normalStyle: const TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
+                      ),
+                    ),
+                    _buildInlineAudioButton(f, 'fact_${f.hashCode}'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuoteCard(WordQuote quote, ThemeData theme) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [theme.colorScheme.surface, Colors.black.withOpacity(0.2)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.format_quote_rounded, color: theme.colorScheme.primary, size: 32),
+              const Spacer(),
+              _buildInlineAudioButton(quote.text, 'quote_${quote.text.hashCode}'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          HighlightText(
+            text: '"${quote.text}"',
+            selfWord: widget.wordText?.toLowerCase() ?? '',
+            learningWords: _learningWords,
+            onWordTap: _onWordTap,
+            normalStyle: const TextStyle(fontStyle: FontStyle.italic, fontSize: 17, color: Colors.white, height: 1.5),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              quote.imageUrl != null 
+                ? ClipOval(child: CachedMediaImage(
+                    wordId: widget.wordId,
+                    imageUrl: quote.imageUrl!, 
+                    width: 40, 
+                    height: 40, 
+                    fit: BoxFit.cover,
+                  ))
+                : CircleAvatar(
+                    backgroundColor: theme.colorScheme.secondary.withOpacity(0.2),
+                    radius: 20,
+                    child: Text(
+                      quote.authorName.isNotEmpty ? quote.authorName[0] : '?',
+                      style: TextStyle(color: theme.colorScheme.secondary, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      quote.authorName,
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
+                    ),
+                    if (quote.authorRole.isNotEmpty)
+                      Text(
+                        quote.authorRole,
+                        style: const TextStyle(color: Colors.white54, fontSize: 13),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVideoCard(WordVideo video, ThemeData theme) {
+    final bool isPlaying = _playingVideo == video;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (isPlaying) ...[
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Playing Video',
+                    style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => launchUrl(Uri.parse('https://www.youtube.com/watch?v=${video.youtubeId}&t=${video.startTimeMs ~/ 1000}s')),
+                        icon: const Icon(Icons.open_in_browser, color: Colors.blueAccent, size: 20),
+                        label: const Text('Open in Browser', style: TextStyle(color: Colors.blueAccent)),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          minimumSize: Size.zero,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        onPressed: _closeVideo,
+                        icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                        label: const Text('Close', style: TextStyle(color: Colors.white)),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          minimumSize: Size.zero,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Container(
+                width: double.infinity,
+                color: Colors.black,
+                child: theme.platform == TargetPlatform.windows
+                    ? (_webviewController != null && _webviewController!.value.isInitialized
+                        ? Webview(_webviewController!)
+                        : Center(child: CircularProgressIndicator(color: theme.colorScheme.primary)))
+                    : (_videoError != null
+                        ? Center(child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(_videoError!, style: const TextStyle(color: Colors.white70), textAlign: TextAlign.center),
+                          ))
+                        : _chewieController != null
+                            ? Chewie(controller: _chewieController!)
+                            : Center(child: CircularProgressIndicator(color: theme.colorScheme.primary))),
+              ),
+            ),
+          ] else ...[
+            // Thumbnail view
+            GestureDetector(
+              onTap: () => _playVideo(video),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CachedMediaImage(
+                      wordId: widget.wordId,
+                      imageUrl: 'https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg',
+                      fit: BoxFit.cover,
+                    ),
+                    Container(
+                      color: Colors.black.withOpacity(0.4),
+                      child: Center(
+                        child: Icon(Icons.play_circle_fill, size: 64, color: Colors.white.withOpacity(0.9)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          
+          // Synchronized & Highlighted Subtitles below the frame
+          if (video.subtitles.isNotEmpty)
+            _buildVideoSubtitles(video, theme),
+        ],
       ),
     );
   }
@@ -1819,6 +2242,14 @@ class _CachedMediaImageState extends State<CachedMediaImage> {
   }
 
   @override
+  void didUpdateWidget(CachedMediaImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.imageUrl != widget.imageUrl || oldWidget.wordId != widget.wordId) {
+      _checkLocalCache();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     if (_localFile != null) {
       return Image.file(
@@ -1932,5 +2363,233 @@ class _CompareWithSectionState extends State<CompareWithSection> {
         ],
       ],
     );
+  }
+}
+
+class SlidingCardsView extends StatefulWidget {
+  final int itemCount;
+  final Widget Function(BuildContext context, int index) itemBuilder;
+  final double viewportFraction;
+
+  const SlidingCardsView({
+    super.key,
+    required this.itemCount,
+    required this.itemBuilder,
+    this.viewportFraction = 1.0,
+  });
+
+  @override
+  State<SlidingCardsView> createState() => _SlidingCardsViewState();
+}
+
+class _SlidingCardsViewState extends State<SlidingCardsView> {
+  late PageController _pageController;
+  int _currentPage = 0;
+  final Map<int, double> _heights = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(
+      viewportFraction: widget.itemCount <= 1 ? 1.0 : widget.viewportFraction,
+    );
+  }
+
+  @override
+  void didUpdateWidget(SlidingCardsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.itemCount != widget.itemCount || oldWidget.viewportFraction != widget.viewportFraction) {
+      _heights.clear();
+      _currentPage = 0;
+      _pageController.dispose();
+      _pageController = PageController(
+        viewportFraction: widget.itemCount <= 1 ? 1.0 : widget.viewportFraction,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.itemCount == 0) return const SizedBox.shrink();
+    if (widget.itemCount == 1) {
+      return widget.itemBuilder(context, 0);
+    }
+
+    double maxHeight = _heights.values.fold(0.0, (prev, h) => h > prev ? h : prev);
+    if (maxHeight == 0) maxHeight = 280;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = constraints.maxWidth * widget.viewportFraction;
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Stack(
+              children: [
+                // Offstage measurement pass
+                Offstage(
+                  offstage: true,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(widget.itemCount, (index) {
+                      return _MeasureSize(
+                        onChange: (size) {
+                          if (mounted && (_heights[index] ?? 0) != size.height) {
+                            setState(() {
+                              _heights[index] = size.height;
+                            });
+                          }
+                        },
+                        child: SizedBox(
+                          width: cardWidth,
+                          child: widget.itemBuilder(context, index),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+                // PageView
+                SizedBox(
+                  height: maxHeight,
+                  child: ScrollConfiguration(
+                    behavior: ScrollConfiguration.of(context).copyWith(
+                      dragDevices: {
+                        PointerDeviceKind.touch,
+                        PointerDeviceKind.mouse,
+                        PointerDeviceKind.trackpad,
+                        PointerDeviceKind.stylus,
+                      },
+                    ),
+                    child: PageView.builder(
+                      controller: _pageController,
+                      itemCount: widget.itemCount,
+                      onPageChanged: (page) => setState(() => _currentPage = page),
+                      itemBuilder: (context, index) {
+                        return SizedBox(
+                          width: cardWidth,
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: widget.itemBuilder(context, index),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (_currentPage > 0)
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left, size: 20, color: Colors.white70),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    tooltip: 'Previous',
+                    onPressed: () {
+                      _pageController.previousPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    },
+                  )
+                else
+                  const SizedBox(width: 20),
+                const SizedBox(width: 8),
+                ...List.generate(widget.itemCount, (i) {
+                  final isSelected = i == _currentPage;
+                  return GestureDetector(
+                    onTap: () {
+                      _pageController.animateToPage(
+                        i,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      width: isSelected ? 20 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: isSelected ? Theme.of(context).colorScheme.primary : Colors.white24,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(width: 8),
+                if (_currentPage < widget.itemCount - 1)
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right, size: 20, color: Colors.white70),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    tooltip: 'Next',
+                    onPressed: () {
+                      _pageController.nextPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    },
+                  )
+                else
+                  const SizedBox(width: 20),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MeasureSizeRenderObject extends RenderProxyBox {
+  final ValueChanged<Size> onChange;
+  Size? _oldSize;
+
+  _MeasureSizeRenderObject(this.onChange);
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final newSize = child?.size ?? Size.zero;
+    if (_oldSize != newSize) {
+      _oldSize = newSize;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        onChange(newSize);
+      });
+    }
+  }
+}
+
+class _MeasureSize extends SingleChildRenderObjectWidget {
+  final ValueChanged<Size> onChange;
+
+  const _MeasureSize({
+    required this.onChange,
+    required super.child,
+  });
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return _MeasureSizeRenderObject(onChange);
+  }
+
+  @override
+  void updateRenderObject(BuildContext context, covariant _MeasureSizeRenderObject renderObject) {
+    // Keep renderObject updated
   }
 }

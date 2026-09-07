@@ -168,6 +168,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   setState(() => _settingsService.setMisspellingQuestion(val));
                 }
               ),
+              const SizedBox(height: 32),
+              Text(
+                'Text-to-Speech (TTS)',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: theme.primaryColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'When both providers are enabled, voices are chosen randomly on each playback for rich natural variety.',
+                style: TextStyle(color: Colors.white60, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              _buildToggle(
+                'Edge Neural Voices',
+                'Natural, high-definition British & American neural voices (Jenny, Guy, Sonia, Ryan, etc.).',
+                _settingsService.enableEdgeTts,
+                (val) async {
+                  final success = await _settingsService.setEdgeTts(val);
+                  if (!context.mounted) return;
+                  if (!success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('At least one TTS provider must remain enabled.')),
+                    );
+                  }
+                  setState(() {});
+                },
+              ),
+              _buildToggle(
+                'Google Translate TTS',
+                'Classic web synthesizer.',
+                _settingsService.enableGoogleTts,
+                (val) async {
+                  final success = await _settingsService.setGoogleTts(val);
+                  if (!context.mounted) return;
+                  if (!success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('At least one TTS provider must remain enabled.')),
+                    );
+                  }
+                  setState(() {});
+                },
+              ),
             ],
           ),
         ),

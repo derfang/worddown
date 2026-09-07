@@ -1,13 +1,15 @@
 import 'dart:convert';
 import 'encryption_service.dart';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
-import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
-import '../models/word.dart';
 import 'progress_service.dart';
+import 'database_service.dart';
+import 'edge_tts_service.dart';
+import 'settings_service.dart';
 Map<String, dynamic> _decodeJsonMap(String content) {
   return json.decode(content) as Map<String, dynamic>;
 }
@@ -58,7 +60,12 @@ class WordupApi {
     return File('${cacheDir.path}/$filename');
   }
 
-  static Future<Map<String, dynamic>> fetchWordData(String wordId, {String? wordText, bool isPrefetch = false}) async {
+  static Future<Map<String, dynamic>> fetchWordData(
+    String wordId, {
+    String? wordText,
+    bool isPrefetch = false,
+    void Function(Map<String, dynamic> extraData)? onExtraDataLoaded,
+  }) async {
     Map<String, dynamic>? data;
     bool needsCdnFetch = false;
     File? localFile;
@@ -80,46 +87,31 @@ class WordupApi {
       }
     }
 
-    // 2. Fetch from network if not cached
+    // 2. Fetch from network CDN if not cached
     if (needsCdnFetch) {
-      if (wordText != null) {
-        // Fetch CDN and Zann CONCURRENTLY to half the loading time!
-        final results = await Future.wait([
-          _downloadAndExtractFromCdn(wordId),
-          _fetchZannDataOnly(wordText),
-        ]);
-        
-        data = results[0];
-        final zannData = results[1];
-        
-        if (zannData.containsKey('ZannQuotes')) data['ZannQuotes'] = zannData['ZannQuotes'];
-        if (zannData.containsKey('ZannSenses')) data['ZannSenses'] = zannData['ZannSenses'];
-        
-        if (!kIsWeb && localFile != null) {
-          await localFile.writeAsString(json.encode(data));
-        }
-        if (kIsWeb) _webMemoryCache[wordId] = data;
-        return data!;
-      } else {
-        data = await _downloadAndExtractFromCdn(wordId);
-        if (!kIsWeb && localFile != null) {
-          await localFile.writeAsString(json.encode(data));
-        }
-        if (kIsWeb) _webMemoryCache[wordId] = data;
-        return data!;
+      data = await _downloadAndExtractFromCdn(wordId);
+      if (!kIsWeb && localFile != null) {
+        await localFile.writeAsString(json.encode(data));
       }
+      if (kIsWeb) _webMemoryCache[wordId] = data;
     }
 
-    // 3. If loaded from cache but lacks Zann data...
+    // 3. Asynchronously fetch Zann extra quotes in the background without blocking the UI
     if (wordText != null && data != null) {
-      if (!data.containsKey('ZannSenses') && !data.containsKey('ZannQuotes')) {
-        final zannData = await _fetchZannDataOnly(wordText);
-        if (zannData.containsKey('ZannQuotes')) data['ZannQuotes'] = zannData['ZannQuotes'];
-        if (zannData.containsKey('ZannSenses')) data['ZannSenses'] = zannData['ZannSenses'];
-        
-        if (!kIsWeb && localFile != null) {
-          await localFile.writeAsString(json.encode(data));
-        }
+      final currentData = data;
+      if (!currentData.containsKey('ZannSenses') || !currentData.containsKey('ZannQuotes')) {
+        _fetchZannDataOnly(wordText).then((zannData) async {
+          if (zannData.isNotEmpty) {
+            if (zannData.containsKey('ZannQuotes')) currentData['ZannQuotes'] = zannData['ZannQuotes'];
+            if (zannData.containsKey('ZannSenses')) currentData['ZannSenses'] = zannData['ZannSenses'];
+            if (!kIsWeb && localFile != null) {
+              await localFile.writeAsString(json.encode(currentData));
+            }
+            if (onExtraDataLoaded != null) {
+              onExtraDataLoaded(zannData);
+            }
+          }
+        }).catchError((_) {});
       }
     }
     
@@ -151,7 +143,8 @@ class WordupApi {
         }
         
         if (!isCached) {
-          _downloadAndCacheWord(id.toString());
+          final word = DatabaseService.getWordById(id);
+          _downloadAndCacheWord(id.toString(), wordText: word?.text);
           prefetchedCount++;
         }
       }
@@ -160,9 +153,9 @@ class WordupApi {
     }
   }
 
-  static Future<void> _downloadAndCacheWord(String wordId) async {
+  static Future<void> _downloadAndCacheWord(String wordId, {String? wordText}) async {
     try {
-      await fetchWordData(wordId, isPrefetch: true);
+      await fetchWordData(wordId, wordText: wordText, isPrefetch: true);
     } catch (e) {
       // Silent failure
     }
@@ -201,23 +194,20 @@ class WordupApi {
     return await compute(_decodeGzipBytes, response.bodyBytes);
   }
 
+  static int _ttsPlaybackIndex = 0;
+
+  static Future<File> _getTempTtsFile() async {
+    final dir = await getTemporaryDirectory();
+    _ttsPlaybackIndex = (_ttsPlaybackIndex + 1) % 5;
+    return File('${dir.path}/tts_temp_$_ttsPlaybackIndex.mp3');
+  }
+
   static Future<String> getAudioPath(String wordId, {String? wordText, required bool isUk, required bool useGoogleTts}) async {
     final text = wordText ?? 'word';
     final lang = isUk ? 'en-uk' : 'en-us';
     
     if (useGoogleTts) {
-      final urlString = '${EncryptionService.decryptString('GMYdOcvHclMrN1/WjlGrHmOwZw4A0OLl4lrHfVFiDFo5ADRT1LBAE6dONVg+MdLjfWI2EojCarPcBZiHivvBCA==')}$lang&client=tw-ob&q=${Uri.encodeComponent(text)}';
-      if (kIsWeb) return urlString;
-      
-      final file = await _getLocalFile('${wordId}_tts_$lang.mp3');
-      if (await file.exists()) return file.path;
-      
-      final response = await http.get(Uri.parse(urlString));
-      if (response.statusCode == 200) {
-        await file.writeAsBytes(response.bodyBytes);
-        return file.path;
-      }
-      throw Exception('Failed to load Google TTS audio');
+      return getSentenceAudioPath(text, isUk: isUk);
     } else {
       // Use Youdao Dictionary API (type=1 for UK, type=2 for US)
       final type = isUk ? 1 : 2;
@@ -229,7 +219,7 @@ class WordupApi {
       if (await file.exists()) return file.path;
       
       try {
-        final response = await http.get(Uri.parse(dictUrl)).timeout(Duration(seconds: 5));
+        final response = await http.get(Uri.parse(dictUrl)).timeout(const Duration(seconds: 5));
         if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
           await file.writeAsBytes(response.bodyBytes);
           return file.path;
@@ -242,24 +232,105 @@ class WordupApi {
     }
   }
 
-  static Future<String> getSentenceAudioPath(String text, {required bool isUk}) async {
+  static List<String> _splitTextForTts(String text, {int maxChunkLength = 140}) {
+    final List<String> chunks = [];
+    final sentences = text.split(RegExp(r'(?<=[.;:?!,])\s+'));
+    
+    String current = '';
+    for (var s in sentences) {
+      final candidate = current.isEmpty ? s : '$current $s';
+      if (candidate.length <= maxChunkLength) {
+        current = candidate;
+      } else {
+        if (current.isNotEmpty) chunks.add(current);
+        if (s.length > maxChunkLength) {
+          // If an individual clause is longer than maxChunkLength, split by words
+          final words = s.split(' ');
+          current = '';
+          for (var w in words) {
+            final wordCandidate = current.isEmpty ? w : '$current $w';
+            if (wordCandidate.length <= maxChunkLength) {
+              current = wordCandidate;
+            } else {
+              if (current.isNotEmpty) chunks.add(current);
+              current = w;
+            }
+          }
+        } else {
+          current = s;
+        }
+      }
+    }
+    if (current.isNotEmpty) chunks.add(current);
+    return chunks;
+  }
+
+  static Future<String> _fetchGoogleSentenceAudio(String text, {required bool isUk}) async {
     final lang = isUk ? 'en-uk' : 'en-us';
-    // Use Google TTS for sentences since dictionary APIs only work well for single words
-    final urlString = '${EncryptionService.decryptString('GMYdOcvHclMrN1/WjlGrHmOwZw4A0OLl4lrHfVFiDFo5ADRT1LBAE6dONVg+MdLjfWI2EojCarPcBZiHivvBCA==')}$lang&client=tw-ob&q=${Uri.encodeComponent(text)}';
+    final baseUrl = '${EncryptionService.decryptString('GMYdOcvHclMrN1/WjlGrHmOwZw4A0OLl4lrHfVFiDFo5ADRT1LBAE6dONVg+MdLjfWI2EojCarPcBZiHivvBCA==')}$lang&client=tw-ob&q=';
     
-    if (kIsWeb) return urlString;
-    
-    final hash = md5.convert(utf8.encode(text)).toString();
-    final file = await _getLocalFile('sentence_${hash}_$lang.mp3');
-    
-    if (await file.exists()) return file.path;
-    
-    final response = await http.get(Uri.parse(urlString));
-    if (response.statusCode == 200) {
-      await file.writeAsBytes(response.bodyBytes);
+    if (kIsWeb && text.length <= 140) {
+      return '$baseUrl${Uri.encodeComponent(text)}';
+    }
+
+    final chunks = _splitTextForTts(text, maxChunkLength: 140);
+    final List<int> combinedBytes = [];
+
+    for (var chunk in chunks) {
+      final url = '$baseUrl${Uri.encodeComponent(chunk)}';
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        combinedBytes.addAll(response.bodyBytes);
+      } else {
+        throw Exception('Failed to load Google TTS audio chunk (${response.statusCode})');
+      }
+    }
+
+    if (combinedBytes.isNotEmpty) {
+      if (kIsWeb) {
+        return 'data:audio/mp3;base64,${base64Encode(combinedBytes)}';
+      }
+      final file = await _getTempTtsFile();
+      await file.writeAsBytes(combinedBytes);
       return file.path;
     }
-    throw Exception('Failed to load sentence TTS audio');
+    throw Exception('Failed to load Google TTS audio');
+  }
+
+  static Future<String> getSentenceAudioPath(String text, {required bool isUk}) async {
+    final settings = SettingsService();
+    final enableEdge = settings.enableEdgeTts;
+    final enableGoogle = settings.enableGoogleTts;
+
+    bool useEdge = true;
+    if (enableEdge && enableGoogle) {
+      useEdge = Random().nextBool();
+    } else if (enableEdge) {
+      useEdge = true;
+    } else {
+      useEdge = false;
+    }
+
+    if (useEdge) {
+      try {
+        final audioBytes = await EdgeTtsService.synthesize(text, isUk: isUk);
+        if (audioBytes.isNotEmpty) {
+          if (kIsWeb) {
+            return 'data:audio/mp3;base64,${base64Encode(audioBytes)}';
+          }
+          final file = await _getTempTtsFile();
+          await file.writeAsBytes(audioBytes);
+          return file.path;
+        }
+      } catch (e) {
+        print('Edge TTS failed ($e), falling back to Google TTS...');
+        if (!enableGoogle) {
+          rethrow;
+        }
+      }
+    }
+
+    return await _fetchGoogleSentenceAudio(text, isUk: isUk);
   }
 
 }

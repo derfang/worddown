@@ -1861,17 +1861,6 @@
       "source_location": null
     },
     {
-      "id": "lib_screens_word_view_screen_pendingzanndata",
-      "label": "_pendingZannData",
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "word_view_screen.dart",
-      "file_type": "code",
-      "norm_label": "_pendingzanndata",
-      "source_file": "lib/screens/word_view_screen.dart",
-      "source_location": null
-    },
-    {
       "id": "lib_screens_word_view_screen_performlayout",
       "label": "performLayout",
       "_origin": "ast",
@@ -2818,17 +2807,6 @@
       "source_location": ""
     },
     {
-      "id": "database_service_dart",
-      "label": "database_service.dart",
-      "_origin": "ast",
-      "community": 12,
-      "community_name": "wordup_api.dart",
-      "file_type": "code",
-      "norm_label": "database_service.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
       "id": "edge_tts_service_dart",
       "label": "edge_tts_service.dart",
       "_origin": "ast",
@@ -3265,28 +3243,6 @@
       "community_name": "home_screen.dart",
       "file_type": "code",
       "norm_label": "dispose",
-      "source_file": "lib/screens/home_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_home_screen_homescreen",
-      "label": "HomeScreen",
-      "_origin": "ast",
-      "community": 13,
-      "community_name": "home_screen.dart",
-      "file_type": "code",
-      "norm_label": "homescreen",
-      "source_file": "lib/screens/home_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_home_screen_homescreenstate",
-      "label": "_HomeScreenState",
-      "_origin": "ast",
-      "community": 13,
-      "community_name": "home_screen.dart",
-      "file_type": "code",
-      "norm_label": "_homescreenstate",
       "source_file": "lib/screens/home_screen.dart",
       "source_location": null
     },
@@ -3918,25 +3874,25 @@
       "source_location": "L1"
     },
     {
-      "id": "lib_main_splashloadingscreen",
-      "label": "SplashLoadingScreen",
+      "id": "lib_screens_home_screen_homescreen",
+      "label": "HomeScreen",
       "_origin": "ast",
       "community": 17,
       "community_name": "State",
       "file_type": "code",
-      "norm_label": "splashloadingscreen",
-      "source_file": "lib/main.dart",
+      "norm_label": "homescreen",
+      "source_file": "lib/screens/home_screen.dart",
       "source_location": null
     },
     {
-      "id": "lib_main_splashloadingscreenstate",
-      "label": "_SplashLoadingScreenState",
+      "id": "lib_screens_home_screen_homescreenstate",
+      "label": "_HomeScreenState",
       "_origin": "ast",
       "community": 17,
       "community_name": "State",
       "file_type": "code",
-      "norm_label": "_splashloadingscreenstate",
-      "source_file": "lib/main.dart",
+      "norm_label": "_homescreenstate",
+      "source_file": "lib/screens/home_screen.dart",
       "source_location": null
     },
     {
@@ -5176,50 +5132,6 @@
       "source_location": null
     },
     {
-      "id": "scratch_test_html",
-      "label": "test_html.dart",
-      "_origin": "ast",
-      "community": 22,
-      "community_name": "package:http/http.dart",
-      "file_type": "code",
-      "norm_label": "test_html.dart",
-      "source_file": "scratch/test_html.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_test_html_main",
-      "label": "main",
-      "_origin": "ast",
-      "community": 22,
-      "community_name": "package:http/http.dart",
-      "file_type": "code",
-      "norm_label": "main",
-      "source_file": "scratch/test_html.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_test_html_response",
-      "label": "response",
-      "_origin": "ast",
-      "community": 22,
-      "community_name": "package:http/http.dart",
-      "file_type": "code",
-      "norm_label": "response",
-      "source_file": "scratch/test_html.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_test_html_url",
-      "label": "url",
-      "_origin": "ast",
-      "community": 22,
-      "community_name": "package:http/http.dart",
-      "file_type": "code",
-      "norm_label": "url",
-      "source_file": "scratch/test_html.dart",
-      "source_location": null
-    },
-    {
       "id": "scratch_test_upper",
       "label": "test_upper.dart",
       "_origin": "ast",
@@ -5550,6 +5462,50 @@
       "source_location": null
     },
     {
+      "id": "scratch_test_html",
+      "label": "test_html.dart",
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "dart:io",
+      "file_type": "code",
+      "norm_label": "test_html.dart",
+      "source_file": "scratch/test_html.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_test_html_main",
+      "label": "main",
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "dart:io",
+      "file_type": "code",
+      "norm_label": "main",
+      "source_file": "scratch/test_html.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_test_html_response",
+      "label": "response",
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "dart:io",
+      "file_type": "code",
+      "norm_label": "response",
+      "source_file": "scratch/test_html.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_test_html_url",
+      "label": "url",
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "dart:io",
+      "file_type": "code",
+      "norm_label": "url",
+      "source_file": "scratch/test_html.dart",
+      "source_location": null
+    },
+    {
       "id": "firebase_options_dart",
       "label": "firebase_options.dart",
       "_origin": "ast",
@@ -5623,6 +5579,28 @@
       "community_name": "main.dart",
       "file_type": "code",
       "norm_label": "main",
+      "source_file": "lib/main.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_main_splashloadingscreen",
+      "label": "SplashLoadingScreen",
+      "_origin": "ast",
+      "community": 26,
+      "community_name": "main.dart",
+      "file_type": "code",
+      "norm_label": "splashloadingscreen",
+      "source_file": "lib/main.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_main_splashloadingscreenstate",
+      "label": "_SplashLoadingScreenState",
+      "_origin": "ast",
+      "community": 26,
+      "community_name": "main.dart",
+      "file_type": "code",
+      "norm_label": "_splashloadingscreenstate",
       "source_file": "lib/main.dart",
       "source_location": null
     },
@@ -6461,44 +6439,11 @@
       "source_location": null
     },
     {
-      "id": "package_archive_archive_dart",
-      "label": "package:archive/archive.dart",
-      "_origin": "ast",
-      "community": 32,
-      "community_name": "package:archive/archive.dart",
-      "file_type": "code",
-      "norm_label": "package:archive/archive.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "scratch_find_phrases",
-      "label": "find_phrases.dart",
-      "_origin": "ast",
-      "community": 32,
-      "community_name": "package:archive/archive.dart",
-      "file_type": "code",
-      "norm_label": "find_phrases.dart",
-      "source_file": "scratch/find_phrases.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_find_phrases_main",
-      "label": "main",
-      "_origin": "ast",
-      "community": 32,
-      "community_name": "package:archive/archive.dart",
-      "file_type": "code",
-      "norm_label": "main",
-      "source_file": "scratch/find_phrases.dart",
-      "source_location": null
-    },
-    {
       "id": "scratch_test_word_data",
       "label": "test_word_data.dart",
       "_origin": "ast",
       "community": 32,
-      "community_name": "package:archive/archive.dart",
+      "community_name": "test_word_data.dart",
       "file_type": "code",
       "norm_label": "test_word_data.dart",
       "source_file": "scratch/test_word_data.dart",
@@ -6509,7 +6454,7 @@
       "label": "main",
       "_origin": "ast",
       "community": 32,
-      "community_name": "package:archive/archive.dart",
+      "community_name": "test_word_data.dart",
       "file_type": "code",
       "norm_label": "main",
       "source_file": "scratch/test_word_data.dart",
@@ -6520,7 +6465,7 @@
       "label": "response",
       "_origin": "ast",
       "community": 32,
-      "community_name": "package:archive/archive.dart",
+      "community_name": "test_word_data.dart",
       "file_type": "code",
       "norm_label": "response",
       "source_file": "scratch/test_word_data.dart",
@@ -6531,7 +6476,7 @@
       "label": "url",
       "_origin": "ast",
       "community": 32,
-      "community_name": "package:archive/archive.dart",
+      "community_name": "test_word_data.dart",
       "file_type": "code",
       "norm_label": "url",
       "source_file": "scratch/test_word_data.dart",
@@ -8676,7 +8621,7 @@
       "label": "fetch_test.dart",
       "_origin": "ast",
       "community": 50,
-      "community_name": "fetch_test.dart",
+      "community_name": "package:archive/archive.dart",
       "file_type": "code",
       "norm_label": "fetch_test.dart",
       "source_file": "fetch_test.dart",
@@ -8687,7 +8632,7 @@
       "label": "main",
       "_origin": "ast",
       "community": 50,
-      "community_name": "fetch_test.dart",
+      "community_name": "package:archive/archive.dart",
       "file_type": "code",
       "norm_label": "main",
       "source_file": "fetch_test.dart",
@@ -8698,7 +8643,7 @@
       "label": "response",
       "_origin": "ast",
       "community": 50,
-      "community_name": "fetch_test.dart",
+      "community_name": "package:archive/archive.dart",
       "file_type": "code",
       "norm_label": "response",
       "source_file": "fetch_test.dart",
@@ -8709,10 +8654,43 @@
       "label": "url",
       "_origin": "ast",
       "community": 50,
-      "community_name": "fetch_test.dart",
+      "community_name": "package:archive/archive.dart",
       "file_type": "code",
       "norm_label": "url",
       "source_file": "fetch_test.dart",
+      "source_location": null
+    },
+    {
+      "id": "package_archive_archive_dart",
+      "label": "package:archive/archive.dart",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "package:archive/archive.dart",
+      "file_type": "code",
+      "norm_label": "package:archive/archive.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "scratch_find_phrases",
+      "label": "find_phrases.dart",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "package:archive/archive.dart",
+      "file_type": "code",
+      "norm_label": "find_phrases.dart",
+      "source_file": "scratch/find_phrases.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_find_phrases_main",
+      "label": "main",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "package:archive/archive.dart",
+      "file_type": "code",
+      "norm_label": "main",
+      "source_file": "scratch/find_phrases.dart",
       "source_location": null
     },
     {
@@ -9286,6 +9264,83 @@
       "source_location": null
     },
     {
+      "id": "lib_services_firebase_service",
+      "label": "firebase_service.dart",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "firebase_service.dart",
+      "source_file": "lib/services/firebase_service.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_services_firebase_service_auth",
+      "label": "_auth",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "_auth",
+      "source_file": "lib/services/firebase_service.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_services_firebase_service_firebaseservice",
+      "label": "FirebaseService",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "firebaseservice",
+      "source_file": "lib/services/firebase_service.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_services_firebase_service_firestore",
+      "label": "_firestore",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "_firestore",
+      "source_file": "lib/services/firebase_service.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_services_firebase_service_getwordprogress",
+      "label": "getWordProgress",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "getwordprogress",
+      "source_file": "lib/services/firebase_service.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_services_firebase_service_signinanonymously",
+      "label": "signInAnonymously",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "signinanonymously",
+      "source_file": "lib/services/firebase_service.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_services_firebase_service_syncwordprogress",
+      "label": "syncWordProgress",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "syncwordprogress",
+      "source_file": "lib/services/firebase_service.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_services_sync_service",
       "label": "sync_service.dart",
       "_origin": "ast",
@@ -9473,6 +9528,28 @@
       "source_location": null
     },
     {
+      "id": "package_cloud_firestore_cloud_firestore_dart",
+      "label": "package:cloud_firestore/cloud_firestore.dart",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "package:cloud_firestore/cloud_firestore.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_firebase_auth_firebase_auth_dart",
+      "label": "package:firebase_auth/firebase_auth.dart",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "package:firebase_auth/firebase_auth.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
       "id": "progress_service_dart",
       "label": "progress_service.dart",
       "_origin": "ast",
@@ -9480,6 +9557,28 @@
       "community_name": "sync_service.dart",
       "file_type": "code",
       "norm_label": "progress_service.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "static_final_firebaseauth",
+      "label": "static final FirebaseAuth",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "static final firebaseauth",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "static_final_firebasefirestore",
+      "label": "static final FirebaseFirestore",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "static final firebasefirestore",
       "source_file": null,
       "source_location": null
     },
@@ -10341,127 +10440,6 @@
       "community_name": "_MeasureSizeRenderObject",
       "file_type": "code",
       "norm_label": "renderproxybox",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "lib_services_firebase_service",
-      "label": "firebase_service.dart",
-      "_origin": "ast",
-      "community": 76,
-      "community_name": "firebase_service.dart",
-      "file_type": "code",
-      "norm_label": "firebase_service.dart",
-      "source_file": "lib/services/firebase_service.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_services_firebase_service_auth",
-      "label": "_auth",
-      "_origin": "ast",
-      "community": 76,
-      "community_name": "firebase_service.dart",
-      "file_type": "code",
-      "norm_label": "_auth",
-      "source_file": "lib/services/firebase_service.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_services_firebase_service_firebaseservice",
-      "label": "FirebaseService",
-      "_origin": "ast",
-      "community": 76,
-      "community_name": "firebase_service.dart",
-      "file_type": "code",
-      "norm_label": "firebaseservice",
-      "source_file": "lib/services/firebase_service.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_services_firebase_service_firestore",
-      "label": "_firestore",
-      "_origin": "ast",
-      "community": 76,
-      "community_name": "firebase_service.dart",
-      "file_type": "code",
-      "norm_label": "_firestore",
-      "source_file": "lib/services/firebase_service.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_services_firebase_service_getwordprogress",
-      "label": "getWordProgress",
-      "_origin": "ast",
-      "community": 76,
-      "community_name": "firebase_service.dart",
-      "file_type": "code",
-      "norm_label": "getwordprogress",
-      "source_file": "lib/services/firebase_service.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_services_firebase_service_signinanonymously",
-      "label": "signInAnonymously",
-      "_origin": "ast",
-      "community": 76,
-      "community_name": "firebase_service.dart",
-      "file_type": "code",
-      "norm_label": "signinanonymously",
-      "source_file": "lib/services/firebase_service.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_services_firebase_service_syncwordprogress",
-      "label": "syncWordProgress",
-      "_origin": "ast",
-      "community": 76,
-      "community_name": "firebase_service.dart",
-      "file_type": "code",
-      "norm_label": "syncwordprogress",
-      "source_file": "lib/services/firebase_service.dart",
-      "source_location": null
-    },
-    {
-      "id": "package_cloud_firestore_cloud_firestore_dart",
-      "label": "package:cloud_firestore/cloud_firestore.dart",
-      "_origin": "ast",
-      "community": 76,
-      "community_name": "firebase_service.dart",
-      "file_type": "code",
-      "norm_label": "package:cloud_firestore/cloud_firestore.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_firebase_auth_firebase_auth_dart",
-      "label": "package:firebase_auth/firebase_auth.dart",
-      "_origin": "ast",
-      "community": 76,
-      "community_name": "firebase_service.dart",
-      "file_type": "code",
-      "norm_label": "package:firebase_auth/firebase_auth.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "static_final_firebaseauth",
-      "label": "static final FirebaseAuth",
-      "_origin": "ast",
-      "community": 76,
-      "community_name": "firebase_service.dart",
-      "file_type": "code",
-      "norm_label": "static final firebaseauth",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "static_final_firebasefirestore",
-      "label": "static final FirebaseFirestore",
-      "_origin": "ast",
-      "community": 76,
-      "community_name": "firebase_service.dart",
-      "file_type": "code",
-      "norm_label": "static final firebasefirestore",
       "source_file": null,
       "source_location": null
     },
@@ -19337,17 +19315,6 @@
     },
     {
       "source": "lib_screens_word_view_screen",
-      "target": "lib_screens_word_view_screen_pendingzanndata",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/screens/word_view_screen.dart",
-      "source_location": null,
-      "weight": 1.0
-    },
-    {
-      "source": "lib_screens_word_view_screen",
       "target": "lib_screens_word_view_screen_performlayout",
       "relation": "defines",
       "_origin": "ast",
@@ -24640,17 +24607,6 @@
     {
       "source": "lib_services_wordup_api",
       "target": "dart_math",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/services/wordup_api.dart",
-      "source_location": null,
-      "weight": 1.0
-    },
-    {
-      "source": "lib_services_wordup_api",
-      "target": "database_service_dart",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
