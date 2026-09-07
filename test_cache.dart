@@ -1,1 +1,0 @@
-import 'dart:convert'; import 'dart:io'; void main() { var file = File(r'C:\Users\PADIDAR\Documents\wordup_cache\3605.json'); var json = jsonDecode(file.readAsStringSync()); print(json.keys.toList()); }
