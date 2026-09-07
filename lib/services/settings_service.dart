@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class SettingsService {
   static final SettingsService _instance = SettingsService._internal();
@@ -21,6 +22,9 @@ class SettingsService {
   bool enableEdgeTts = true;
   bool enableGoogleTts = true;
 
+  // Background Music / Audio Focus behavior: 'duck' or 'pause'
+  String audioFocusMode = 'duck';
+
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     
@@ -39,6 +43,9 @@ class SettingsService {
     if (!enableEdgeTts && !enableGoogleTts) {
       enableEdgeTts = true;
     }
+
+    audioFocusMode = _prefs.getString('audioFocusMode') ?? 'duck';
+    updateGlobalAudioContext();
   }
 
   Future<void> setMeaningQuestion(bool val) async {
@@ -97,5 +104,33 @@ class SettingsService {
     enableGoogleTts = val;
     await _prefs.setBool('enableGoogleTts', val);
     return true;
+  }
+
+  Future<void> setAudioFocusMode(String mode) async {
+    audioFocusMode = mode;
+    await _prefs.setString('audioFocusMode', mode);
+    updateGlobalAudioContext();
+  }
+
+  void updateGlobalAudioContext() {
+    final isDuck = audioFocusMode == 'duck';
+    final audioContext = AudioContext(
+      android: AudioContextAndroid(
+        isSpeakerphoneOn: false,
+        stayAwake: false,
+        contentType: AndroidContentType.speech,
+        usageType: AndroidUsageType.assistant,
+        audioFocus: isDuck
+            ? AndroidAudioFocus.gainTransientMayDuck
+            : AndroidAudioFocus.gainTransient,
+      ),
+      iOS: AudioContextIOS(
+        category: AVAudioSessionCategory.playback,
+        options: isDuck
+            ? {AVAudioSessionOptions.duckOthers}
+            : {},
+      ),
+    );
+    AudioPlayer.global.setAudioContext(audioContext);
   }
 }

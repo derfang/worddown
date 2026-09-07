@@ -240,9 +240,9 @@
     "semantic_hash": ""
   },
   "lib/screens/settings_screen.dart": {
-    "mtime": 1788822109.174476,
-    "seen": 1788822134.40399,
-    "ast_hash": "a6edbb4e8a0c3a53f6a30941da183a6a",
+    "mtime": 1788793879.1342027,
+    "seen": 1788793895.9015384,
+    "ast_hash": "1bedbdeab2071f913bc32fa1c8597b24",
     "semantic_hash": ""
   },
   "lib/screens/word_list_screen.dart": {
@@ -282,9 +282,9 @@
     "semantic_hash": ""
   },
   "lib/services/settings_service.dart": {
-    "mtime": 1788822099.4622023,
-    "seen": 1788822134.40399,
-    "ast_hash": "1fb0f90f76ab4560bee19e4cebb6334b",
+    "mtime": 1788793750.0579326,
+    "seen": 1788793895.9015384,
+    "ast_hash": "45c5cb56bcbf47d67946255ead08c825",
     "semantic_hash": ""
   },
   "lib/services/sync_service.dart": {

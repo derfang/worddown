@@ -212,6 +212,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   setState(() {});
                 },
               ),
+              const SizedBox(height: 32),
+              Text(
+                'Background Music Behavior',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: theme.primaryColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Choose how WordDown interacts with other media players (Spotify, YouTube Music, Podcasts) when playing pronunciations.',
+                style: TextStyle(color: Colors.white60, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                color: Colors.white.withOpacity(0.05),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                ),
+                child: Column(
+                  children: [
+                    RadioListTile<String>(
+                      title: const Text('Duck Music (Lower Volume)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                      subtitle: const Text('Temporarily lowers background music volume while the word or sentence is pronounced, then restores it.', style: TextStyle(color: Colors.white70)),
+                      value: 'duck',
+                      groupValue: _settingsService.audioFocusMode,
+                      activeColor: theme.primaryColor,
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() => _settingsService.setAudioFocusMode(val));
+                        }
+                      },
+                    ),
+                    Divider(color: Colors.white12, height: 1),
+                    RadioListTile<String>(
+                      title: const Text('Pause & Resume Music', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                      subtitle: const Text('Temporarily pauses background music while pronunciation plays, and resumes it when done.', style: TextStyle(color: Colors.white70)),
+                      value: 'pause',
+                      groupValue: _settingsService.audioFocusMode,
+                      activeColor: theme.primaryColor,
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() => _settingsService.setAudioFocusMode(val));
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
