@@ -55,10 +55,23 @@ class _ReviewScreenState extends State<ReviewScreen> {
       _dueWords.shuffle(); // Shuffle for random review order
       _currentIndex = 0;
     });
+    _prefetchUpcomingWords();
     _loadNextWord();
   }
 
+  void _prefetchUpcomingWords() {
+    // Proactively prefetch the next two words in line
+    for (int offset = 1; offset <= 2; offset++) {
+      final nextIdx = _currentIndex + offset;
+      if (nextIdx < _dueWords.length) {
+        final nextWordId = _dueWords[nextIdx].wordId;
+        WordupApi.prefetchWord(nextWordId);
+      }
+    }
+  }
+
   Future<void> _loadNextWord() async {
+    _prefetchUpcomingWords();
     if (_currentIndex >= _dueWords.length) {
       setState(() {
         _isLoading = false;

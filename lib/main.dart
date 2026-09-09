@@ -76,44 +76,70 @@ class _SplashLoadingScreenState extends State<SplashLoadingScreen> {
           );
         }
       } else {
+        // 1. Try loading cached keys first for instant offline availability
+        await EncryptionService.loadFromLocalStorage();
+
+        bool onlineSuccess = false;
         try {
-          // Fetch keys from Firestore
-          final doc = await FirebaseFirestore.instance.collection('config').doc('secrets').get();
+          // Attempt to fetch fresh keys from Firestore with a 4s timeout
+          final doc = await FirebaseFirestore.instance
+              .collection('config')
+              .doc('secrets')
+              .get()
+              .timeout(const Duration(seconds: 4));
           
           if (doc.exists && doc.data() != null) {
             final data = doc.data()!;
             final String key = data['key'];
             final String iv = data['iv'];
             
-            EncryptionService.initialize(key, iv);
-            
-            await DatabaseService.init();
-            await ProgressService().init();
-            await SettingsService().init();
-
-            if (mounted) {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => HomeScreen()),
-              );
-            }
+            // Persist locally for offline launches
+            await EncryptionService.saveToLocalStorage(key, iv);
+            onlineSuccess = true;
           } else {
             throw Exception('Secret keys not found in database.');
           }
         } catch (e) {
-          print('Access Denied or Error: $e');
+          print('Key fetch note/error: $e');
+          final errStr = e.toString().toLowerCase();
+
+          // Explicit permission denied -> Access was revoked on Firebase
+          if (errStr.contains('permission-denied')) {
+            await EncryptionService.clearLocalStorage();
+            await FirebaseAuth.instance.signOut();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Access Denied. You are not on the approved list.')),
+              );
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => LoginScreen()),
+              );
+            }
+            return;
+          }
+        }
+
+        // 2. If online succeeded or we have valid cached offline keys, proceed!
+        if (onlineSuccess || EncryptionService.isInitialized) {
+          await DatabaseService.init();
+          await ProgressService().init();
+          await SettingsService().init();
+
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => HomeScreen()),
+            );
+          }
+        } else {
+          // Offline and no cached keys found (e.g. first launch without network/VPN)
           await FirebaseAuth.instance.signOut();
           if (mounted) {
-             String alert = 'Access Denied. You are not on the approved list.';
-             final errStr = e.toString();
-             if (errStr.contains('network') || errStr.contains('unavailable') || errStr.contains('403') || errStr.contains('timeout')) {
-               alert = 'Connection error fetching keys. Please check your VPN/internet connection.';
-             }
-             ScaffoldMessenger.of(context).showSnackBar(
-               SnackBar(content: Text(alert)),
-             );
-             Navigator.of(context).pushReplacement(
-               MaterialPageRoute(builder: (_) => LoginScreen()),
-             );
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Connection error fetching keys. Please check your VPN/internet connection.')),
+            );
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => LoginScreen()),
+            );
           }
         }
       }

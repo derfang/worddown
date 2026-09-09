@@ -1,16 +1,16 @@
 # Graph Report - worddown  (2026-09-08)
 
 ## Corpus Check
-- 120 files · ~137,075 words
+- 121 files · ~138,529 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1013 nodes · 1237 edges · 63 communities (49 shown, 8 thin omitted)
+- 1038 nodes · 1270 edges · 66 communities (51 shown, 9 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 18 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c67ae2cd`
+- Built from commit: `527cef8b`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -32,31 +32,35 @@
 - package.json
 - webview_windows_stub.dart
 - wWinMain
-- media_cache_service.dart
-- analyze_list.dart
+- State
+- generate_sounds.dart
 - interceptor/package.json
 - manifest.json
 - highlight_text.dart
-- dart:io
+- test_html.dart
 - fetch_jester.dart
 - server.js
-- package:flutter/material.dart
+- firebase_service.dart
 - main.dart
 - check_current.dart
 - test_json.dart
+- firebase_options.dart
+- encryption_service.dart
 - word_list_screen.dart
 - package:http/http.dart
 - apply_reset.dart
 - test_audio.dart
+- HomeScreen
 - analyze_json.dart
+- translation_service.dart
 - analyze_local2.dart
 - process_ranking.dart
+- analyze_list.dart
+- WordDownApp
 - login_screen.dart
 - analyze_list2.dart
 - analyze_local.dart
-- analyze_progress.dart
-- fetch_jester_raw.dart
-- fix_progress.dart
+- dart:io
 - app.js
 - MaterialPageRoute
 - dart:convert
@@ -70,7 +74,6 @@
 - String?
 - _MeasureSize
 - _MeasureSizeRenderObject
-- check_progress.dart
 - edge_tts_service.dart
 
 ## God Nodes (most connected - your core abstractions)
@@ -100,7 +103,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (63 total, 8 thin omitted)
+## Communities (66 total, 9 thin omitted)
 
 ### Community 0 - "Win32Window"
 Cohesion: 0.05
@@ -108,7 +111,7 @@ Nodes (57): PluginRegistry, RECT, unique_ptr, RegisterPlugins(), DartProject, HW
 
 ### Community 1 - "word_view_screen.dart"
 Cohesion: 0.02
-Nodes (92): AnimationController, BoxFit, ChewieController?, double?, File?, _audioPlayer, bottomNavigationBarOverride, build (+84 more)
+Nodes (97): AnimationController, BoxFit, ChewieController?, double?, File?, _audioPlayer, bottomNavigationBarOverride, build (+89 more)
 
 ### Community 2 - "GeneratedPluginRegistrant.swift"
 Cohesion: 0.05
@@ -120,15 +123,15 @@ Nodes (19): 1. Executive Summary, 2. High-Level System Architecture, 3.1. 11-Sta
 
 ### Community 4 - "progress_service.dart"
 Cohesion: 0.04
-Nodes (47): DateTime, addKnownWordFromCloud, addPreferredImageFromCloud, addQueuedWordFromCloud, addWordToLearn, allProgress, fromJson, _getAppDir (+39 more)
+Nodes (46): DateTime, addKnownWordFromCloud, addPreferredImageFromCloud, addQueuedWordFromCloud, addWordToLearn, allProgress, fromJson, _getAppDir (+38 more)
 
 ### Community 5 - "review_screen.dart"
 Cohesion: 0.05
-Nodes (43): _audioPlayer, build, _buildAntonymQuestion, _buildCompareQuestion, _buildContent, _buildExampleQuestion, _buildListeningQuestion, _buildMeaningQuestion (+35 more)
+Nodes (44): _audioPlayer, build, _buildAntonymQuestion, _buildCompareQuestion, _buildContent, _buildExampleQuestion, _buildListeningQuestion, _buildMeaningQuestion (+36 more)
 
 ### Community 6 - "sync_service.dart"
-Cohesion: 0.05
-Nodes (42): FirebaseFirestore, build, _buildStatColumn, createState, dispose, initState, _onSyncChange, _progress (+34 more)
+Cohesion: 0.10
+Nodes (20): FirebaseFirestore, addLog, _firestore, forceSyncDown, forceSyncUp, _instance, isSyncing, lastError (+12 more)
 
 ### Community 7 - "word.dart"
 Cohesion: 0.04
@@ -136,23 +139,23 @@ Nodes (44): authorName, authorRole, collocations, comparisons, compounds, de, de
 
 ### Community 8 - "learning_session_screen.dart"
 Cohesion: 0.05
-Nodes (37): AudioPlayer, _audioPlayer, build, _buildContinueButton, _buildQuestionContent, _buildTestBody, createState, _currentDictWord (+29 more)
+Nodes (38): AudioPlayer, _audioPlayer, build, _buildContinueButton, _buildQuestionContent, _buildTestBody, createState, _currentDictWord (+30 more)
 
 ### Community 9 - "database_service.dart"
-Cohesion: 0.06
-Nodes (29): encryption_service.dart, android, DefaultFirebaseOptions, web, windows, _allWords, availableCurriculums, DatabaseService (+21 more)
+Cohesion: 0.05
+Nodes (36): encryption_service.dart, build, _buildStatColumn, createState, dispose, initState, _onSyncChange, _progress (+28 more)
 
 ### Community 10 - "settings_service.dart"
 Cohesion: 0.05
-Nodes (38): _buildToggle, createState, SettingsScreen, _SettingsScreenState, _settingsService, audioFocusMode, enableAntonymQuestion, enableCompareQuestion (+30 more)
+Nodes (41): _buildToggle, createState, _languages, SettingsScreen, _SettingsScreenState, _settingsService, audioFocusMode, enableAntonymQuestion (+33 more)
 
 ### Community 11 - "my_application.cc"
 Cohesion: 0.09
 Nodes (22): FlPluginRegistry, FlView, GApplication, gboolean, gchar, GObject, GtkApplication, fl_register_plugins() (+14 more)
 
 ### Community 12 - "wordup_api.dart"
-Cohesion: 0.07
-Nodes (28): database_service.dart, edge_tts_service.dart, data, decode, _decodeGzipBytes, _decodeJsonMap, _downloadAndCacheWord, _downloadAndExtractFromCdn (+20 more)
+Cohesion: 0.05
+Nodes (37): database_service.dart, edge_tts_service.dart, cacheWordMedia, clearWordCache, _getFileNameFromUrl, getLocalFile, _getWordCacheDir, MediaCacheService (+29 more)
 
 ### Community 13 - "home_screen.dart"
 Cohesion: 0.07
@@ -170,13 +173,13 @@ Nodes (15): controller, dispose, executeScript, initialize, isInitialized, Loadi
 Cohesion: 0.24
 Nodes (9): _In_, _In_opt_, vector, wWinMain(), string, wchar_t, CreateAndAttachConsole(), GetCommandLineArguments() (+1 more)
 
-### Community 17 - "media_cache_service.dart"
-Cohesion: 0.22
-Nodes (8): cacheWordMedia, clearWordCache, _getFileNameFromUrl, getLocalFile, _getWordCacheDir, MediaCacheService, ../models/word.dart, package:path_provider/path_provider.dart
+### Community 17 - "State"
+Cohesion: 0.18
+Nodes (15): SplashLoadingScreen, _SplashLoadingScreenState, CachedMediaImage, _CachedMediaImageState, CompareWithSection, _CompareWithSectionState, SelectableImage, _SelectableImageState (+7 more)
 
-### Community 18 - "analyze_list.dart"
-Cohesion: 0.50
-Nodes (3): content, data, main
+### Community 18 - "generate_sounds.dart"
+Cohesion: 0.12
+Nodes (15): dart:math, bitsPerSample, blockAlign, builder, byteRate, chunkSize, data, _int16ToBytes (+7 more)
 
 ### Community 19 - "interceptor/package.json"
 Cohesion: 0.18
@@ -190,9 +193,9 @@ Nodes (10): background_color, description, display, icons, name, orientation, pr
 Cohesion: 0.06
 Nodes (35): int?, build, buildSpans, candidates, _computeSpans, _computeTokens, createState, didUpdateWidget (+27 more)
 
-### Community 22 - "dart:io"
-Cohesion: 0.25
-Nodes (6): dart:io, files, main, main, response, url
+### Community 22 - "test_html.dart"
+Cohesion: 0.50
+Nodes (3): main, response, url
 
 ### Community 23 - "fetch_jester.dart"
 Cohesion: 0.22
@@ -202,13 +205,13 @@ Nodes (8): content, file, list, main, response, url, word, wordId
 Cohesion: 0.22
 Nodes (8): app, cors, db, dbPath, express, path, sqlite3, zlib
 
-### Community 25 - "package:flutter/material.dart"
-Cohesion: 0.25
-Nodes (7): package:flutter/material.dart, package:flutter_test/flutter_test.dart, package:word_down/main.dart, package:word_down/models/word.dart, package:word_down/widgets/highlight_text.dart, main, main
+### Community 25 - "firebase_service.dart"
+Cohesion: 0.18
+Nodes (10): _auth, FirebaseService, _firestore, getWordProgress, signInAnonymously, syncWordProgress, package:cloud_firestore/cloud_firestore.dart, package:firebase_auth/firebase_auth.dart (+2 more)
 
 ### Community 26 - "main.dart"
-Cohesion: 0.18
-Nodes (10): firebase_options.dart, build, createState, _initializeApp, initState, main, package:google_fonts/google_fonts.dart, screens/home_screen.dart (+2 more)
+Cohesion: 0.20
+Nodes (9): firebase_options.dart, build, createState, _initializeApp, initState, main, package:google_fonts/google_fonts.dart, screens/home_screen.dart (+1 more)
 
 ### Community 27 - "check_current.dart"
 Cohesion: 0.25
@@ -218,13 +221,21 @@ Nodes (7): content, data, decoded, extraKnownCount, knownCount, learningCount, m
 Cohesion: 0.25
 Nodes (7): html, jsonMatch, jsonRegex, main, nextData, pageProps, senses
 
+### Community 29 - "firebase_options.dart"
+Cohesion: 0.25
+Nodes (7): android, DefaultFirebaseOptions, web, windows, package:firebase_core/firebase_core.dart, package:flutter/foundation.dart, static const FirebaseOptions
+
+### Community 30 - "encryption_service.dart"
+Cohesion: 0.13
+Nodes (14): dart:typed_data, clearLocalStorage, decryptFile, decryptString, EncryptionService, initialize, isInitialized, loadFromLocalStorage (+6 more)
+
 ### Community 31 - "word_list_screen.dart"
-Cohesion: 0.20
-Nodes (9): WordDownApp, build, title, WordListScreen, words, ../services/database_service.dart, ../services/progress_service.dart, StatelessWidget (+1 more)
+Cohesion: 0.29
+Nodes (6): build, title, words, ../services/database_service.dart, ../services/progress_service.dart, word_view_screen.dart
 
 ### Community 32 - "package:http/http.dart"
-Cohesion: 0.14
-Nodes (12): package:archive/archive.dart, package:http/http.dart, j, main, r, main, main, response (+4 more)
+Cohesion: 0.11
+Nodes (16): package:archive/archive.dart, package:http/http.dart, main, response, url, wordId, j, main (+8 more)
 
 ### Community 33 - "apply_reset.dart"
 Cohesion: 0.29
@@ -238,6 +249,10 @@ Nodes (7): List, bytes, data, jsonString, main, response, url
 Cohesion: 0.17
 Nodes (10): Map, data, jsonString, main, r, data, main, response (+2 more)
 
+### Community 37 - "translation_service.dart"
+Cohesion: 0.18
+Nodes (10): _ensurePrefs, _instance, _memoryCache, _prefs, translate, TranslationService, package:shared_preferences/shared_preferences.dart, settings_service.dart (+2 more)
+
 ### Community 38 - "analyze_local2.dart"
 Cohesion: 0.33
 Nodes (5): c, d, known, learning, main
@@ -246,9 +261,17 @@ Nodes (5): c, d, known, learning, main
 Cohesion: 0.33
 Nodes (5): ids, idStrings, innerText, main, rankingText
 
+### Community 40 - "analyze_list.dart"
+Cohesion: 0.50
+Nodes (3): content, data, main
+
+### Community 41 - "WordDownApp"
+Cohesion: 0.67
+Nodes (3): WordDownApp, WordListScreen, StatelessWidget
+
 ### Community 43 - "login_screen.dart"
-Cohesion: 0.07
-Nodes (34): FirebaseAuth, SplashLoadingScreen, _SplashLoadingScreenState, HomeScreen, _HomeScreenState, _auth, build, createState (+26 more)
+Cohesion: 0.09
+Nodes (22): FirebaseAuth, _auth, build, createState, _emailController, _errorMessage, _formatCleanError, _isLoading (+14 more)
 
 ### Community 44 - "analyze_list2.dart"
 Cohesion: 0.40
@@ -258,17 +281,9 @@ Nodes (4): content, data, main, uw
 Cohesion: 0.40
 Nodes (4): c, d, m, main
 
-### Community 46 - "analyze_progress.dart"
-Cohesion: 0.40
-Nodes (4): main, maxCount, progress, words
-
-### Community 47 - "fetch_jester_raw.dart"
-Cohesion: 0.40
-Nodes (4): main, response, url, wordId
-
-### Community 48 - "fix_progress.dart"
-Cohesion: 0.40
-Nodes (4): c, d, f, main
+### Community 46 - "dart:io"
+Cohesion: 0.13
+Nodes (11): main, dart:io, main, maxCount, progress, words, main, mire (+3 more)
 
 ### Community 49 - "app.js"
 Cohesion: 0.83
@@ -279,8 +294,8 @@ Cohesion: 0.29
 Nodes (7): build, _buildProgressTabs, _buildWordDetailsOverlay, build, _openWord, _onWordTap, MaterialPageRoute
 
 ### Community 54 - "dart:convert"
-Cohesion: 0.33
-Nodes (4): dart:convert, content, data, main
+Cohesion: 0.18
+Nodes (8): dart:convert, content, data, main, c, d, f, main
 
 ### Community 55 - "Word Down 📖"
 Cohesion: 0.22
@@ -290,33 +305,29 @@ Nodes (8): Building for Release, ✨ Features, 🚀 Getting Started, Installatio
 Cohesion: 0.50
 Nodes (3): fs, path, puppeteer
 
-### Community 76 - "check_progress.dart"
-Cohesion: 0.50
-Nodes (3): main, mire, progress
-
 ### Community 79 - "edge_tts_service.dart"
-Cohesion: 0.04
-Nodes (45): main, dart:async, dart:math, dart:typed_data, _chromiumFullVersion, _chromiumMajorVersion, EdgeTtsService, _escapeXml (+37 more)
+Cohesion: 0.10
+Nodes (20): dart:async, _chromiumFullVersion, _chromiumMajorVersion, EdgeTtsService, _escapeXml, _generateMuid, _generateSecMsGec, _generateUuidHex (+12 more)
 
 ## Knowledge Gaps
-- **627 isolated node(s):** `main`, `DefaultFirebaseOptions`, `web`, `android`, `windows` (+622 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 758 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **8 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **647 isolated node(s):** `main`, `DefaultFirebaseOptions`, `web`, `android`, `windows` (+642 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 778 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **9 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `WebviewController` connect `webview_windows_stub.dart` to `word_view_screen.dart`?**
-  _High betweenness centrality (0.025) - this node is a cross-community bridge._
+  _High betweenness centrality (0.034) - this node is a cross-community bridge._
 - **Why does `WordData` connect `word.dart` to `learning_session_screen.dart`, `word_view_screen.dart`, `review_screen.dart`?**
   _High betweenness centrality (0.022) - this node is a cross-community bridge._
-- **Why does `WordVideo` connect `word.dart` to `word_view_screen.dart`?**
-  _High betweenness centrality (0.009) - this node is a cross-community bridge._
+- **Why does `ProgressService` connect `database_service.dart` to `learning_session_screen.dart`, `progress_service.dart`, `review_screen.dart`?**
+  _High betweenness centrality (0.011) - this node is a cross-community bridge._
 - **What connects `main`, `DefaultFirebaseOptions`, `web` to the rest of the system?**
-  _627 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _647 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Win32Window` be split into smaller, more focused modules?**
   _Cohesion score 0.05311676909569798 - nodes in this community are weakly interconnected._
 - **Should `word_view_screen.dart` be split into smaller, more focused modules?**
-  _Cohesion score 0.021505376344086023 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.02040816326530612 - nodes in this community are weakly interconnected._
 - **Should `GeneratedPluginRegistrant.swift` be split into smaller, more focused modules?**
   _Cohesion score 0.04846938775510204 - nodes in this community are weakly interconnected._

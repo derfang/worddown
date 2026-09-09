@@ -1,4 +1,5 @@
 import 'package:encrypt/encrypt.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -6,9 +7,43 @@ class EncryptionService {
   static String? _masterKeyBase64;
   static String? _masterIvBase64;
 
+  static bool get isInitialized => _masterKeyBase64 != null && _masterIvBase64 != null;
+
   static void initialize(String key, String iv) {
     _masterKeyBase64 = key;
     _masterIvBase64 = iv;
+  }
+
+  static Future<void> saveToLocalStorage(String key, String iv) async {
+    initialize(key, iv);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('enc_master_key', key);
+      await prefs.setString('enc_master_iv', iv);
+    } catch (_) {}
+  }
+
+  static Future<bool> loadFromLocalStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = prefs.getString('enc_master_key');
+      final iv = prefs.getString('enc_master_iv');
+      if (key != null && key.isNotEmpty && iv != null && iv.isNotEmpty) {
+        initialize(key, iv);
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  static Future<void> clearLocalStorage() async {
+    _masterKeyBase64 = null;
+    _masterIvBase64 = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('enc_master_key');
+      await prefs.remove('enc_master_iv');
+    } catch (_) {}
   }
 
   static String decryptString(String encryptedBase64) {

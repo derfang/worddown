@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/settings_service.dart';
+import '../services/encryption_service.dart';
 import 'login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -10,6 +11,22 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final SettingsService _settingsService = SettingsService();
+
+  static const Map<String, String> _languages = {
+    'fa': 'Persian (فارسی)',
+    'ar': 'Arabic (العربية)',
+    'es': 'Spanish (Español)',
+    'fr': 'French (Français)',
+    'de': 'German (Deutsch)',
+    'tr': 'Turkish (Türkçe)',
+    'ru': 'Russian (Русский)',
+    'it': 'Italian (Italiano)',
+    'zh-CN': 'Chinese (中文)',
+    'ja': 'Japanese (日本語)',
+    'ko': 'Korean (한국어)',
+    'hi': 'Hindi (हिन्दी)',
+    'off': 'Disabled (Off)',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +91,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ),
                           TextButton(
-                            onPressed: () => FirebaseAuth.instance.signOut(),
+                            onPressed: () async {
+                              await EncryptionService.clearLocalStorage();
+                              await FirebaseAuth.instance.signOut();
+                            },
                             child: Text('Log Out', style: TextStyle(color: Colors.redAccent)),
                           )
                         ],
@@ -211,6 +231,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   }
                   setState(() {});
                 },
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'Word Translation',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: theme.primaryColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Show a concise native translation next to the word in the word view screen.',
+                style: TextStyle(color: Colors.white60, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                color: Colors.white.withOpacity(0.05),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      Icon(Icons.translate, color: theme.primaryColor),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Native Language', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                            const SizedBox(height: 2),
+                            Text(
+                              _languages[_settingsService.translationLanguage] ?? 'Persian (فارسی)',
+                              style: const TextStyle(color: Colors.white70, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                      DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _languages.containsKey(_settingsService.translationLanguage)
+                              ? _settingsService.translationLanguage
+                              : 'fa',
+                          dropdownColor: const Color(0xFF1E1B4B),
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          icon: const Icon(Icons.arrow_drop_down, color: Colors.white70),
+                          items: _languages.entries.map((entry) {
+                            return DropdownMenuItem<String>(
+                              value: entry.key,
+                              child: Text(entry.value, style: const TextStyle(color: Colors.white)),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => _settingsService.setTranslationLanguage(val));
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 32),
               Text(

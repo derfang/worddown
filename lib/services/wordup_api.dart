@@ -10,6 +10,8 @@ import 'progress_service.dart';
 import 'database_service.dart';
 import 'edge_tts_service.dart';
 import 'settings_service.dart';
+import 'media_cache_service.dart';
+import '../models/word.dart';
 Map<String, dynamic> _decodeJsonMap(String content) {
   return json.decode(content) as Map<String, dynamic>;
 }
@@ -158,6 +160,41 @@ class WordupApi {
       await fetchWordData(wordId, wordText: wordText, isPrefetch: true);
     } catch (e) {
       // Silent failure
+    }
+  }
+
+  /// Proactively prefetches and caches WordData JSON, media illustrations, and pronunciation audio.
+  /// Designed for review and learning sessions to ensure instant next-word loading.
+  static Future<void> prefetchWord(
+    int wordId, {
+    bool includeMedia = true,
+    bool includeAudio = true,
+  }) async {
+    try {
+      final word = DatabaseService.getWordById(wordId);
+      final wordText = word?.text;
+      
+      // 1. Fetch JSON definitions
+      final json = await fetchWordData(wordId.toString(), wordText: wordText, isPrefetch: true);
+      
+      // 2. Cache media (images & video thumbnails)
+      if (includeMedia && json.isNotEmpty) {
+        try {
+          final wordData = WordData.fromJson(wordId, json);
+          // Fire and forget media caching
+          MediaCacheService.cacheWordMedia(wordId, wordData).catchError((_) {});
+        } catch (_) {}
+      }
+
+      // 3. Cache dictionary pronunciation audio
+      if (includeAudio && wordText != null && wordText.isNotEmpty) {
+        try {
+          // Preload US dictionary pronunciation
+          getAudioPath(wordId.toString(), wordText: wordText, isUk: false, useGoogleTts: false).catchError((_) => '');
+        } catch (_) {}
+      }
+    } catch (_) {
+      // Background prefetch should fail silently without throwing
     }
   }
 

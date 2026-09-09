@@ -7,10 +7,10 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../services/wordup_api.dart';
-import '../services/firebase_service.dart';
 import '../services/progress_service.dart';
 import '../services/database_service.dart';
 import '../services/media_cache_service.dart';
+import '../services/translation_service.dart';
 import '../models/word.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -62,6 +62,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
   String? _currentlyPlayingTextId;
   bool _isSentenceLoading = false;
   Map<String, int> _learningWords = {};
+  String? _translatedWord;
 
   @override
   void initState() {
@@ -87,7 +88,20 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
       }
     });
     _loadData();
+    _fetchTranslation();
     _learningWords = _getLearningWords();
+  }
+
+  void _fetchTranslation() {
+    final wordText = widget.wordText ?? DatabaseService.getWordById(widget.wordId)?.text;
+    if (wordText == null || wordText.trim().isEmpty) return;
+    TranslationService().translate(wordText).then((trans) {
+      if (mounted && trans != null && trans.isNotEmpty) {
+        setState(() {
+          _translatedWord = trans;
+        });
+      }
+    });
   }
   
   Map<String, int> _getLearningWords() {
@@ -142,8 +156,6 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
           }
         },
       );
-      final progress = ProgressService().getProgress(widget.wordId);
-      final isKnown = ProgressService().knownWordIds.contains(widget.wordId);
       
       final data = WordData.fromJson(widget.wordId, json);
       if (_pendingZannData != null) {
@@ -156,8 +168,8 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
       if (mounted) {
         setState(() {
           _wordData = data;
-          _progress = progress;
-          _isKnown = isKnown;
+          _progress = ProgressService().getProgress(widget.wordId);
+          _isKnown = ProgressService().knownWordIds.contains(widget.wordId);
           _isQueued = ProgressService().isInLearningQueue(widget.wordId);
           _isLoading = false;
         });
@@ -582,15 +594,196 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
     }
   }
 
+  Widget _buildAppBarTitle() {
+    final wordText = (widget.wordText ?? DatabaseService.getWordById(widget.wordId)?.text ?? 'WORD').toUpperCase();
+    final rank = DatabaseService.getWordRank(widget.wordId);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(
+          child: Text(
+            wordText,
+            style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 2, fontSize: 20, color: Colors.white),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (rank != null) ...[
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.purpleAccent.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.purpleAccent.withOpacity(0.5)),
+            ),
+            child: Text(
+              '#$rank',
+              style: TextStyle(
+                color: Colors.purpleAccent.shade100,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildErrorScaffold(ThemeData theme) {
+    final wordName = (widget.wordText ?? DatabaseService.getWordById(widget.wordId)?.text ?? 'Word').toUpperCase();
+    final isNetworkError = _error.toLowerCase().contains('socket') ||
+        _error.toLowerCase().contains('timeout') ||
+        _error.toLowerCase().contains('handshake') ||
+        _error.toLowerCase().contains('clientexception') ||
+        _error.toLowerCase().contains('failed host lookup') ||
+        _error.toLowerCase().contains('connection');
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      extendBodyBehindAppBar: true,
+      extendBody: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          tooltip: 'Back',
+          onPressed: () => Navigator.maybePop(context),
+        ),
+        title: _buildAppBarTitle(),
+      ),
+      bottomNavigationBar: widget.bottomNavigationBarOverride ?? _buildBottomActions(),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              theme.scaffoldBackgroundColor,
+              const Color(0xFF1E1B4B),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 500),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withOpacity(0.12),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                      ),
+                      child: const Icon(
+                        Icons.cloud_off_rounded,
+                        size: 54,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      isNetworkError ? 'Connection Issue' : 'Failed to Load Word',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      isNetworkError
+                          ? 'Unable to connect to the word CDN server. Please check your internet connection or VPN and tap retry.'
+                          : 'An unexpected issue occurred while fetching content for "$wordName".',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white70,
+                        height: 1.4,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.black38,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Text(
+                        _error,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                          color: Colors.white38,
+                        ),
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.maybePop(context),
+                          icon: const Icon(Icons.arrow_back, size: 18),
+                          label: const Text('Go Back'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white70,
+                            side: const BorderSide(color: Colors.white24),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _isLoading = true;
+                              _error = '';
+                            });
+                            _loadData();
+                            _fetchTranslation();
+                          },
+                          icon: const Icon(Icons.refresh, size: 18),
+                          label: const Text('Retry'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.colorScheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            elevation: 0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
     if (_error.isNotEmpty && _wordData == null) {
-      return Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: Center(child: Text(_error, style: const TextStyle(color: Colors.white))),
-      );
+      return _buildErrorScaffold(theme);
     }
     
     final data = _wordData;
@@ -648,36 +841,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                       backgroundColor: theme.scaffoldBackgroundColor.withOpacity(0.95),
                       surfaceTintColor: Colors.transparent,
                       elevation: 0,
-                      title: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              (widget.wordText ?? DatabaseService.getWordById(widget.wordId)?.text ?? 'WORD').toUpperCase(), 
-                              style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 2, fontSize: 20, color: Colors.white),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          SizedBox(width: 12),
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.purpleAccent.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.purpleAccent.withOpacity(0.5)),
-                            ),
-                            child: Text(
-                              '#${DatabaseService.getWordRank(widget.wordId) ?? '?'}',
-                              style: TextStyle(
-                                color: Colors.purpleAccent.shade100,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      title: _buildAppBarTitle(),
                     ),
                     SliverAppBar(
                       pinned: true,
@@ -709,36 +873,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                       floating: true,
                       backgroundColor: theme.scaffoldBackgroundColor.withOpacity(0.95),
                       elevation: 0,
-                      title: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              (widget.wordText ?? DatabaseService.getWordById(widget.wordId)?.text ?? 'WORD').toUpperCase(), 
-                              style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 2, fontSize: 20, color: Colors.white),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          SizedBox(width: 12),
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.purpleAccent.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.purpleAccent.withOpacity(0.5)),
-                            ),
-                            child: Text(
-                              '#${DatabaseService.getWordRank(widget.wordId) ?? '?'}',
-                              style: TextStyle(
-                                color: Colors.purpleAccent.shade100,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      title: _buildAppBarTitle(),
                       actions: [
                         TextButton(onPressed: () => _playAudio(isUk: true, useGoogleTts: false), child: const Text('UK Dict')),
                         TextButton(onPressed: () => _playAudio(isUk: false, useGoogleTts: false), child: const Text('US Dict')),
@@ -779,6 +914,37 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                     ),
                   ),
                   SizedBox(height: 32),
+                ],
+                if (_translatedWord != null && _translatedWord!.isNotEmpty) ...[
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.tealAccent.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.translate, color: Colors.tealAccent, size: 16),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              _translatedWord!,
+                              style: const TextStyle(
+                                color: Colors.tealAccent,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
                 if (data.usage.isNotEmpty) ...[
                   Container(
@@ -1205,6 +1371,34 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 12),
+            if (_translatedWord != null && _translatedWord!.isNotEmpty) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.teal.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.tealAccent.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.translate, color: Colors.tealAccent, size: 16),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        _translatedWord!,
+                        style: const TextStyle(
+                          color: Colors.tealAccent,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             Container(
               width: double.infinity,
               margin: const EdgeInsets.only(bottom: 24),
@@ -1826,8 +2020,6 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
   }
 
   Widget? _buildBottomActions() {
-    if (_isLoading || _error.isNotEmpty) return null;
-    
     if (_isKnown) {
       return SafeArea(
         child: Column(

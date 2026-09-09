@@ -53,7 +53,34 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
     if (_queue.isEmpty) {
       _currentStep = SessionStep.finished;
     } else {
+      _prefetchUpcomingWords();
       _nextAction();
+    }
+  }
+
+  void _prefetchUpcomingWords() {
+    final upcomingIds = <int>[];
+    
+    // 1. Next in test queue if any
+    for (final id in _testQueue) {
+      if (!upcomingIds.contains(id)) {
+        upcomingIds.add(id);
+      }
+      if (upcomingIds.length >= 2) break;
+    }
+
+    // 2. Next in new words learning queue if needed
+    if (upcomingIds.length < 2) {
+      for (final id in _queue) {
+        if (!upcomingIds.contains(id)) {
+          upcomingIds.add(id);
+        }
+        if (upcomingIds.length >= 2) break;
+      }
+    }
+
+    for (final id in upcomingIds) {
+      WordupApi.prefetchWord(id);
     }
   }
 
@@ -64,6 +91,7 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
   }
 
   void _nextAction() {
+    _prefetchUpcomingWords();
     if (_testQueue.isNotEmpty) {
       // Next is a test
       setState(() {

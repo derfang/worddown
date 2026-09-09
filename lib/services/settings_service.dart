@@ -25,6 +25,9 @@ class SettingsService {
   // Background Music / Audio Focus behavior: 'duck' or 'pause'
   String audioFocusMode = 'duck';
 
+  // Target translation language for Word View (default: 'fa' / Persian, or 'off' to disable)
+  String translationLanguage = 'fa';
+
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     
@@ -45,7 +48,13 @@ class SettingsService {
     }
 
     audioFocusMode = _prefs.getString('audioFocusMode') ?? 'duck';
+    translationLanguage = _prefs.getString('translationLanguage') ?? 'fa';
     updateGlobalAudioContext();
+  }
+
+  Future<void> setTranslationLanguage(String lang) async {
+    translationLanguage = lang;
+    await _prefs.setString('translationLanguage', lang);
   }
 
   Future<void> setMeaningQuestion(bool val) async {
