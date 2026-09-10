@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/settings_service.dart';
 import '../services/encryption_service.dart';
+import '../services/wordup_api.dart';
 import 'login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -346,6 +347,128 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       },
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'Cloud API & Diagnostics',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: theme.primaryColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Verify connection to your live GitHub Encrypted REST API and manage offline cache.',
+                style: TextStyle(color: Colors.white60, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                color: Colors.white.withOpacity(0.05),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: theme.primaryColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.cloud_done, color: theme.primaryColor),
+                        ),
+                        title: const Text('Test GitHub Cloud API', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                        subtitle: const Text('Sends a test ping to your encrypted API and tests AES decryption.', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        trailing: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.primaryColor,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () async {
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (_) => const Center(child: CircularProgressIndicator()),
+                            );
+                            final res = await WordupApi.testCloudApi();
+                            if (!context.mounted) return;
+                            Navigator.of(context).pop();
+
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                backgroundColor: const Color(0xFF1E293B),
+                                title: Row(
+                                  children: [
+                                    Icon(
+                                      res['success'] == true ? Icons.check_circle : Icons.error,
+                                      color: res['success'] == true ? Colors.greenAccent : Colors.redAccent,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      res['success'] == true ? 'Cloud API Working!' : 'Connection Failed',
+                                      style: const TextStyle(fontSize: 18),
+                                    ),
+                                  ],
+                                ),
+                                content: Text(
+                                  res['success'] == true
+                                      ? 'Successfully fetched and decrypted word #${res['word']} from GitHub in ${res['latencyMs']}ms!\n\nPayload Size: ${res['bytes']} bytes\nSenses: ${res['senses']}\n\nYour encrypted Cloud REST API is 100% operational.'
+                                      : 'Error: ${res['error']}\nLatency: ${res['latencyMs']}ms\n\nApp will use WordUp CDN fallback automatically.',
+                                  style: const TextStyle(color: Colors.white70),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(ctx).pop(),
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                          child: const Text('Test Ping'),
+                        ),
+                      ),
+                      const Divider(color: Colors.white12, height: 24),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.delete_sweep, color: Colors.orangeAccent),
+                        ),
+                        title: const Text('Clear Word Cache', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                        subtitle: const Text('Clears saved offline word JSON files so they re-fetch from the Cloud API.', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        trailing: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.orangeAccent,
+                            side: const BorderSide(color: Colors.orangeAccent),
+                          ),
+                          onPressed: () async {
+                            final count = await WordupApi.clearLocalCache();
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Cleared $count cached words from device. Words will now re-fetch fresh from Cloud API.'),
+                                backgroundColor: const Color(0xFF1E293B),
+                              ),
+                            );
+                          },
+                          child: const Text('Clear Cache'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

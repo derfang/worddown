@@ -84,6 +84,7 @@ class WordupApi {
       if (await localFile.exists()) {
         final contents = await localFile.readAsString();
         data = await compute(_decodeJsonMap, contents);
+        print('💾 [WordupApi] Word $wordId ${wordText != null ? "(\"$wordText\") " : ""}loaded instantly from LOCAL CACHE');
       } else {
         needsCdnFetch = true;
       }
@@ -91,7 +92,7 @@ class WordupApi {
 
     // 2. Fetch from network (GitHub Cloud REST API first, WordUp CDN fallback)
     if (needsCdnFetch) {
-      data = await _downloadWord(wordId);
+      data = await _downloadWord(wordId, wordText: wordText);
       if (!kIsWeb && localFile != null) {
         await localFile.writeAsString(json.encode(data));
       }
@@ -215,7 +216,7 @@ class WordupApi {
 
   static const String _githubApiBaseUrl = 'https://raw.githubusercontent.com/derfang/worddown/api/words';
 
-  static Future<Map<String, dynamic>?> _fetchFromGithubApi(String wordId) async {
+  static Future<Map<String, dynamic>?> _fetchFromGithubApi(String wordId, {String? wordText}) async {
     try {
       final url = Uri.parse('$_githubApiBaseUrl/$wordId.enc');
       final response = await http.get(url).timeout(const Duration(seconds: 4));
@@ -223,6 +224,7 @@ class WordupApi {
         final decryptedJson = EncryptionService.decryptFile(response.bodyBytes);
         final decoded = json.decode(decryptedJson);
         if (decoded is Map<String, dynamic>) {
+          print('🌐 [WordupApi] SUCCESS: Word $wordId ${wordText != null ? "(\"$wordText\") " : ""}loaded from GITHUB CLOUD REST API (${response.bodyBytes.length} bytes decrypted)');
           return decoded;
         }
       }
@@ -232,14 +234,66 @@ class WordupApi {
     return null;
   }
 
-  static Future<Map<String, dynamic>> _downloadWord(String wordId) async {
+  static Future<Map<String, dynamic>> _downloadWord(String wordId, {String? wordText}) async {
     // 1. Try fetching from our encrypted GitHub REST API endpoint
-    final githubData = await _fetchFromGithubApi(wordId);
+    final githubData = await _fetchFromGithubApi(wordId, wordText: wordText);
     if (githubData != null && githubData.isNotEmpty) {
       return githubData;
     }
+    print('⚡ [WordupApi] Word $wordId ${wordText != null ? "(\"$wordText\") " : ""}not on GitHub, falling back to WORDUP CDN');
     // 2. Fallback to WordUp CDN if word has not yet synced to GitHub
     return await _downloadAndExtractFromCdn(wordId);
+  }
+
+  /// Sends a live test ping to the GitHub REST API and tests decryption
+  static Future<Map<String, dynamic>> testCloudApi() async {
+    final stopwatch = Stopwatch()..start();
+    try {
+      final url = Uri.parse('$_githubApiBaseUrl/1111.enc?t=${DateTime.now().millisecondsSinceEpoch}');
+      final response = await http.get(url).timeout(const Duration(seconds: 5));
+      stopwatch.stop();
+      if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+        final decryptedJson = EncryptionService.decryptFile(response.bodyBytes);
+        final decoded = json.decode(decryptedJson);
+        if (decoded is Map<String, dynamic>) {
+          return {
+            'success': true,
+            'latencyMs': stopwatch.elapsedMilliseconds,
+            'bytes': response.bodyBytes.length,
+            'word': 'the',
+            'senses': (decoded['Senses'] as List?)?.length ?? 0,
+          };
+        }
+      }
+      return {
+        'success': false,
+        'error': 'HTTP ${response.statusCode}: ${response.reasonPhrase}',
+        'latencyMs': stopwatch.elapsedMilliseconds,
+      };
+    } catch (e) {
+      stopwatch.stop();
+      return {
+        'success': false,
+        'error': e.toString(),
+        'latencyMs': stopwatch.elapsedMilliseconds,
+      };
+    }
+  }
+
+  /// Clears local word JSON cache so words can be re-fetched from cloud
+  static Future<int> clearLocalCache() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final cacheDir = Directory('${dir.path}/wordup_cache');
+      if (await cacheDir.exists()) {
+        final files = cacheDir.listSync();
+        final count = files.length;
+        await cacheDir.delete(recursive: true);
+        _webMemoryCache.clear();
+        return count;
+      }
+    } catch (_) {}
+    return 0;
   }
 
   static Future<Map<String, dynamic>> _downloadAndExtractFromCdn(String wordId) async {
