@@ -54,6 +54,9 @@ jobs:
           gh release download database-latest --pattern "wordup_database.db" || echo "No existing database found. Starting new database."
 
       - name: Run Stealth Sync
+        env:
+          ENC_KEY: ${{ secrets.ENC_KEY }}
+          ENC_IV: ${{ secrets.ENC_IV }}
         run: |
           python scripts/stealth_sync.py \
             --batch-size "${{ inputs.batch_size || '500' }}" \

@@ -16,10 +16,12 @@ from cryptography.hazmat.primitives import padding
 CDN_BASE_URL = 'https://cdn-wordup.com/Contents/v2025-10-23/'
 DEFAULT_TOKEN = '058daa1c-96cf-4b55-b016-115dd35136e1'
 
-DEFAULT_ENC_KEY = 'ma8lnJ2ZWz4+XvZ6UWkSZSeQGkv8fS0/XihcFPocysI='
-DEFAULT_ENC_IV = '89DZIiGBL8zWSjDvUdfimQ=='
+DEFAULT_ENC_KEY = os.environ.get('ENC_KEY', '')
+DEFAULT_ENC_IV = os.environ.get('ENC_IV', '')
 
-def encrypt_content(content_str: str, key_b64: str = DEFAULT_ENC_KEY, iv_b64: str = DEFAULT_ENC_IV) -> bytes:
+def encrypt_content(content_str: str, key_b64: str, iv_b64: str) -> bytes:
+    if not key_b64 or not iv_b64:
+        raise ValueError("Encryption key and IV must be provided via environment variables (ENC_KEY, ENC_IV) or arguments (--enc-key, --enc-iv)")
     key = base64.b64decode(key_b64)
     iv = base64.b64decode(iv_b64)
     padder = padding.PKCS7(128).padder()
