@@ -48,6 +48,25 @@ class MediaCacheService {
     return null;
   }
 
+  static Future<File?> cacheSingleMedia(int wordId, String url) async {
+    try {
+      final cacheDir = await _getWordCacheDir(wordId);
+      final fileName = _getFileNameFromUrl(url);
+      final file = File('${cacheDir.path}/$fileName');
+      if (await file.exists() && await file.length() > 0) {
+        return file;
+      }
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        await file.writeAsBytes(response.bodyBytes);
+        return file;
+      }
+    } catch (e) {
+      print('Failed to cache single media $url: $e');
+    }
+    return null;
+  }
+
   static Future<void> cacheWordMedia(int wordId, WordData data) async {
     try {
       final cacheDir = await _getWordCacheDir(wordId);

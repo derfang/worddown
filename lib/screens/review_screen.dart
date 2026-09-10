@@ -7,6 +7,8 @@ import '../services/wordup_api.dart';
 import '../models/word.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'word_view_screen.dart';
+import '../widgets/cached_media_image.dart';
+import '../services/media_cache_service.dart';
 
 class ReviewOption {
   final int id;
@@ -224,6 +226,54 @@ class _ReviewScreenState extends State<ReviewScreen> {
         _questionData = questionData;
         _isLoading = false;
       });
+      _preloadWordMediaAndPrecache(word, data);
+    }
+  }
+
+  void _preloadWordMediaAndPrecache(DictWord word, WordData? data) {
+    if (data == null) return;
+
+    // 1. Kick off full media caching in background (fire-and-forget)
+    MediaCacheService.cacheWordMedia(word.id, data).catchError((_) {});
+
+    // 2. Identify the primary card image
+    List<String> availableImages = [];
+    if (data.imageUrl != null && data.imageUrl!.isNotEmpty) {
+      availableImages.add(data.imageUrl!);
+    }
+    for (var sense in data.senses) {
+      if (sense.imageUrl != null && sense.imageUrl!.isNotEmpty) availableImages.add(sense.imageUrl!);
+      for (var tip in sense.tips) {
+        if (tip.imageUrl != null && tip.imageUrl!.isNotEmpty) availableImages.add(tip.imageUrl!);
+      }
+    }
+    availableImages = availableImages.toSet().toList();
+    if (availableImages.isEmpty) return;
+
+    String? preferredUrl = _progressService.getPreferredImage(word.id);
+    String targetUrl = (preferredUrl != null && availableImages.contains(preferredUrl))
+        ? preferredUrl
+        : availableImages.first;
+
+    // 3. Precache into RAM + disk immediately while user is answering the quiz
+    MediaCacheService.getLocalFile(word.id, targetUrl).then((localFile) {
+      if (!mounted) return;
+      if (localFile != null && localFile.existsSync()) {
+        precacheImage(FileImage(localFile), context).catchError((_) {});
+      } else {
+        precacheImage(NetworkImage(targetUrl), context).catchError((_) {});
+        MediaCacheService.cacheSingleMedia(word.id, targetUrl).then((savedFile) {
+          if (mounted && savedFile != null) {
+            precacheImage(FileImage(savedFile), context).catchError((_) {});
+          }
+        }).catchError((_) {});
+      }
+    }).catchError((_) {});
+
+    // 4. Proactively prefetch the NEXT word in the review queue
+    if (_currentIndex + 1 < _dueWords.length) {
+      final nextWord = _dueWords[_currentIndex + 1];
+      WordupApi.prefetchWord(nextWord.wordId).catchError((_) {});
     }
   }
 
@@ -1025,8 +1075,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      displayImageUrl,
+                    child: CachedMediaImage(
+                      wordId: _currentDictWord!.id,
+                      imageUrl: displayImageUrl,
                       width: double.infinity,
                       height: double.infinity,
                       fit: BoxFit.contain,
@@ -1038,7 +1089,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       right: 8,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
+                          color: Colors.black.withValues(alpha: 0.6),
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(

@@ -192,9 +192,9 @@
     "semantic_hash": ""
   },
   "lib/screens/review_screen.dart": {
-    "mtime": 1789077075.2621453,
-    "seen": 1789077097.5672042,
-    "ast_hash": "20abdbd60d06d55c10ccbf69195d80aa",
+    "mtime": 1789077994.8323822,
+    "seen": 1789078015.3604174,
+    "ast_hash": "691ac60f642a2a2408a7b295b315bce6",
     "semantic_hash": ""
   },
   "lib/screens/settings_screen.dart": {
@@ -210,9 +210,9 @@
     "semantic_hash": ""
   },
   "lib/screens/word_view_screen.dart": {
-    "mtime": 1789068513.4311273,
-    "seen": 1789073526.5051131,
-    "ast_hash": "84390b6c942d5bcca4ef8600fdb76335",
+    "mtime": 1789077943.7575974,
+    "seen": 1789078015.3604174,
+    "ast_hash": "b15f38380fa08922a12d378bd4482cf6",
     "semantic_hash": ""
   },
   "lib/services/database_service.dart": {
@@ -228,9 +228,9 @@
     "semantic_hash": ""
   },
   "lib/services/media_cache_service.dart": {
-    "mtime": 1788391370.0112152,
-    "seen": 1788528900.736998,
-    "ast_hash": "d47e059eec3931e81f65412c12c674ec",
+    "mtime": 1789077914.546868,
+    "seen": 1789078015.3604174,
+    "ast_hash": "50e8a8c48f3062d3aee9a8a606173d8a",
     "semantic_hash": ""
   },
   "lib/services/progress_service.dart": {
@@ -1155,6 +1155,12 @@
     "mtime": 1789069939.4324186,
     "seen": 1789073526.5051131,
     "ast_hash": "424c18ae072f74fd5a0e2ad0cad713ed",
+    "semantic_hash": ""
+  },
+  "lib/widgets/cached_media_image.dart": {
+    "mtime": 1789077925.758087,
+    "seen": 1789078015.3604174,
+    "ast_hash": "a5d1b2b17ade0fd596d27fbc1cb694e1",
     "semantic_hash": ""
   }
 }

@@ -16,6 +16,7 @@ import '../models/word.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/highlight_text.dart';
+import '../widgets/cached_media_image.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 // Use real webview_windows on Windows; fall back to a no-op stub on all other platforms
@@ -2416,76 +2417,6 @@ class _SelectableImageState extends State<SelectableImage> {
         ],
       ),
     );
-  }
-}
-
-class CachedMediaImage extends StatefulWidget {
-  final int wordId;
-  final String imageUrl;
-  final double? width;
-  final double? height;
-  final BoxFit? fit;
-  final Widget Function(BuildContext, Object, StackTrace?)? errorBuilder;
-
-  const CachedMediaImage({
-    Key? key,
-    required this.wordId,
-    required this.imageUrl,
-    this.width,
-    this.height,
-    this.fit,
-    this.errorBuilder,
-  }) : super(key: key);
-
-  @override
-  _CachedMediaImageState createState() => _CachedMediaImageState();
-}
-
-class _CachedMediaImageState extends State<CachedMediaImage> {
-  File? _localFile;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkLocalCache();
-  }
-
-  Future<void> _checkLocalCache() async {
-    final file = await MediaCacheService.getLocalFile(widget.wordId, widget.imageUrl);
-    if (mounted) {
-      setState(() {
-        _localFile = file;
-      });
-    }
-  }
-
-  @override
-  void didUpdateWidget(CachedMediaImage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.imageUrl != widget.imageUrl || oldWidget.wordId != widget.wordId) {
-      _checkLocalCache();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_localFile != null) {
-      return Image.file(
-        _localFile!,
-        width: widget.width,
-        height: widget.height,
-        fit: widget.fit,
-        errorBuilder: widget.errorBuilder,
-      );
-    } else {
-      return Image.network(
-        widget.imageUrl,
-        width: widget.width,
-        height: widget.height,
-        fit: widget.fit,
-        errorBuilder: widget.errorBuilder,
-      );
-    }
   }
 }
 
