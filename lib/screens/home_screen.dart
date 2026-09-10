@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../services/firebase_service.dart';
 import '../services/database_service.dart';
 import 'word_view_screen.dart';
 import 'settings_screen.dart';
@@ -7,6 +6,7 @@ import 'review_screen.dart';
 import 'word_list_screen.dart';
 import '../services/progress_service.dart';
 import '../services/sync_service.dart';
+import '../services/wordup_api.dart';
 import 'learning_session_screen.dart';
 import 'sync_status_screen.dart';
 
@@ -33,12 +33,45 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     // FirebaseService.signInAnonymously();
     SyncService().lastSynced.addListener(_onSyncComplete);
+    _prefetchUpcomingWords();
   }
 
   void _onSyncComplete() {
     if (mounted) {
       setState(() {});
+      _prefetchUpcomingWords();
     }
+  }
+
+  void _prefetchUpcomingWords() {
+    // Proactively prefetch the upcoming Review and Learning words while on Home screen
+    Future.microtask(() async {
+      try {
+        final progress = ProgressService();
+        final Set<int> candidateIds = {};
+
+        // 1. First word to review (due for practice)
+        if (progress.dueWords.isNotEmpty) {
+          candidateIds.add(progress.dueWords.first.wordId);
+        }
+
+        // 2. First word to learn (from queued words)
+        if (progress.queuedWordsToLearn.isNotEmpty) {
+          candidateIds.add(progress.queuedWordsToLearn.first);
+        }
+
+        // 3. Fallback to first active learning ladder word if no due words
+        if (candidateIds.isEmpty && progress.learningWords.isNotEmpty) {
+          candidateIds.add(progress.learningWords.first.wordId);
+        }
+
+        for (final id in candidateIds) {
+          await WordupApi.prefetchWord(id, includeMedia: true, includeAudio: true);
+        }
+      } catch (_) {
+        // Silent background execution
+      }
+    });
   }
 
   @override
@@ -54,7 +87,10 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(builder: (context) => WordViewScreen(wordId: wordId, wordText: wordText)),
     ).then((_) {
-      if (mounted) setState(() {});
+      if (mounted) {
+        setState(() {});
+        _prefetchUpcomingWords();
+      }
     });
   }
 
@@ -278,7 +314,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             onPressed: () {
                               Navigator.push(context, MaterialPageRoute(builder: (context) => ReviewScreen())).then((_) {
-                                setState(() {}); // Refresh on return
+                                if (mounted) {
+                                  setState(() {});
+                                  _prefetchUpcomingWords();
+                                }
                               });
                             },
                             child: Text('Review Now'),
@@ -323,7 +362,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             onPressed: () {
                               Navigator.push(context, MaterialPageRoute(builder: (context) => LearningSessionScreen())).then((_) {
-                                setState(() {}); // Refresh on return
+                                if (mounted) {
+                                  setState(() {});
+                                  _prefetchUpcomingWords();
+                                }
                               });
                             },
                             child: Text('Learn Now', style: TextStyle(fontWeight: FontWeight.bold)),

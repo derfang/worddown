@@ -52,6 +52,7 @@ Map<String, dynamic> _decodeGzipBytes(List<int> bytes) {
 class WordupApi {
   static final String _token = EncryptionService.decryptString('+af/iXwKxqZD7kKqV20wJYIV908a3oM1/VoQfveGmXXWRs2AZlEx3Np4BzXarCpL');
   static final Map<String, Map<String, dynamic>> _webMemoryCache = {};
+  static final http.Client _client = http.Client();
   
   static Future<File> _getLocalFile(String filename) async {
     final dir = await getApplicationDocumentsDirectory();
@@ -203,7 +204,7 @@ class WordupApi {
     try {
       final zannRoot = wordText.toLowerCase().replaceAll(' ', '-');
       final url = Uri.parse('${EncryptionService.decryptString('4SARJC22cy8Xc8tGNtqJXytZeeNhNbFt9NzS1+kNQeQ6xCPSemgLBlTS6jrRzkT7')}$zannRoot');
-      final response = await http.get(url, headers: {'accept': 'text/html'});
+      final response = await _client.get(url, headers: {'accept': 'text/html'});
       if (response.statusCode == 200) {
         // Run heavy Regex and JSON decode in background!
         return await compute(_parseZannHtml, response.body);
@@ -219,7 +220,7 @@ class WordupApi {
   static Future<Map<String, dynamic>?> _fetchFromGithubApi(String wordId, {String? wordText}) async {
     try {
       final url = Uri.parse('$_githubApiBaseUrl/$wordId.enc');
-      final response = await http.get(url).timeout(const Duration(seconds: 4));
+      final response = await _client.get(url).timeout(const Duration(seconds: 4));
       if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
         final decryptedJson = EncryptionService.decryptFile(response.bodyBytes);
         final decoded = json.decode(decryptedJson);
@@ -250,7 +251,7 @@ class WordupApi {
     final stopwatch = Stopwatch()..start();
     try {
       final url = Uri.parse('$_githubApiBaseUrl/1111.enc?t=${DateTime.now().millisecondsSinceEpoch}');
-      final response = await http.get(url).timeout(const Duration(seconds: 5));
+      final response = await _client.get(url).timeout(const Duration(seconds: 5));
       stopwatch.stop();
       if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
         final decryptedJson = EncryptionService.decryptFile(response.bodyBytes);
@@ -298,7 +299,7 @@ class WordupApi {
 
   static Future<Map<String, dynamic>> _downloadAndExtractFromCdn(String wordId) async {
     final url = Uri.parse('${EncryptionService.decryptString('jztRb7JU7U8xmVZO/HBR834pGw+vGK/tS7vtgmIvF5Lldr15UJj7QCOpJONlEQuY')}$wordId.gz?t=$_token');
-    final response = await http.get(url, headers: {
+    final response = await _client.get(url, headers: {
       'accept': '*/*',
       'origin': EncryptionService.decryptString('mo9kn0ePoTbvnQQlU46vuynFwAIG3ToauncQc16fxXo='),
       'referer': EncryptionService.decryptString('mo9kn0ePoTbvnQQlU46vu907Y7vVNYhvjE7ffCxYHj0='),
