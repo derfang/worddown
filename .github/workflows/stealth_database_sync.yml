@@ -1,0 +1,85 @@
+name: Stealth WordUp Database Sync
+
+on:
+  schedule:
+    # Runs every 6 hours (4 times a day: 00:00, 06:00, 12:00, 18:00 UTC)
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: 'Number of words to fetch in this run'
+        required: false
+        default: '150'
+        type: string
+      max_rank:
+        description: 'Max word frequency rank to include'
+        required: false
+        default: '5000'
+        type: string
+      min_delay:
+        description: 'Minimum delay between requests (seconds)'
+        required: false
+        default: '1.5'
+        type: string
+      max_delay:
+        description: 'Maximum delay between requests (seconds)'
+        required: false
+        default: '3.5'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Download existing database from GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Attempting to download existing database from release 'database-latest'..."
+          gh release download database-latest --pattern "wordup_database.db" || echo "No existing database found. Starting new database."
+
+      - name: Run Stealth Sync
+        run: |
+          python scripts/stealth_sync.py \
+            --batch-size "${{ inputs.batch_size || '150' }}" \
+            --max-rank "${{ inputs.max_rank || '5000' }}" \
+            --min-delay "${{ inputs.min_delay || '1.5' }}" \
+            --max-delay "${{ inputs.max_delay || '3.5' }}"
+
+      - name: Check Database Stats
+        run: |
+          python -c "import sqlite3; conn = sqlite3.connect('wordup_database.db'); count = conn.execute('SELECT COUNT(*) FROM word_data').fetchone()[0]; print(f'>>> CURRENT TOTAL SYNCED WORDS: {count} <<<')"
+
+      - name: Upload Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wordup-database
+          path: wordup_database.db
+          retention-days: 7
+
+      - name: Publish to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f "wordup_database.db" ]; then
+            TOTAL_WORDS=$(python -c "import sqlite3; conn = sqlite3.connect('wordup_database.db'); print(conn.execute('SELECT COUNT(*) FROM word_data').fetchone()[0])")
+            RELEASE_BODY="### WordUp SQLite Database (Latest)\n\n- **Total Words Synced:** $TOTAL_WORDS\n- **Last Updated:** $(date -u)\n- **Format:** SQLite 3\n\nContains complete definitions, senses, tips, celebrity quotes, and image CDN URLs."
+            
+            # Create release if it doesn't exist, or update the asset
+            gh release view database-latest >/dev/null 2>&1 || gh release create database-latest --title "WordUp SQLite Database (Latest)" --notes "$RELEASE_BODY"
+            
+            echo "Uploading updated wordup_database.db to release 'database-latest'..."
+            gh release upload database-latest wordup_database.db --clobber
+            gh release edit database-latest --notes "$RELEASE_BODY"
+          fi
