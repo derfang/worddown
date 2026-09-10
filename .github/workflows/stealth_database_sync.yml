@@ -9,12 +9,12 @@ on:
       batch_size:
         description: 'Number of words to fetch in this run'
         required: false
-        default: '150'
+        default: '500'
         type: string
       max_rank:
         description: 'Max word frequency rank to include'
         required: false
-        default: '5000'
+        default: '50000'
         type: string
       min_delay:
         description: 'Minimum delay between requests (seconds)'
