@@ -274,6 +274,26 @@ class _ReviewScreenState extends State<ReviewScreen> {
     final word = _currentDictWord;
     if (word == null) return;
 
+    // Prefetch sentence audio in parallel while the word audio is loading & playing
+    final sentenceAudioFuture = () async {
+      try {
+        String example = _getCurrentExample();
+        if (example.isEmpty && _currentWordData == null) {
+          final json = await WordupApi.fetchWordData(word.id.toString(), wordText: word.text);
+          if (currentSeq != _audioSequenceId || !mounted) return null;
+          final data = WordData.fromJson(word.id, json);
+          if (data.senses.isNotEmpty) {
+            example = data.senses.first.ex;
+          }
+        }
+        if (example.trim().isNotEmpty) {
+          final sentenceText = 'For example, $example';
+          return await WordupApi.getSentenceAudioPath(sentenceText, isUk: false);
+        }
+      } catch (_) {}
+      return null;
+    }();
+
     // 1. Play the word pronunciation (US dict audio)
     try {
       final wordAudioPath = await WordupApi.getAudioPath(
@@ -307,38 +327,23 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
     if (currentSeq != _audioSequenceId || !mounted) return;
 
-    // 2. Pause ~500ms between word and example
-    await Future.delayed(const Duration(milliseconds: 500));
+    // 2. Pause ~170ms between word and example
+    await Future.delayed(const Duration(milliseconds: 170));
     if (currentSeq != _audioSequenceId || !mounted) return;
 
-    // 3. Play "For example, [example sentence]" if available
-    String example = _getCurrentExample();
-    if (example.isEmpty && _currentWordData == null) {
-      try {
-        final json = await WordupApi.fetchWordData(word.id.toString(), wordText: word.text);
-        if (currentSeq != _audioSequenceId || !mounted) return;
-        final data = WordData.fromJson(word.id, json);
-        if (data.senses.isNotEmpty) {
-          example = data.senses.first.ex;
-        }
-      } catch (_) {}
-    }
+    // 3. Play "For example, [example sentence]" if available (using prefetched audio)
+    try {
+      final exampleAudioPath = await sentenceAudioFuture;
+      if (currentSeq != _audioSequenceId || !mounted) return;
 
-    if (example.trim().isNotEmpty) {
-      try {
-        final sentenceText = 'For example, $example';
-        final exampleAudioPath = await WordupApi.getSentenceAudioPath(sentenceText, isUk: false);
-        if (currentSeq != _audioSequenceId || !mounted) return;
-
-        if (exampleAudioPath.isNotEmpty) {
-          if (exampleAudioPath.startsWith('http')) {
-            await _audioPlayer.play(UrlSource(exampleAudioPath));
-          } else {
-            await _audioPlayer.play(DeviceFileSource(exampleAudioPath));
-          }
+      if (exampleAudioPath != null && exampleAudioPath.isNotEmpty) {
+        if (exampleAudioPath.startsWith('http')) {
+          await _audioPlayer.play(UrlSource(exampleAudioPath));
+        } else {
+          await _audioPlayer.play(DeviceFileSource(exampleAudioPath));
         }
-      } catch (_) {}
-    }
+      }
+    } catch (_) {}
   }
 
   void _submitAnswer(int selectedId, bool isCorrect) async {
