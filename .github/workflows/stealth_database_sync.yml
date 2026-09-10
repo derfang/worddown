@@ -75,8 +75,8 @@ jobs:
         run: |
           if [ -d "api_words" ] && [ "$(ls -A api_words)" ]; then
             echo "Deploying encrypted files to 'api' branch..."
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
             # Clone api branch or create it if not present
             git clone --branch api "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" api_repo 2>/dev/null || {
