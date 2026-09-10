@@ -28,8 +28,13 @@ class SettingsService {
   // Target translation language for Word View (default: 'fa' / Persian, or 'off' to disable)
   String translationLanguage = 'fa';
 
+  // Word card layout preference for Word View ('list', 'grid', or 'slide')
+  String? wordCardLayout;
+
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+    
+    wordCardLayout = _prefs.getString('wordCardLayout');
     
     enableMeaningQuestion = _prefs.getBool('enableMeaningQuestion') ?? true;
     enableQuoteQuestion = _prefs.getBool('enableQuoteQuestion') ?? true;
@@ -55,6 +60,11 @@ class SettingsService {
   Future<void> setTranslationLanguage(String lang) async {
     translationLanguage = lang;
     await _prefs.setString('translationLanguage', lang);
+  }
+
+  Future<void> setWordCardLayout(String layout) async {
+    wordCardLayout = layout;
+    await _prefs.setString('wordCardLayout', layout);
   }
 
   Future<void> setMeaningQuestion(bool val) async {

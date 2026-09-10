@@ -1,5 +1,5 @@
-# scripts/stealth_sync.py
 import argparse
+import base64
 import gzip
 import json
 import os
@@ -10,8 +10,23 @@ import time
 import urllib.request
 import urllib.error
 
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding
+
 CDN_BASE_URL = 'https://cdn-wordup.com/Contents/v2025-10-23/'
 DEFAULT_TOKEN = '058daa1c-96cf-4b55-b016-115dd35136e1'
+
+DEFAULT_ENC_KEY = 'ma8lnJ2ZWz4+XvZ6UWkSZSeQGkv8fS0/XihcFPocysI='
+DEFAULT_ENC_IV = '89DZIiGBL8zWSjDvUdfimQ=='
+
+def encrypt_content(content_str: str, key_b64: str = DEFAULT_ENC_KEY, iv_b64: str = DEFAULT_ENC_IV) -> bytes:
+    key = base64.b64decode(key_b64)
+    iv = base64.b64decode(iv_b64)
+    padder = padding.PKCS7(128).padder()
+    padded_data = padder.update(content_str.encode('utf-8')) + padder.finalize()
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
+    encryptor = cipher.encryptor()
+    return encryptor.update(padded_data) + encryptor.finalize()
 
 HEADERS = {
     'Accept': '*/*',
@@ -86,18 +101,40 @@ def main():
     parser.add_argument('--batch-size', type=int, default=150, help='Number of words to fetch in this run')
     parser.add_argument('--min-delay', type=float, default=1.5, help='Minimum delay between requests (seconds)')
     parser.add_argument('--max-delay', type=float, default=3.5, help='Maximum delay between requests (seconds)')
-    parser.add_argument('--max-rank', type=int, default=5000, help='Max word frequency rank to include')
+    parser.add_argument('--max-rank', type=int, default=50000, help='Max word frequency rank to include (covers all 42k+ words/idioms)')
     parser.add_argument('--source-db', type=str, default='my_wordup_v3.db', help='Path to my_wordup_v3.db')
     parser.add_argument('--target-db', type=str, default='wordup_database.db', help='Path to target wordup_database.db')
+    parser.add_argument('--api-dir', type=str, default='api_words', help='Directory to store encrypted word files for REST API branch')
+    parser.add_argument('--enc-key', type=str, default=DEFAULT_ENC_KEY, help='Base64 AES encryption key')
+    parser.add_argument('--enc-iv', type=str, default=DEFAULT_ENC_IV, help='Base64 AES encryption IV')
     parser.add_argument('--token', type=str, default=DEFAULT_TOKEN, help='CDN access token')
     args = parser.parse_args()
 
     print('=== Starting Stealth WordUp Sync ===')
     print(f'Target DB: {args.target_db}')
+    print(f'API Directory: {args.api_dir}')
     print(f'Batch Size: {args.batch_size} words | Max Rank: #{args.max_rank}')
     print(f'Delay range: {args.min_delay}s - {args.max_delay}s')
 
     target_conn = init_target_db(args.target_db)
+    cursor = target_conn.cursor()
+
+    # If api_dir is specified, make sure all existing DB entries are also exported to encrypted .enc files
+    if args.api_dir:
+        os.makedirs(args.api_dir, exist_ok=True)
+        cursor.execute('SELECT id, json_content FROM word_data')
+        existing_rows = cursor.fetchall()
+        exported_count = 0
+        for w_id, w_content in existing_rows:
+            target_path = os.path.join(args.api_dir, f'{w_id}.enc')
+            if not os.path.exists(target_path):
+                enc_data = encrypt_content(w_content, key_b64=args.enc_key, iv_b64=args.enc_iv)
+                with open(target_path, 'wb') as f:
+                    f.write(enc_data)
+                exported_count += 1
+        if exported_count > 0:
+            print(f'Exported {exported_count} existing words from DB to encrypted API files in {args.api_dir}/')
+
     synced_ids = get_synced_ids(target_conn)
     print(f'Currently synced words in database: {len(synced_ids)}')
 
@@ -108,7 +145,6 @@ def main():
         return
 
     print(f'Queued {len(pending)} words for this batch.')
-    cursor = target_conn.cursor()
     success_count = 0
 
     for idx, item in enumerate(pending, 1):
@@ -123,6 +159,14 @@ def main():
                 VALUES (?, ?, ?, ?)
             ''', (word_id, text, rank, content))
             target_conn.commit()
+
+            # Encrypt and save to api_dir
+            if args.api_dir:
+                enc_bytes = encrypt_content(content, key_b64=args.enc_key, iv_b64=args.enc_iv)
+                enc_path = os.path.join(args.api_dir, f'{word_id}.enc')
+                with open(enc_path, 'wb') as f:
+                    f.write(enc_bytes)
+
             success_count += 1
             print(f'[{idx}/{len(pending)}] OK: #{rank} "{text}" (id: {word_id}) - {len(content)} chars')
         except urllib.error.HTTPError as e:

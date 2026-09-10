@@ -192,9 +192,9 @@
     "semantic_hash": ""
   },
   "lib/screens/review_screen.dart": {
-    "mtime": 1788982253.6458228,
-    "seen": 1788982471.4865174,
-    "ast_hash": "b5149347705b0dc921d2bd0543903801",
+    "mtime": 1788979827.3068588,
+    "seen": 1788980003.600665,
+    "ast_hash": "3fd2a4abd924db2b5d49c090f66f35e8",
     "semantic_hash": ""
   },
   "lib/screens/settings_screen.dart": {
@@ -210,9 +210,9 @@
     "semantic_hash": ""
   },
   "lib/screens/word_view_screen.dart": {
-    "mtime": 1788988151.0306733,
-    "seen": 1788988389.8614194,
-    "ast_hash": "84390b6c942d5bcca4ef8600fdb76335",
+    "mtime": 1788900290.745693,
+    "seen": 1788900325.9876802,
+    "ast_hash": "38a2af6f449a2c045808b45720d755c7",
     "semantic_hash": ""
   },
   "lib/services/database_service.dart": {
@@ -240,9 +240,9 @@
     "semantic_hash": ""
   },
   "lib/services/settings_service.dart": {
-    "mtime": 1788987449.6526551,
-    "seen": 1788988389.8614194,
-    "ast_hash": "65b21cf2e303c70ec907f16479a76b33",
+    "mtime": 1788893472.4009113,
+    "seen": 1788893902.4517288,
+    "ast_hash": "1ba75abfb3f659dcb54cba71bc44113b",
     "semantic_hash": ""
   },
   "lib/services/sync_service.dart": {
@@ -252,9 +252,9 @@
     "semantic_hash": ""
   },
   "lib/services/wordup_api.dart": {
-    "mtime": 1789067692.2280126,
-    "seen": 1789068477.194896,
-    "ast_hash": "0987fd197c29bf2c96c260afd3fc13ba",
+    "mtime": 1788884783.7978814,
+    "seen": 1788885078.3286335,
+    "ast_hash": "3a8567bced23865000fa16f8e238499c",
     "semantic_hash": ""
   },
   "lib/stubs/webview_windows_stub.dart": {
@@ -1143,18 +1143,6 @@
     "mtime": 1788893462.2906208,
     "seen": 1788893902.4517288,
     "ast_hash": "879fff3b51688c1c42da82f0bf3d1956",
-    "semantic_hash": ""
-  },
-  "scripts/stealth_sync.py": {
-    "mtime": 1789067610.1896293,
-    "seen": 1789068477.194896,
-    "ast_hash": "0988aa61a535cf389e1d53e47b933744",
-    "semantic_hash": ""
-  },
-  ".github/workflows/stealth_database_sync.yml": {
-    "mtime": 1789067654.360182,
-    "seen": 1789068477.194896,
-    "ast_hash": "3232c2295f1671b7e744516c9da69c12",
     "semantic_hash": ""
   }
 }

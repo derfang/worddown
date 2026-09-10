@@ -42,6 +42,10 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install Python Dependencies
+        run: |
+          pip install cryptography
+
       - name: Download existing database from GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,13 +57,54 @@ jobs:
         run: |
           python scripts/stealth_sync.py \
             --batch-size "${{ inputs.batch_size || '150' }}" \
-            --max-rank "${{ inputs.max_rank || '5000' }}" \
+            --max-rank "${{ inputs.max_rank || '50000' }}" \
             --min-delay "${{ inputs.min_delay || '1.5' }}" \
-            --max-delay "${{ inputs.max_delay || '3.5' }}"
+            --max-delay "${{ inputs.max_delay || '3.5' }}" \
+            --api-dir "api_words"
 
       - name: Check Database Stats
         run: |
           python -c "import sqlite3; conn = sqlite3.connect('wordup_database.db'); count = conn.execute('SELECT COUNT(*) FROM word_data').fetchone()[0]; print(f'>>> CURRENT TOTAL SYNCED WORDS: {count} <<<')"
+
+      - name: Deploy Encrypted Files to API Branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -d "api_words" ] && [ "$(ls -A api_words)" ]; then
+            echo "Deploying encrypted files to 'api' branch..."
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+
+            # Clone api branch or create it if not present
+            git clone --branch api "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" api_repo 2>/dev/null || {
+              echo "Branch 'api' does not exist yet. Initializing new orphan branch..."
+              mkdir api_repo
+              cd api_repo
+              git init
+              git checkout -b api
+              git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+              echo "# WordDown Encrypted REST API Branch" > README.md
+              git add README.md
+              git commit -m "Initialize api branch"
+              git push -u origin api
+              cd ..
+            }
+
+            mkdir -p api_repo/words
+            cp -r api_words/* api_repo/words/
+            cd api_repo
+            git add words/
+            if ! git diff --cached --quiet; then
+              COUNT=$(ls -1 words/*.enc | wc -l)
+              git commit -m "Sync $COUNT encrypted words to API branch [skip ci]"
+              git push origin api
+              echo "Successfully pushed $COUNT encrypted words to 'api' branch."
+            else
+              echo "No new encrypted files to commit on 'api' branch."
+            fi
+            cd ..
+            rm -rf api_repo
+          fi
 
       - name: Upload Workflow Artifact
         uses: actions/upload-artifact@v4

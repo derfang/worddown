@@ -89,9 +89,9 @@ class WordupApi {
       }
     }
 
-    // 2. Fetch from network CDN if not cached
+    // 2. Fetch from network (GitHub Cloud REST API first, WordUp CDN fallback)
     if (needsCdnFetch) {
-      data = await _downloadAndExtractFromCdn(wordId);
+      data = await _downloadWord(wordId);
       if (!kIsWeb && localFile != null) {
         await localFile.writeAsString(json.encode(data));
       }
@@ -211,6 +211,35 @@ class WordupApi {
       print('Error fetching zann.app data: $e');
     }
     return {};
+  }
+
+  static const String _githubApiBaseUrl = 'https://raw.githubusercontent.com/derfang/worddown/api/words';
+
+  static Future<Map<String, dynamic>?> _fetchFromGithubApi(String wordId) async {
+    try {
+      final url = Uri.parse('$_githubApiBaseUrl/$wordId.enc');
+      final response = await http.get(url).timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+        final decryptedJson = EncryptionService.decryptFile(response.bodyBytes);
+        final decoded = json.decode(decryptedJson);
+        if (decoded is Map<String, dynamic>) {
+          return decoded;
+        }
+      }
+    } catch (_) {
+      // Silently continue to CDN fallback if not found on GitHub API
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>> _downloadWord(String wordId) async {
+    // 1. Try fetching from our encrypted GitHub REST API endpoint
+    final githubData = await _fetchFromGithubApi(wordId);
+    if (githubData != null && githubData.isNotEmpty) {
+      return githubData;
+    }
+    // 2. Fallback to WordUp CDN if word has not yet synced to GitHub
+    return await _downloadAndExtractFromCdn(wordId);
   }
 
   static Future<Map<String, dynamic>> _downloadAndExtractFromCdn(String wordId) async {

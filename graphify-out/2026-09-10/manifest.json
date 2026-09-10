@@ -252,9 +252,9 @@
     "semantic_hash": ""
   },
   "lib/services/wordup_api.dart": {
-    "mtime": 1789067692.2280126,
-    "seen": 1789068477.194896,
-    "ast_hash": "0987fd197c29bf2c96c260afd3fc13ba",
+    "mtime": 1788884783.7978814,
+    "seen": 1788885078.3286335,
+    "ast_hash": "3a8567bced23865000fa16f8e238499c",
     "semantic_hash": ""
   },
   "lib/stubs/webview_windows_stub.dart": {
@@ -1146,15 +1146,15 @@
     "semantic_hash": ""
   },
   "scripts/stealth_sync.py": {
-    "mtime": 1789067610.1896293,
-    "seen": 1789068477.194896,
-    "ast_hash": "0988aa61a535cf389e1d53e47b933744",
+    "mtime": 1789041587.2203877,
+    "seen": 1789041759.8903744,
+    "ast_hash": "a5ec008ab496294fa8181fe794050103",
     "semantic_hash": ""
   },
   ".github/workflows/stealth_database_sync.yml": {
-    "mtime": 1789067654.360182,
-    "seen": 1789068477.194896,
-    "ast_hash": "3232c2295f1671b7e744516c9da69c12",
+    "mtime": 1789041689.1752143,
+    "seen": 1789041759.8903744,
+    "ast_hash": "4355e3978d0fbadbda6c106d60ba366f",
     "semantic_hash": ""
   }
 }

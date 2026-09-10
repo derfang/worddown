@@ -9,6 +9,7 @@ import 'package:audioplayers/audioplayers.dart';
 import '../services/wordup_api.dart';
 import '../services/progress_service.dart';
 import '../services/database_service.dart';
+import '../services/settings_service.dart';
 import '../services/media_cache_service.dart';
 import '../services/translation_service.dart';
 import '../models/word.dart';
@@ -53,9 +54,19 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
 
   bool _isLoading = true;
   String _error = '';
-  static WordCardLayout _cardLayout = defaultTargetPlatform == TargetPlatform.android
-      ? WordCardLayout.slide
-      : WordCardLayout.grid;
+  static WordCardLayout get _defaultCardLayout {
+    final saved = SettingsService().wordCardLayout;
+    if (saved != null) {
+      for (final val in WordCardLayout.values) {
+        if (val.name == saved) return val;
+      }
+    }
+    return defaultTargetPlatform == TargetPlatform.android
+        ? WordCardLayout.slide
+        : WordCardLayout.grid;
+  }
+
+  static WordCardLayout _cardLayout = _defaultCardLayout;
   static bool _isShuffledContent = true;
   int _shuffleSeedOffset = 0;
   bool _lastIsUk = false;
@@ -64,9 +75,24 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
   Map<String, int> _learningWords = {};
   String? _translatedWord;
 
+  void _setCardLayout(WordCardLayout layout) {
+    setState(() => _cardLayout = layout);
+    SettingsService().setWordCardLayout(layout.name);
+  }
+
   @override
   void initState() {
     super.initState();
+    final savedLayout = SettingsService().wordCardLayout;
+    if (savedLayout != null) {
+      for (final val in WordCardLayout.values) {
+        if (val.name == savedLayout) {
+          _cardLayout = val;
+          break;
+        }
+      }
+    }
+
     _shimmerController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -989,21 +1015,21 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                           tooltip: 'List view',
                           visualDensity: VisualDensity.compact,
                           color: _cardLayout == WordCardLayout.list ? theme.colorScheme.primary : Colors.white54,
-                          onPressed: () => setState(() => _cardLayout = WordCardLayout.list),
+                          onPressed: () => _setCardLayout(WordCardLayout.list),
                         ),
                         IconButton(
                           icon: Icon(Icons.grid_view),
                           tooltip: 'Grid view',
                           visualDensity: VisualDensity.compact,
                           color: _cardLayout == WordCardLayout.grid ? theme.colorScheme.primary : Colors.white54,
-                          onPressed: () => setState(() => _cardLayout = WordCardLayout.grid),
+                          onPressed: () => _setCardLayout(WordCardLayout.grid),
                         ),
                         IconButton(
                           icon: Icon(Icons.view_carousel),
                           tooltip: 'Slide view',
                           visualDensity: VisualDensity.compact,
                           color: _cardLayout == WordCardLayout.slide ? theme.colorScheme.primary : Colors.white54,
-                          onPressed: () => setState(() => _cardLayout = WordCardLayout.slide),
+                          onPressed: () => _setCardLayout(WordCardLayout.slide),
                         ),
                       ],
                     ),

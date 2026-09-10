@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'dart:math';
 import '../services/progress_service.dart';
 import '../services/settings_service.dart';
 import '../services/database_service.dart';
@@ -22,7 +22,6 @@ class ReviewScreen extends StatefulWidget {
 
 class _ReviewScreenState extends State<ReviewScreen> {
   final ProgressService _progressService = ProgressService();
-  final SettingsService _settingsService = SettingsService();
   
   List<WordProgress> _dueWords = [];
   int _currentIndex = 0;
@@ -45,6 +44,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   @override
   void dispose() {
+    _stopAllAudio();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -125,21 +125,16 @@ class _ReviewScreenState extends State<ReviewScreen> {
       for (var d in distractors) {
         options.add(ReviewOption(d.id, d.meaning, false));
       }
-      if (type == 'listening') {
-        _playAudio(word.id.toString(), word.text);
-      }
+      _playAudio(word.id.toString(), word.text);
     } else if (type == 'quote' || type == 'example') {
       final isQuote = type == 'quote';
-      String text;
       
       if (isQuote) {
         final quote = (data!.quotes.toList()..shuffle()).first;
         questionData = quote;
-        text = quote.text;
       } else {
         final sense = data!.senses.firstWhere((s) => s.ex.isNotEmpty);
         questionData = sense.ex;
-        text = sense.ex;
       }
       
       options.add(ReviewOption(word.id, word.text, true));
@@ -187,6 +182,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
       for (var i = 0; i < 3; i++) {
         options.add(ReviewOption(distractors[i].id, distractorTexts[i], false));
       }
+      _playAudio(word.id.toString(), word.text);
     } else if (type == 'compare') {
       final comp = (data!.comparisons.toList()..shuffle()).first;
       questionData = comp;
@@ -231,15 +227,118 @@ class _ReviewScreenState extends State<ReviewScreen> {
     }
   }
 
+  int _audioSequenceId = 0;
+
+  void _stopAllAudio() {
+    _audioSequenceId++;
+    _audioPlayer.stop();
+  }
+
+  String _getCurrentExample() {
+    if (_currentWordData != null && _currentWordData!.senses.isNotEmpty) {
+      return _currentWordData!.senses.first.ex;
+    }
+    return '';
+  }
+
   Future<void> _playAudio(String wordId, String text) async {
+    _stopAllAudio();
     try {
       final path = await WordupApi.getAudioPath(wordId, wordText: text, isUk: false, useGoogleTts: false);
-      if (path.startsWith('http')) {
-        await _audioPlayer.play(UrlSource(path));
-      } else {
-        await _audioPlayer.play(DeviceFileSource(path));
+      if (path.isNotEmpty) {
+        if (path.startsWith('http')) {
+          await _audioPlayer.play(UrlSource(path));
+        } else {
+          await _audioPlayer.play(DeviceFileSource(path));
+        }
       }
     } catch (_) {}
+  }
+
+  Future<void> _playExampleAudio(String exampleText) async {
+    _stopAllAudio();
+    try {
+      final path = await WordupApi.getSentenceAudioPath(exampleText, isUk: false);
+      if (path.isNotEmpty) {
+        if (path.startsWith('http')) {
+          await _audioPlayer.play(UrlSource(path));
+        } else {
+          await _audioPlayer.play(DeviceFileSource(path));
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _playReviewAutoSequence() async {
+    final currentSeq = ++_audioSequenceId;
+    final word = _currentDictWord;
+    if (word == null) return;
+
+    // 1. Play the word pronunciation (US dict audio)
+    try {
+      final wordAudioPath = await WordupApi.getAudioPath(
+        word.id.toString(),
+        wordText: word.text,
+        isUk: false,
+        useGoogleTts: false,
+      );
+      if (currentSeq != _audioSequenceId || !mounted) return;
+
+      if (wordAudioPath.isNotEmpty) {
+        if (wordAudioPath.startsWith('http')) {
+          await _audioPlayer.play(UrlSource(wordAudioPath));
+        } else {
+          await _audioPlayer.play(DeviceFileSource(wordAudioPath));
+        }
+
+        final completer = Completer<void>();
+        late final StreamSubscription sub;
+        sub = _audioPlayer.onPlayerComplete.listen((_) {
+          if (!completer.isCompleted) completer.complete();
+        });
+
+        await Future.any([
+          completer.future,
+          Future.delayed(const Duration(seconds: 5)),
+        ]);
+        await sub.cancel();
+      }
+    } catch (_) {}
+
+    if (currentSeq != _audioSequenceId || !mounted) return;
+
+    // 2. Pause ~500ms between word and example
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (currentSeq != _audioSequenceId || !mounted) return;
+
+    // 3. Play "For example, [example sentence]" if available
+    String example = _getCurrentExample();
+    if (example.isEmpty && _currentWordData == null) {
+      try {
+        final json = await WordupApi.fetchWordData(word.id.toString(), wordText: word.text);
+        if (currentSeq != _audioSequenceId || !mounted) return;
+        final data = WordData.fromJson(word.id, json);
+        if (data.senses.isNotEmpty) {
+          example = data.senses.first.ex;
+        }
+      } catch (_) {}
+    }
+
+    if (example.trim().isNotEmpty) {
+      try {
+        final sentenceText = 'For example, $example';
+        final exampleAudioPath = await WordupApi.getSentenceAudioPath(sentenceText, isUk: false);
+        if (currentSeq != _audioSequenceId || !mounted) return;
+
+        if (exampleAudioPath.isNotEmpty) {
+          if (exampleAudioPath.startsWith('http')) {
+            await _audioPlayer.play(UrlSource(exampleAudioPath));
+          } else {
+            await _audioPlayer.play(DeviceFileSource(exampleAudioPath));
+          }
+        }
+      } catch (_) {}
+    }
   }
 
   void _submitAnswer(int selectedId, bool isCorrect) async {
@@ -278,10 +377,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
       setState(() {
         _showWordDetails = true;
       });
+      _playReviewAutoSequence();
     }
   }
 
   void _proceedToNext() {
+    _stopAllAudio();
     setState(() {
       _currentIndex++;
     });
@@ -453,11 +554,38 @@ class _ReviewScreenState extends State<ReviewScreen> {
     }
   }
 
+  Widget _buildWordWithAudioPrompt() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Flexible(
+          child: Text(
+            _currentDictWord!.text,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: _currentDictWord!.text.length > 20 ? 32 : 48,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        SizedBox(width: 8),
+        IconButton(
+          icon: Icon(Icons.volume_up_rounded, color: Colors.cyanAccent, size: 28),
+          onPressed: () => _playAudio(_currentDictWord!.id.toString(), _currentDictWord!.text),
+          tooltip: 'Listen to pronunciation',
+        ),
+      ],
+    );
+  }
+
   Widget _buildMeaningQuestion() {
     return _buildQuestionContainer(
       'What is the meaning of...',
       _currentDictWord!.text,
-      false
+      false,
+      customMainWidget: _buildWordWithAudioPrompt(),
     );
   }
 
@@ -511,7 +639,41 @@ class _ReviewScreenState extends State<ReviewScreen> {
     return _buildQuestionContainer(
       'Which word is a synonym for...',
       _currentDictWord!.text,
-      false
+      false,
+      customMainWidget: _buildWordWithAudioPrompt(),
+      customSubtitleWidget: Text.rich(
+        TextSpan(
+          text: 'Which word is a ',
+          style: TextStyle(color: Colors.white70, fontSize: 18),
+          children: [
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Container(
+                margin: EdgeInsets.symmetric(horizontal: 4),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.cyanAccent.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.5)),
+                ),
+                child: Text(
+                  'synonym',
+                  style: TextStyle(
+                    color: Colors.cyanAccent,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ),
+            TextSpan(
+              text: ' for...',
+              style: TextStyle(color: Colors.white70, fontSize: 18),
+            ),
+          ],
+        ),
+        textAlign: TextAlign.center,
+      ),
     );
   }
 
@@ -519,7 +681,41 @@ class _ReviewScreenState extends State<ReviewScreen> {
     return _buildQuestionContainer(
       'Which word is an opposite (antonym) of...',
       _currentDictWord!.text,
-      false
+      false,
+      customMainWidget: _buildWordWithAudioPrompt(),
+      customSubtitleWidget: Text.rich(
+        TextSpan(
+          text: 'Which word is an ',
+          style: TextStyle(color: Colors.white70, fontSize: 18),
+          children: [
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Container(
+                margin: EdgeInsets.symmetric(horizontal: 4),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
+                ),
+                child: Text(
+                  'antonym (opposite)',
+                  style: TextStyle(
+                    color: Colors.redAccent.shade100,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ),
+            TextSpan(
+              text: ' of...',
+              style: TextStyle(color: Colors.white70, fontSize: 18),
+            ),
+          ],
+        ),
+        textAlign: TextAlign.center,
+      ),
     );
   }
 
@@ -555,7 +751,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     );
   }
 
-  Widget _buildQuestionContainer(String subtitle, String? mainText, bool isItalic, {VoidCallback? onTapPrompt, Widget? customMainWidget}) {
+  Widget _buildQuestionContainer(String subtitle, String? mainText, bool isItalic, {VoidCallback? onTapPrompt, Widget? customMainWidget, Widget? customSubtitleWidget}) {
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: 800), // Slightly wider for long quotes
@@ -570,7 +766,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   Spacer(),
                   Expanded(
                     flex: 8,
-                    child: Text(
+                    child: customSubtitleWidget ?? Text(
                       subtitle,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.white70, fontSize: 18),
@@ -646,13 +842,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
     }).toList();
   }
   Widget _buildWordDetailsOverlay(String nextStepText) {
-    String example = '';
+    String example = _getCurrentExample();
     String meaning = _currentDictWord!.meaning;
     
     if (_currentWordData != null) {
       if (_currentWordData!.senses.isNotEmpty) {
         meaning = _currentWordData!.senses.first.de;
-        example = _currentWordData!.senses.first.ex;
       }
     }
 
@@ -681,6 +876,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     }
 
     bool isMastered = nextStepText == 'Mastered!';
+    final rank = DatabaseService.getWordRank(_currentDictWord!.id);
 
     return Container(
       decoration: BoxDecoration(
@@ -700,21 +896,48 @@ class _ReviewScreenState extends State<ReviewScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
+              Flexible(
                 child: Text(
                   _currentDictWord!.text,
                   style: TextStyle(
                     fontSize: 32, 
                     fontWeight: FontWeight.bold, 
-                    color: isMastered ? Colors.amber : Colors.white
+                    color: isMastered ? Colors.amber : Colors.white,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (rank != null) ...[
+                SizedBox(width: 10),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.purpleAccent.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.purpleAccent.withValues(alpha: 0.5)),
+                  ),
+                  child: Text(
+                    '#$rank',
+                    style: TextStyle(
+                      color: Colors.purpleAccent.shade100,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
+              ],
+              Spacer(),
+              IconButton(
+                icon: Icon(Icons.volume_up_rounded, color: isMastered ? Colors.amber : Colors.cyanAccent),
+                onPressed: () => _playAudio(_currentDictWord!.id.toString(), _currentDictWord!.text),
+                tooltip: 'Listen to pronunciation',
               ),
               IconButton(
                 icon: Icon(Icons.open_in_new, color: Colors.white70),
                 onPressed: () {
+                  _stopAllAudio();
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -743,14 +966,28 @@ class _ReviewScreenState extends State<ReviewScreen> {
           if (example.isNotEmpty) ...[
             SizedBox(height: 16),
             Container(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(
-                example,
-                style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic, color: Colors.white70),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      example,
+                      style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic, color: Colors.white70),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  IconButton(
+                    icon: Icon(Icons.volume_up_rounded, color: Colors.cyanAccent.shade100, size: 22),
+                    padding: EdgeInsets.zero,
+                    constraints: BoxConstraints(),
+                    onPressed: () => _playExampleAudio(example),
+                    tooltip: 'Listen to example',
+                  ),
+                ],
               ),
             )
           ],
