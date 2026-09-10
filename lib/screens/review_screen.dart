@@ -878,6 +878,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
     bool isMastered = nextStepText == 'Mastered!';
     final rank = DatabaseService.getWordRank(_currentDictWord!.id);
 
+    final wordText = _currentDictWord!.text;
+    final pos = (_currentWordData != null && _currentWordData!.senses.isNotEmpty)
+        ? _currentWordData!.senses.first.ty
+        : null;
+
     return Container(
       decoration: BoxDecoration(
         color: Color(0xFF1E1E1E), // Dark background for the card
@@ -895,21 +900,25 @@ class _ReviewScreenState extends State<ReviewScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // 1. Dedicated full-width Word / Idiom title row with adaptive sizing
+          Text(
+            wordText,
+            style: TextStyle(
+              fontSize: wordText.length > 20
+                  ? 22
+                  : (wordText.length > 13 ? 26 : 30),
+              fontWeight: FontWeight.bold,
+              color: isMastered ? Colors.amber : Colors.white,
+              height: 1.2,
+            ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+          SizedBox(height: 10),
+          // 2. Unified metadata and actions bar
           Row(
             children: [
-              Flexible(
-                child: Text(
-                  _currentDictWord!.text,
-                  style: TextStyle(
-                    fontSize: 32, 
-                    fontWeight: FontWeight.bold, 
-                    color: isMastered ? Colors.amber : Colors.white,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
               if (rank != null) ...[
-                SizedBox(width: 10),
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
@@ -924,6 +933,25 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
+              ],
+              if (pos != null && pos.isNotEmpty) ...[
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.tealAccent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.tealAccent.withValues(alpha: 0.4)),
+                  ),
+                  child: Text(
+                    pos,
+                    style: TextStyle(
+                      color: Colors.tealAccent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -952,13 +980,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
               ),
             ],
           ),
-          SizedBox(height: 8),
-          if (_currentWordData != null && _currentWordData!.senses.isNotEmpty)
-            Text(
-              _currentWordData!.senses.first.ty, // e.g. "noun"
-              style: TextStyle(color: Colors.tealAccent, fontSize: 16),
-            ),
-          SizedBox(height: 24),
+          SizedBox(height: 20),
           Text(
             meaning,
             style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w600),
