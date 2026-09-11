@@ -94,14 +94,14 @@ jobs:
       - name: Check Database Stats
         run: |
           python -c "
-import sqlite3
-conn = sqlite3.connect('wordup_database.db')
-words = conn.execute('SELECT COUNT(*) FROM word_data').fetchone()[0]
-media = conn.execute('SELECT COUNT(*) FROM media_sync_status').fetchone()[0]
-registry = conn.execute('SELECT COUNT(*) FROM image_registry').fetchone()[0]
-print(f'>>> WORDS SYNCED: {words} | IMAGE BATCHES DONE: {media} | UNIQUE IMAGES: {registry} <<<')
-conn.close()
-"
+          import sqlite3
+          conn = sqlite3.connect('wordup_database.db')
+          words = conn.execute('SELECT COUNT(*) FROM word_data').fetchone()[0]
+          media = conn.execute('SELECT COUNT(*) FROM media_sync_status').fetchone()[0]
+          registry = conn.execute('SELECT COUNT(*) FROM image_registry').fetchone()[0]
+          print(f'>>> WORDS SYNCED: {words} | IMAGE BATCHES DONE: {media} | UNIQUE IMAGES: {registry} <<<')
+          conn.close()
+          "
 
       - name: Deploy Encrypted Files to API Branch
         env:
