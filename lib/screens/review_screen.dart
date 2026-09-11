@@ -41,6 +41,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   @override
   void dispose() {
+    _reviewService.deleteExampleAudio(_currentIndex);
     _stopAllAudio();
     _audioPlayer.dispose();
     super.dispose();
@@ -334,6 +335,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   void _proceedToNext() {
     _stopAllAudio();
+    _reviewService.deleteExampleAudio(_currentIndex);
     setState(() {
       _currentIndex++;
     });

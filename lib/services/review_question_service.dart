@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'progress_service.dart';
 import 'settings_service.dart';
@@ -97,7 +99,27 @@ class ReviewQuestionService {
     return _preparedQuestions.putIfAbsent(index, () => _buildPreparedQuestion(index, context: context));
   }
 
+  void deleteExampleAudio(int index) {
+    final q = _completedQuestions[index];
+    if (q != null && q.exampleAudioPath != null) {
+      _deleteAudioFile(q.exampleAudioPath);
+    }
+  }
+
+  void _deleteAudioFile(String? path) {
+    if (kIsWeb || path == null || path.isEmpty || path.startsWith('http') || path.startsWith('data:')) return;
+    try {
+      final file = File(path);
+      if (file.existsSync()) {
+        file.delete().catchError((_) => file);
+      }
+    } catch (_) {}
+  }
+
   void resetSession() {
+    for (final q in _completedQuestions.values) {
+      _deleteAudioFile(q.exampleAudioPath);
+    }
     _currentSessionQueue.clear();
     _preparedQuestions.clear();
     _completedQuestions.clear();

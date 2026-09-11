@@ -3098,17 +3098,6 @@
       "source_location": null
     },
     {
-      "id": "database_service_dart",
-      "label": "database_service.dart",
-      "_origin": "ast",
-      "community": 12,
-      "community_name": "wordup_api.dart",
-      "file_type": "code",
-      "norm_label": "database_service.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
       "id": "edge_tts_service_dart",
       "label": "edge_tts_service.dart",
       "_origin": "ast",
@@ -3296,6 +3285,17 @@
       "source_location": null
     },
     {
+      "id": "lib_services_wordup_api_getpersistentttsfile",
+      "label": "_getPersistentTtsFile",
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "wordup_api.dart",
+      "file_type": "code",
+      "norm_label": "_getpersistentttsfile",
+      "source_file": "lib/services/wordup_api.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_services_wordup_api_getsentenceaudiopath",
       "label": "getSentenceAudioPath",
       "_origin": "ast",
@@ -3447,6 +3447,17 @@
       "file_type": "code",
       "norm_label": "wordupapi",
       "source_file": "lib/services/wordup_api.dart",
+      "source_location": null
+    },
+    {
+      "id": "media_cache_service_dart",
+      "label": "media_cache_service.dart",
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "wordup_api.dart",
+      "file_type": "code",
+      "norm_label": "media_cache_service.dart",
+      "source_file": null,
       "source_location": null
     },
     {
@@ -4317,215 +4328,6 @@
       "norm_label": "utils.h",
       "source_file": "windows/runner/utils.h",
       "source_location": "L1"
-    },
-    {
-      "id": "dart_math",
-      "label": "dart:math",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "generate_sounds.dart",
-      "file_type": "code",
-      "norm_label": "dart:math",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "scratch_generate_sounds",
-      "label": "generate_sounds.dart",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "generate_sounds.dart",
-      "file_type": "code",
-      "norm_label": "generate_sounds.dart",
-      "source_file": "scratch/generate_sounds.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_generate_sounds_bitspersample",
-      "label": "bitsPerSample",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "generate_sounds.dart",
-      "file_type": "code",
-      "norm_label": "bitspersample",
-      "source_file": "scratch/generate_sounds.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_generate_sounds_blockalign",
-      "label": "blockAlign",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "generate_sounds.dart",
-      "file_type": "code",
-      "norm_label": "blockalign",
-      "source_file": "scratch/generate_sounds.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_generate_sounds_builder",
-      "label": "builder",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "generate_sounds.dart",
-      "file_type": "code",
-      "norm_label": "builder",
-      "source_file": "scratch/generate_sounds.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_generate_sounds_byterate",
-      "label": "byteRate",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "generate_sounds.dart",
-      "file_type": "code",
-      "norm_label": "byterate",
-      "source_file": "scratch/generate_sounds.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_generate_sounds_chunksize",
-      "label": "chunkSize",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "generate_sounds.dart",
-      "file_type": "code",
-      "norm_label": "chunksize",
-      "source_file": "scratch/generate_sounds.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_generate_sounds_data",
-      "label": "data",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "generate_sounds.dart",
-      "file_type": "code",
-      "norm_label": "data",
-      "source_file": "scratch/generate_sounds.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_generate_sounds_int16tobytes",
-      "label": "_int16ToBytes",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "generate_sounds.dart",
-      "file_type": "code",
-      "norm_label": "_int16tobytes",
-      "source_file": "scratch/generate_sounds.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_generate_sounds_int32tobytes",
-      "label": "_int32ToBytes",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "generate_sounds.dart",
-      "file_type": "code",
-      "norm_label": "_int32tobytes",
-      "source_file": "scratch/generate_sounds.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_generate_sounds_main",
-      "label": "main",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "generate_sounds.dart",
-      "file_type": "code",
-      "norm_label": "main",
-      "source_file": "scratch/generate_sounds.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_generate_sounds_numchannels",
-      "label": "numChannels",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "generate_sounds.dart",
-      "file_type": "code",
-      "norm_label": "numchannels",
-      "source_file": "scratch/generate_sounds.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_generate_sounds_numsamples",
-      "label": "numSamples",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "generate_sounds.dart",
-      "file_type": "code",
-      "norm_label": "numsamples",
-      "source_file": "scratch/generate_sounds.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_generate_sounds_samplerate",
-      "label": "sampleRate",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "generate_sounds.dart",
-      "file_type": "code",
-      "norm_label": "samplerate",
-      "source_file": "scratch/generate_sounds.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_generate_sounds_subchunk2size",
-      "label": "subChunk2Size",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "generate_sounds.dart",
-      "file_type": "code",
-      "norm_label": "subchunk2size",
-      "source_file": "scratch/generate_sounds.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_generate_sounds_writewav",
-      "label": "_writeWav",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "generate_sounds.dart",
-      "file_type": "code",
-      "norm_label": "_writewav",
-      "source_file": "scratch/generate_sounds.dart",
-      "source_location": null
-    },
-    {
-      "id": "bin_encryptor",
-      "label": "encryptor.dart",
-      "_origin": "ast",
-      "community": 18,
-      "community_name": "encryptor.dart",
-      "file_type": "code",
-      "norm_label": "encryptor.dart",
-      "source_file": "bin/encryptor.dart",
-      "source_location": null
-    },
-    {
-      "id": "bin_encryptor_main",
-      "label": "main",
-      "_origin": "ast",
-      "community": 18,
-      "community_name": "encryptor.dart",
-      "file_type": "code",
-      "norm_label": "main",
-      "source_file": "bin/encryptor.dart",
-      "source_location": null
-    },
-    {
-      "id": "dart_typed_data",
-      "label": "dart:typed_data",
-      "_origin": "ast",
-      "community": 18,
-      "community_name": "encryptor.dart",
-      "file_type": "code",
-      "norm_label": "dart:typed_data",
-      "source_file": null,
-      "source_location": null
     },
     {
       "id": "scratch_interceptor_package",
@@ -5522,61 +5324,6 @@
       "source_location": null
     },
     {
-      "id": "package_flutter_material_dart",
-      "label": "package:flutter/material.dart",
-      "_origin": "ast",
-      "community": 21,
-      "community_name": "highlight_text.dart",
-      "file_type": "code",
-      "norm_label": "package:flutter/material.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_flutter_test_flutter_test_dart",
-      "label": "package:flutter_test/flutter_test.dart",
-      "_origin": "ast",
-      "community": 21,
-      "community_name": "highlight_text.dart",
-      "file_type": "code",
-      "norm_label": "package:flutter_test/flutter_test.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_word_down_main_dart",
-      "label": "package:word_down/main.dart",
-      "_origin": "ast",
-      "community": 21,
-      "community_name": "highlight_text.dart",
-      "file_type": "code",
-      "norm_label": "package:word_down/main.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_word_down_models_word_dart",
-      "label": "package:word_down/models/word.dart",
-      "_origin": "ast",
-      "community": 21,
-      "community_name": "highlight_text.dart",
-      "file_type": "code",
-      "norm_label": "package:word_down/models/word.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_word_down_widgets_highlight_text_dart",
-      "label": "package:word_down/widgets/highlight_text.dart",
-      "_origin": "ast",
-      "community": 21,
-      "community_name": "highlight_text.dart",
-      "file_type": "code",
-      "norm_label": "package:word_down/widgets/highlight_text.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
       "id": "regexp",
       "label": "RegExp",
       "_origin": "ast",
@@ -5607,50 +5354,6 @@
       "file_type": "code",
       "norm_label": "set",
       "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "test_subtitle_highlight_test",
-      "label": "subtitle_highlight_test.dart",
-      "_origin": "ast",
-      "community": 21,
-      "community_name": "highlight_text.dart",
-      "file_type": "code",
-      "norm_label": "subtitle_highlight_test.dart",
-      "source_file": "test/subtitle_highlight_test.dart",
-      "source_location": null
-    },
-    {
-      "id": "test_subtitle_highlight_test_main",
-      "label": "main",
-      "_origin": "ast",
-      "community": 21,
-      "community_name": "highlight_text.dart",
-      "file_type": "code",
-      "norm_label": "main",
-      "source_file": "test/subtitle_highlight_test.dart",
-      "source_location": null
-    },
-    {
-      "id": "test_widget_test",
-      "label": "widget_test.dart",
-      "_origin": "ast",
-      "community": 21,
-      "community_name": "highlight_text.dart",
-      "file_type": "code",
-      "norm_label": "widget_test.dart",
-      "source_file": "test/widget_test.dart",
-      "source_location": null
-    },
-    {
-      "id": "test_widget_test_main",
-      "label": "main",
-      "_origin": "ast",
-      "community": 21,
-      "community_name": "highlight_text.dart",
-      "file_type": "code",
-      "norm_label": "main",
-      "source_file": "test/widget_test.dart",
       "source_location": null
     },
     {
@@ -6155,6 +5858,28 @@
       "source_location": null
     },
     {
+      "id": "lib_main_splashloadingscreen",
+      "label": "SplashLoadingScreen",
+      "_origin": "ast",
+      "community": 26,
+      "community_name": "main.dart",
+      "file_type": "code",
+      "norm_label": "splashloadingscreen",
+      "source_file": "lib/main.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_main_splashloadingscreenstate",
+      "label": "_SplashLoadingScreenState",
+      "_origin": "ast",
+      "community": 26,
+      "community_name": "main.dart",
+      "file_type": "code",
+      "norm_label": "_splashloadingscreenstate",
+      "source_file": "lib/main.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_main_worddownapp",
       "label": "WordDownApp",
       "_origin": "ast",
@@ -6217,6 +5942,17 @@
       "community_name": "main.dart",
       "file_type": "code",
       "norm_label": "../services/media_cache_service.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "services_settings_service_dart",
+      "label": "../services/settings_service.dart",
+      "_origin": "ast",
+      "community": 26,
+      "community_name": "main.dart",
+      "file_type": "code",
+      "norm_label": "../services/settings_service.dart",
       "source_file": null,
       "source_location": null
     },
@@ -7957,6 +7693,28 @@
       "source_location": null
     },
     {
+      "id": "lib_screens_settings_screen_settingsscreen",
+      "label": "SettingsScreen",
+      "_origin": "ast",
+      "community": 37,
+      "community_name": "settings_screen.dart",
+      "file_type": "code",
+      "norm_label": "settingsscreen",
+      "source_file": "lib/screens/settings_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_settings_screen_settingsscreenstate",
+      "label": "_SettingsScreenState",
+      "_origin": "ast",
+      "community": 37,
+      "community_name": "settings_screen.dart",
+      "file_type": "code",
+      "norm_label": "_settingsscreenstate",
+      "source_file": "lib/screens/settings_screen.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_screens_settings_screen_settingsservice",
       "label": "_settingsService",
       "_origin": "ast",
@@ -8001,17 +7759,6 @@
       "source_location": null
     },
     {
-      "id": "services_settings_service_dart",
-      "label": "../services/settings_service.dart",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "settings_screen.dart",
-      "file_type": "code",
-      "norm_label": "../services/settings_service.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
       "id": "services_wordup_api_dart",
       "label": "../services/wordup_api.dart",
       "_origin": "ast",
@@ -8034,11 +7781,66 @@
       "source_location": null
     },
     {
+      "id": "dart_io",
+      "label": "dart:io",
+      "_origin": "ast",
+      "community": 38,
+      "community_name": "dart:io",
+      "file_type": "code",
+      "norm_label": "dart:io",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "scratch_analyze_list",
+      "label": "analyze_list.dart",
+      "_origin": "ast",
+      "community": 38,
+      "community_name": "dart:io",
+      "file_type": "code",
+      "norm_label": "analyze_list.dart",
+      "source_file": "scratch/analyze_list.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_analyze_list_content",
+      "label": "content",
+      "_origin": "ast",
+      "community": 38,
+      "community_name": "dart:io",
+      "file_type": "code",
+      "norm_label": "content",
+      "source_file": "scratch/analyze_list.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_analyze_list_data",
+      "label": "data",
+      "_origin": "ast",
+      "community": 38,
+      "community_name": "dart:io",
+      "file_type": "code",
+      "norm_label": "data",
+      "source_file": "scratch/analyze_list.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_analyze_list_main",
+      "label": "main",
+      "_origin": "ast",
+      "community": 38,
+      "community_name": "dart:io",
+      "file_type": "code",
+      "norm_label": "main",
+      "source_file": "scratch/analyze_list.dart",
+      "source_location": null
+    },
+    {
       "id": "scratch_analyze_local2",
       "label": "analyze_local2.dart",
       "_origin": "ast",
       "community": 38,
-      "community_name": "analyze_local2.dart",
+      "community_name": "dart:io",
       "file_type": "code",
       "norm_label": "analyze_local2.dart",
       "source_file": "scratch/analyze_local2.dart",
@@ -8049,7 +7851,7 @@
       "label": "c",
       "_origin": "ast",
       "community": 38,
-      "community_name": "analyze_local2.dart",
+      "community_name": "dart:io",
       "file_type": "code",
       "norm_label": "c",
       "source_file": "scratch/analyze_local2.dart",
@@ -8060,7 +7862,7 @@
       "label": "d",
       "_origin": "ast",
       "community": 38,
-      "community_name": "analyze_local2.dart",
+      "community_name": "dart:io",
       "file_type": "code",
       "norm_label": "d",
       "source_file": "scratch/analyze_local2.dart",
@@ -8071,7 +7873,7 @@
       "label": "known",
       "_origin": "ast",
       "community": 38,
-      "community_name": "analyze_local2.dart",
+      "community_name": "dart:io",
       "file_type": "code",
       "norm_label": "known",
       "source_file": "scratch/analyze_local2.dart",
@@ -8082,7 +7884,7 @@
       "label": "learning",
       "_origin": "ast",
       "community": 38,
-      "community_name": "analyze_local2.dart",
+      "community_name": "dart:io",
       "file_type": "code",
       "norm_label": "learning",
       "source_file": "scratch/analyze_local2.dart",
@@ -8093,10 +7895,43 @@
       "label": "main",
       "_origin": "ast",
       "community": 38,
-      "community_name": "analyze_local2.dart",
+      "community_name": "dart:io",
       "file_type": "code",
       "norm_label": "main",
       "source_file": "scratch/analyze_local2.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_delete_local",
+      "label": "delete_local.dart",
+      "_origin": "ast",
+      "community": 38,
+      "community_name": "dart:io",
+      "file_type": "code",
+      "norm_label": "delete_local.dart",
+      "source_file": "scratch/delete_local.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_delete_local_files",
+      "label": "files",
+      "_origin": "ast",
+      "community": 38,
+      "community_name": "dart:io",
+      "file_type": "code",
+      "norm_label": "files",
+      "source_file": "scratch/delete_local.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_delete_local_main",
+      "label": "main",
+      "_origin": "ast",
+      "community": 38,
+      "community_name": "dart:io",
+      "file_type": "code",
+      "norm_label": "main",
+      "source_file": "scratch/delete_local.dart",
       "source_location": null
     },
     {
@@ -8694,47 +8529,47 @@
       "source_location": null
     },
     {
-      "id": "scratch_analyze_list",
-      "label": "analyze_list.dart",
+      "id": "scratch_analyze_dict",
+      "label": "analyze_dict.dart",
       "_origin": "ast",
       "community": 40,
       "community_name": "dart:convert",
       "file_type": "code",
-      "norm_label": "analyze_list.dart",
-      "source_file": "scratch/analyze_list.dart",
+      "norm_label": "analyze_dict.dart",
+      "source_file": "scratch/analyze_dict.dart",
       "source_location": null
     },
     {
-      "id": "scratch_analyze_list_content",
+      "id": "scratch_analyze_dict_content",
       "label": "content",
       "_origin": "ast",
       "community": 40,
       "community_name": "dart:convert",
       "file_type": "code",
       "norm_label": "content",
-      "source_file": "scratch/analyze_list.dart",
+      "source_file": "scratch/analyze_dict.dart",
       "source_location": null
     },
     {
-      "id": "scratch_analyze_list_data",
+      "id": "scratch_analyze_dict_data",
       "label": "data",
       "_origin": "ast",
       "community": 40,
       "community_name": "dart:convert",
       "file_type": "code",
       "norm_label": "data",
-      "source_file": "scratch/analyze_list.dart",
+      "source_file": "scratch/analyze_dict.dart",
       "source_location": null
     },
     {
-      "id": "scratch_analyze_list_main",
+      "id": "scratch_analyze_dict_main",
       "label": "main",
       "_origin": "ast",
       "community": 40,
       "community_name": "dart:convert",
       "file_type": "code",
       "norm_label": "main",
-      "source_file": "scratch/analyze_list.dart",
+      "source_file": "scratch/analyze_dict.dart",
       "source_location": null
     },
     {
@@ -8793,66 +8628,11 @@
       "source_location": null
     },
     {
-      "id": "dart_io",
-      "label": "dart:io",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "dart:io",
-      "file_type": "code",
-      "norm_label": "dart:io",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "scratch_analyze_dict",
-      "label": "analyze_dict.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "dart:io",
-      "file_type": "code",
-      "norm_label": "analyze_dict.dart",
-      "source_file": "scratch/analyze_dict.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_analyze_dict_content",
-      "label": "content",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "dart:io",
-      "file_type": "code",
-      "norm_label": "content",
-      "source_file": "scratch/analyze_dict.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_analyze_dict_data",
-      "label": "data",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "dart:io",
-      "file_type": "code",
-      "norm_label": "data",
-      "source_file": "scratch/analyze_dict.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_analyze_dict_main",
-      "label": "main",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "dart:io",
-      "file_type": "code",
-      "norm_label": "main",
-      "source_file": "scratch/analyze_dict.dart",
-      "source_location": null
-    },
-    {
       "id": "scratch_analyze_progress",
       "label": "analyze_progress.dart",
       "_origin": "ast",
       "community": 41,
-      "community_name": "dart:io",
+      "community_name": "analyze_progress.dart",
       "file_type": "code",
       "norm_label": "analyze_progress.dart",
       "source_file": "scratch/analyze_progress.dart",
@@ -8863,7 +8643,7 @@
       "label": "main",
       "_origin": "ast",
       "community": 41,
-      "community_name": "dart:io",
+      "community_name": "analyze_progress.dart",
       "file_type": "code",
       "norm_label": "main",
       "source_file": "scratch/analyze_progress.dart",
@@ -8874,7 +8654,7 @@
       "label": "maxCount",
       "_origin": "ast",
       "community": 41,
-      "community_name": "dart:io",
+      "community_name": "analyze_progress.dart",
       "file_type": "code",
       "norm_label": "maxcount",
       "source_file": "scratch/analyze_progress.dart",
@@ -8885,7 +8665,7 @@
       "label": "progress",
       "_origin": "ast",
       "community": 41,
-      "community_name": "dart:io",
+      "community_name": "analyze_progress.dart",
       "file_type": "code",
       "norm_label": "progress",
       "source_file": "scratch/analyze_progress.dart",
@@ -8896,43 +8676,10 @@
       "label": "words",
       "_origin": "ast",
       "community": 41,
-      "community_name": "dart:io",
+      "community_name": "analyze_progress.dart",
       "file_type": "code",
       "norm_label": "words",
       "source_file": "scratch/analyze_progress.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_delete_local",
-      "label": "delete_local.dart",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "dart:io",
-      "file_type": "code",
-      "norm_label": "delete_local.dart",
-      "source_file": "scratch/delete_local.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_delete_local_files",
-      "label": "files",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "dart:io",
-      "file_type": "code",
-      "norm_label": "files",
-      "source_file": "scratch/delete_local.dart",
-      "source_location": null
-    },
-    {
-      "id": "scratch_delete_local_main",
-      "label": "main",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "dart:io",
-      "file_type": "code",
-      "norm_label": "main",
-      "source_file": "scratch/delete_local.dart",
       "source_location": null
     },
     {
@@ -8991,28 +8738,6 @@
       "source_location": null
     },
     {
-      "id": "lib_main_splashloadingscreen",
-      "label": "SplashLoadingScreen",
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "State",
-      "file_type": "code",
-      "norm_label": "splashloadingscreen",
-      "source_file": "lib/main.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_main_splashloadingscreenstate",
-      "label": "_SplashLoadingScreenState",
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "State",
-      "file_type": "code",
-      "norm_label": "_splashloadingscreenstate",
-      "source_file": "lib/main.dart",
-      "source_location": null
-    },
-    {
       "id": "lib_screens_home_screen_homescreen",
       "label": "HomeScreen",
       "_origin": "ast",
@@ -9032,50 +8757,6 @@
       "file_type": "code",
       "norm_label": "_homescreenstate",
       "source_file": "lib/screens/home_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_review_screen_reviewscreen",
-      "label": "ReviewScreen",
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "State",
-      "file_type": "code",
-      "norm_label": "reviewscreen",
-      "source_file": "lib/screens/review_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_review_screen_reviewscreenstate",
-      "label": "_ReviewScreenState",
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "State",
-      "file_type": "code",
-      "norm_label": "_reviewscreenstate",
-      "source_file": "lib/screens/review_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_settings_screen_settingsscreen",
-      "label": "SettingsScreen",
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "State",
-      "file_type": "code",
-      "norm_label": "settingsscreen",
-      "source_file": "lib/screens/settings_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_settings_screen_settingsscreenstate",
-      "label": "_SettingsScreenState",
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "State",
-      "file_type": "code",
-      "norm_label": "_settingsscreenstate",
-      "source_file": "lib/screens/settings_screen.dart",
       "source_location": null
     },
     {
@@ -9142,6 +8823,39 @@
       "file_type": "code",
       "norm_label": "_slidingcardsviewstate",
       "source_file": "lib/screens/word_view_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_word_view_screen_wordviewscreen",
+      "label": "WordViewScreen",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "State",
+      "file_type": "code",
+      "norm_label": "wordviewscreen",
+      "source_file": "lib/screens/word_view_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_word_view_screen_wordviewscreenstate",
+      "label": "_WordViewScreenState",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "State",
+      "file_type": "code",
+      "norm_label": "_wordviewscreenstate",
+      "source_file": "lib/screens/word_view_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "singletickerproviderstatemixin",
+      "label": "SingleTickerProviderStateMixin",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "State",
+      "file_type": "code",
+      "norm_label": "singletickerproviderstatemixin",
+      "source_file": null,
       "source_location": null
     },
     {
@@ -9321,90 +9035,13 @@
       "source_location": null
     },
     {
-      "id": "lib_firebase_options",
-      "label": "firebase_options.dart",
+      "id": "database_service_dart",
+      "label": "database_service.dart",
       "_origin": "ast",
-      "community": 47,
-      "community_name": "firebase_options.dart",
+      "community": 48,
+      "community_name": "review_question_service.dart",
       "file_type": "code",
-      "norm_label": "firebase_options.dart",
-      "source_file": "lib/firebase_options.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_firebase_options_android",
-      "label": "android",
-      "_origin": "ast",
-      "community": 47,
-      "community_name": "firebase_options.dart",
-      "file_type": "code",
-      "norm_label": "android",
-      "source_file": "lib/firebase_options.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_firebase_options_defaultfirebaseoptions",
-      "label": "DefaultFirebaseOptions",
-      "_origin": "ast",
-      "community": 47,
-      "community_name": "firebase_options.dart",
-      "file_type": "code",
-      "norm_label": "defaultfirebaseoptions",
-      "source_file": "lib/firebase_options.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_firebase_options_web",
-      "label": "web",
-      "_origin": "ast",
-      "community": 47,
-      "community_name": "firebase_options.dart",
-      "file_type": "code",
-      "norm_label": "web",
-      "source_file": "lib/firebase_options.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_firebase_options_windows",
-      "label": "windows",
-      "_origin": "ast",
-      "community": 47,
-      "community_name": "firebase_options.dart",
-      "file_type": "code",
-      "norm_label": "windows",
-      "source_file": "lib/firebase_options.dart",
-      "source_location": null
-    },
-    {
-      "id": "package_firebase_core_firebase_core_dart",
-      "label": "package:firebase_core/firebase_core.dart",
-      "_origin": "ast",
-      "community": 47,
-      "community_name": "firebase_options.dart",
-      "file_type": "code",
-      "norm_label": "package:firebase_core/firebase_core.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "package_flutter_foundation_dart",
-      "label": "package:flutter/foundation.dart",
-      "_origin": "ast",
-      "community": 47,
-      "community_name": "firebase_options.dart",
-      "file_type": "code",
-      "norm_label": "package:flutter/foundation.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "static_const_firebaseoptions",
-      "label": "static const FirebaseOptions",
-      "_origin": "ast",
-      "community": 47,
-      "community_name": "firebase_options.dart",
-      "file_type": "code",
-      "norm_label": "static const firebaseoptions",
+      "norm_label": "database_service.dart",
       "source_file": null,
       "source_location": null
     },
@@ -9493,6 +9130,28 @@
       "community_name": "review_question_service.dart",
       "file_type": "code",
       "norm_label": "displayimageurl",
+      "source_file": "lib/services/review_question_service.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_services_review_question_service_exampleaudiopath",
+      "label": "exampleAudioPath",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "review_question_service.dart",
+      "file_type": "code",
+      "norm_label": "exampleaudiopath",
+      "source_file": "lib/services/review_question_service.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_services_review_question_service_exampletext",
+      "label": "exampleText",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "review_question_service.dart",
+      "file_type": "code",
+      "norm_label": "exampletext",
       "source_file": "lib/services/review_question_service.dart",
       "source_location": null
     },
@@ -9728,6 +9387,17 @@
       "source_location": null
     },
     {
+      "id": "lib_services_review_question_service_wordaudiopath",
+      "label": "wordAudioPath",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "review_question_service.dart",
+      "file_type": "code",
+      "norm_label": "wordaudiopath",
+      "source_file": "lib/services/review_question_service.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_services_review_question_service_worddata",
       "label": "wordData",
       "_origin": "ast",
@@ -9739,13 +9409,57 @@
       "source_location": null
     },
     {
-      "id": "media_cache_service_dart",
-      "label": "media_cache_service.dart",
+      "id": "package_flutter_material_dart",
+      "label": "package:flutter/material.dart",
       "_origin": "ast",
       "community": 48,
       "community_name": "review_question_service.dart",
       "file_type": "code",
-      "norm_label": "media_cache_service.dart",
+      "norm_label": "package:flutter/material.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_flutter_test_flutter_test_dart",
+      "label": "package:flutter_test/flutter_test.dart",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "review_question_service.dart",
+      "file_type": "code",
+      "norm_label": "package:flutter_test/flutter_test.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_word_down_main_dart",
+      "label": "package:word_down/main.dart",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "review_question_service.dart",
+      "file_type": "code",
+      "norm_label": "package:word_down/main.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_word_down_models_word_dart",
+      "label": "package:word_down/models/word.dart",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "review_question_service.dart",
+      "file_type": "code",
+      "norm_label": "package:word_down/models/word.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_word_down_widgets_highlight_text_dart",
+      "label": "package:word_down/widgets/highlight_text.dart",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "review_question_service.dart",
+      "file_type": "code",
+      "norm_label": "package:word_down/widgets/highlight_text.dart",
       "source_file": null,
       "source_location": null
     },
@@ -9769,6 +9483,50 @@
       "file_type": "code",
       "norm_label": "static final reviewquestionservice",
       "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "test_subtitle_highlight_test",
+      "label": "subtitle_highlight_test.dart",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "review_question_service.dart",
+      "file_type": "code",
+      "norm_label": "subtitle_highlight_test.dart",
+      "source_file": "test/subtitle_highlight_test.dart",
+      "source_location": null
+    },
+    {
+      "id": "test_subtitle_highlight_test_main",
+      "label": "main",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "review_question_service.dart",
+      "file_type": "code",
+      "norm_label": "main",
+      "source_file": "test/subtitle_highlight_test.dart",
+      "source_location": null
+    },
+    {
+      "id": "test_widget_test",
+      "label": "widget_test.dart",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "review_question_service.dart",
+      "file_type": "code",
+      "norm_label": "widget_test.dart",
+      "source_file": "test/widget_test.dart",
+      "source_location": null
+    },
+    {
+      "id": "test_widget_test_main",
+      "label": "main",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "review_question_service.dart",
+      "file_type": "code",
+      "norm_label": "main",
+      "source_file": "test/widget_test.dart",
       "source_location": null
     },
     {
@@ -10157,6 +9915,17 @@
       "source_location": null
     },
     {
+      "id": "lib_screens_review_screen_playaudiopathdirectly",
+      "label": "_playAudioPathDirectly",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "review_screen.dart",
+      "file_type": "code",
+      "norm_label": "_playaudiopathdirectly",
+      "source_file": "lib/screens/review_screen.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_screens_review_screen_playexampleaudio",
       "label": "_playExampleAudio",
       "_origin": "ast",
@@ -10208,6 +9977,28 @@
       "community_name": "review_screen.dart",
       "file_type": "code",
       "norm_label": "_questiondata",
+      "source_file": "lib/screens/review_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_review_screen_reviewscreen",
+      "label": "ReviewScreen",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "review_screen.dart",
+      "file_type": "code",
+      "norm_label": "reviewscreen",
+      "source_file": "lib/screens/review_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_review_screen_reviewscreenstate",
+      "label": "_ReviewScreenState",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "review_screen.dart",
+      "file_type": "code",
+      "norm_label": "_reviewscreenstate",
       "source_file": "lib/screens/review_screen.dart",
       "source_location": null
     },
@@ -10542,39 +10333,6 @@
       "source_location": null
     },
     {
-      "id": "lib_screens_word_view_screen_wordviewscreen",
-      "label": "WordViewScreen",
-      "_origin": "ast",
-      "community": 53,
-      "community_name": "_WordViewScreenState",
-      "file_type": "code",
-      "norm_label": "wordviewscreen",
-      "source_file": "lib/screens/word_view_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_word_view_screen_wordviewscreenstate",
-      "label": "_WordViewScreenState",
-      "_origin": "ast",
-      "community": 53,
-      "community_name": "_WordViewScreenState",
-      "file_type": "code",
-      "norm_label": "_wordviewscreenstate",
-      "source_file": "lib/screens/word_view_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "singletickerproviderstatemixin",
-      "label": "SingleTickerProviderStateMixin",
-      "_origin": "ast",
-      "community": 53,
-      "community_name": "_WordViewScreenState",
-      "file_type": "code",
-      "norm_label": "singletickerproviderstatemixin",
-      "source_file": null,
-      "source_location": null
-    },
-    {
       "id": "readme",
       "label": "README.md",
       "_origin": "ast",
@@ -10735,6 +10493,61 @@
       "file_type": "code",
       "norm_label": "firebasefirestore",
       "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "lib_firebase_options",
+      "label": "firebase_options.dart",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "firebase_options.dart",
+      "source_file": "lib/firebase_options.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_firebase_options_android",
+      "label": "android",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "android",
+      "source_file": "lib/firebase_options.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_firebase_options_defaultfirebaseoptions",
+      "label": "DefaultFirebaseOptions",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "defaultfirebaseoptions",
+      "source_file": "lib/firebase_options.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_firebase_options_web",
+      "label": "web",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "web",
+      "source_file": "lib/firebase_options.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_firebase_options_windows",
+      "label": "windows",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "windows",
+      "source_file": "lib/firebase_options.dart",
       "source_location": null
     },
     {
@@ -10925,6 +10738,28 @@
       "source_location": null
     },
     {
+      "id": "package_firebase_core_firebase_core_dart",
+      "label": "package:firebase_core/firebase_core.dart",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "package:firebase_core/firebase_core.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "package_flutter_foundation_dart",
+      "label": "package:flutter/foundation.dart",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "package:flutter/foundation.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
       "id": "progress_service_dart",
       "label": "progress_service.dart",
       "_origin": "ast",
@@ -10932,6 +10767,17 @@
       "community_name": "sync_service.dart",
       "file_type": "code",
       "norm_label": "progress_service.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "static_const_firebaseoptions",
+      "label": "static const FirebaseOptions",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "sync_service.dart",
+      "file_type": "code",
+      "norm_label": "static const firebaseoptions",
       "source_file": null,
       "source_location": null
     },
@@ -11676,6 +11522,28 @@
       "source_location": null
     },
     {
+      "id": "bin_encryptor",
+      "label": "encryptor.dart",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "encryptor.dart",
+      "source_file": "bin/encryptor.dart",
+      "source_location": null
+    },
+    {
+      "id": "bin_encryptor_main",
+      "label": "main",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "main",
+      "source_file": "bin/encryptor.dart",
+      "source_location": null
+    },
+    {
       "id": "dart_async",
       "label": "dart:async",
       "_origin": "ast",
@@ -11683,6 +11551,28 @@
       "community_name": "edge_tts_service.dart",
       "file_type": "code",
       "norm_label": "dart:async",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "dart_math",
+      "label": "dart:math",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "dart:math",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "dart_typed_data",
+      "label": "dart:typed_data",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "dart:typed_data",
       "source_file": null,
       "source_location": null
     },
@@ -11860,6 +11750,171 @@
       "file_type": "code",
       "norm_label": "package:crypto/crypto.dart",
       "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "scratch_generate_sounds",
+      "label": "generate_sounds.dart",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "generate_sounds.dart",
+      "source_file": "scratch/generate_sounds.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_generate_sounds_bitspersample",
+      "label": "bitsPerSample",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "bitspersample",
+      "source_file": "scratch/generate_sounds.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_generate_sounds_blockalign",
+      "label": "blockAlign",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "blockalign",
+      "source_file": "scratch/generate_sounds.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_generate_sounds_builder",
+      "label": "builder",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "builder",
+      "source_file": "scratch/generate_sounds.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_generate_sounds_byterate",
+      "label": "byteRate",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "byterate",
+      "source_file": "scratch/generate_sounds.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_generate_sounds_chunksize",
+      "label": "chunkSize",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "chunksize",
+      "source_file": "scratch/generate_sounds.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_generate_sounds_data",
+      "label": "data",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "data",
+      "source_file": "scratch/generate_sounds.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_generate_sounds_int16tobytes",
+      "label": "_int16ToBytes",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "_int16tobytes",
+      "source_file": "scratch/generate_sounds.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_generate_sounds_int32tobytes",
+      "label": "_int32ToBytes",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "_int32tobytes",
+      "source_file": "scratch/generate_sounds.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_generate_sounds_main",
+      "label": "main",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "main",
+      "source_file": "scratch/generate_sounds.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_generate_sounds_numchannels",
+      "label": "numChannels",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "numchannels",
+      "source_file": "scratch/generate_sounds.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_generate_sounds_numsamples",
+      "label": "numSamples",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "numsamples",
+      "source_file": "scratch/generate_sounds.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_generate_sounds_samplerate",
+      "label": "sampleRate",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "samplerate",
+      "source_file": "scratch/generate_sounds.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_generate_sounds_subchunk2size",
+      "label": "subChunk2Size",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "subchunk2size",
+      "source_file": "scratch/generate_sounds.dart",
+      "source_location": null
+    },
+    {
+      "id": "scratch_generate_sounds_writewav",
+      "label": "_writeWav",
+      "_origin": "ast",
+      "community": 79,
+      "community_name": "edge_tts_service.dart",
+      "file_type": "code",
+      "norm_label": "_writewav",
+      "source_file": "scratch/generate_sounds.dart",
       "source_location": null
     },
     {
@@ -19294,6 +19349,17 @@
     },
     {
       "source": "lib_screens_review_screen",
+      "target": "lib_screens_review_screen_playaudiopathdirectly",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/screens/review_screen.dart",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_screens_review_screen",
       "target": "lib_screens_review_screen_playexampleaudio",
       "relation": "defines",
       "_origin": "ast",
@@ -21846,6 +21912,28 @@
     },
     {
       "source": "lib_services_review_question_service",
+      "target": "lib_services_review_question_service_exampleaudiopath",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/services/review_question_service.dart",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_services_review_question_service",
+      "target": "lib_services_review_question_service_exampletext",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/services/review_question_service.dart",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_services_review_question_service",
       "target": "lib_services_review_question_service_generatefakemisspelling",
       "relation": "defines",
       "_origin": "ast",
@@ -22067,6 +22155,17 @@
     {
       "source": "lib_services_review_question_service",
       "target": "lib_services_review_question_service_word",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/services/review_question_service.dart",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_services_review_question_service",
+      "target": "lib_services_review_question_service_wordaudiopath",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -22837,6 +22936,17 @@
     {
       "source": "lib_services_wordup_api",
       "target": "lib_services_wordup_api_getlocalfile",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/services/wordup_api.dart",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_services_wordup_api",
+      "target": "lib_services_wordup_api_getpersistentttsfile",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -26444,6 +26554,17 @@
     },
     {
       "source": "lib_services_wordup_api",
+      "target": "package_crypto_crypto_dart",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/services/wordup_api.dart",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_services_wordup_api",
       "target": "package_flutter_foundation_dart",
       "relation": "imports",
       "_origin": "ast",
@@ -28244,5 +28365,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "ee4e5c8f9f99733769eaf879a15180506a0f50e9"
+  "built_at_commit": "7aa6fd26826ef2ba373645758838a3cb8eaf4e27"
 }
