@@ -32,18 +32,24 @@ class _CachedMediaImageState extends State<CachedMediaImage> {
   @override
   void initState() {
     super.initState();
-    _checkLocalCache();
+    // 0ms synchronous check: if image was pre-cached to disk, render on FRAME 1 without ANY spinner!
+    final syncFile = MediaCacheService.getLocalFileSync(widget.wordId, widget.imageUrl);
+    if (syncFile != null) {
+      _localFile = syncFile;
+    } else {
+      _checkLocalCache();
+    }
   }
 
   Future<void> _checkLocalCache() async {
-    // 1. Check local disk cache (instant — if was already cached/pre-cached)
+    // 1. Check local disk cache asynchronously if synchronous path wasn't initialized yet
     final file = await MediaCacheService.getLocalFile(widget.wordId, widget.imageUrl);
     if (file != null && await file.exists() && await file.length() > 0) {
       if (mounted) setState(() => _localFile = file);
       return;
     }
 
-    // 2. Not yet on disk — start ensuring media is cached via Hugging Face or CDN.
+    // 2. Not yet on disk — start ensuring media is cached via CDN / Hugging Face.
     // If it takes longer than 250ms, kick off Image.network fallback so the user
     // never stares at a stalled spinner while downloading.
     bool resolved = false;
@@ -72,11 +78,14 @@ class _CachedMediaImageState extends State<CachedMediaImage> {
   void didUpdateWidget(CachedMediaImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.imageUrl != widget.imageUrl || oldWidget.wordId != widget.wordId) {
+      final syncFile = MediaCacheService.getLocalFileSync(widget.wordId, widget.imageUrl);
       setState(() {
-        _localFile = null;
+        _localFile = syncFile;
         _fallbackUrl = null;
       });
-      _checkLocalCache();
+      if (syncFile == null) {
+        _checkLocalCache();
+      }
     }
   }
 

@@ -6,9 +6,31 @@ import '../services/encryption_service.dart';
 
 
 class MediaCacheService {
-  static Future<Directory> _getWordCacheDir(int wordId) async {
+  static String? _appDocsPath;
+
+  static Future<String> getAppDocsPath() async {
+    if (_appDocsPath != null) return _appDocsPath!;
     final dir = await getApplicationDocumentsDirectory();
-    final cacheDir = Directory('${dir.path}/wordup_cache/$wordId');
+    _appDocsPath = dir.path;
+    return _appDocsPath!;
+  }
+
+  /// Synchronous instantaneous check (0ms) to see if media is already on disk.
+  static File? getLocalFileSync(int wordId, String originalUrl) {
+    if (_appDocsPath == null) return null;
+    try {
+      final fileName = _getFileNameFromUrl(originalUrl);
+      final file = File('$_appDocsPath/wordup_cache/$wordId/$fileName');
+      if (file.existsSync() && file.lengthSync() > 0) {
+        return file;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  static Future<Directory> _getWordCacheDir(int wordId) async {
+    final docsPath = await getAppDocsPath();
+    final cacheDir = Directory('$docsPath/wordup_cache/$wordId');
     if (!await cacheDir.exists()) {
       await cacheDir.create(recursive: true);
     }
@@ -116,8 +138,8 @@ class MediaCacheService {
 
   /// Ensures media is cached locally to disk:
   /// 1. Instant return if already on local disk.
-  /// 2. Fetches & decrypts from Hugging Face backup (with 2s timeout).
-  /// 3. Falls back to original CDN URL (with 5s timeout).
+  /// 2. Downloads from primary CDN (fast, unblocked, 100% available).
+  /// 3. Falls back to Hugging Face backup (if CDN is unreachable).
   /// Returns the local File, or null if all attempts fail.
   static Future<File?> ensureMediaCached(int wordId, String originalUrl) async {
     // 1. Check local disk
@@ -126,17 +148,20 @@ class MediaCacheService {
       return local;
     }
 
-    // 2. Try Hugging Face backup
+    // 2. Download from primary CDN (fastest, unblocked, has 100% of images)
+    try {
+      final cdnFile = await cacheSingleMedia(wordId, originalUrl);
+      if (cdnFile != null && await cdnFile.exists() && await cdnFile.length() > 0) {
+        return cdnFile;
+      }
+    } catch (_) {}
+
+    // 3. Fall back to Hugging Face backup if CDN failed
     try {
       final hfFile = await fetchAndDecryptFromHuggingFace(wordId, originalUrl);
       if (hfFile != null && await hfFile.exists() && await hfFile.length() > 0) {
         return hfFile;
       }
-    } catch (_) {}
-
-    // 3. Fall back to original CDN
-    try {
-      return await cacheSingleMedia(wordId, originalUrl);
     } catch (_) {}
 
     return null;

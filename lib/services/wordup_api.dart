@@ -236,14 +236,22 @@ class WordupApi {
   }
 
   static Future<Map<String, dynamic>> _downloadWord(String wordId, {String? wordText}) async {
-    // 1. Try fetching from our encrypted GitHub REST API endpoint
+    // 1. Prioritize WordUp CDN (has 100% of all 25,000 words ready in .gz, downloads in ~200ms)
+    try {
+      final cdnData = await _downloadAndExtractFromCdn(wordId);
+      if (cdnData.isNotEmpty) {
+        return cdnData;
+      }
+    } catch (e) {
+      print('⚡ [WordupApi] CDN fetch failed for $wordId: $e, trying GitHub Cloud fallback...');
+    }
+
+    // 2. Fallback to GitHub Cloud REST API endpoint
     final githubData = await _fetchFromGithubApi(wordId, wordText: wordText);
     if (githubData != null && githubData.isNotEmpty) {
       return githubData;
     }
-    print('⚡ [WordupApi] Word $wordId ${wordText != null ? "(\"$wordText\") " : ""}not on GitHub, falling back to WORDUP CDN');
-    // 2. Fallback to WordUp CDN if word has not yet synced to GitHub
-    return await _downloadAndExtractFromCdn(wordId);
+    return {};
   }
 
   /// Sends a live test ping to the GitHub REST API and tests decryption
@@ -305,7 +313,7 @@ class WordupApi {
       'referer': EncryptionService.decryptString('mo9kn0ePoTbvnQQlU46vu907Y7vVNYhvjE7ffCxYHj0='),
       'x-wordup-app-id': EncryptionService.decryptString('CAORgS8bg7cfoT5xXdrRGA=='),
       'x-wordup-source': EncryptionService.decryptString('pCnmcu9hiQZvgO+c56SoCQ==')
-    });
+    }).timeout(const Duration(seconds: 5));
 
     if (response.statusCode != 200) {
       throw Exception('Failed to fetch from WordUp CDN: ${response.statusCode}');

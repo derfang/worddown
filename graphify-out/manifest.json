@@ -162,9 +162,9 @@
     "semantic_hash": ""
   },
   "lib/main.dart": {
-    "mtime": 1788888057.0001042,
-    "seen": 1788888457.3702486,
-    "ast_hash": "8d00afa78d5419f2fe648467c3766e6c",
+    "mtime": 1789154624.791617,
+    "seen": 1789154773.2674139,
+    "ast_hash": "621adb3afa8bc9254d8774aa7b844a31",
     "semantic_hash": ""
   },
   "lib/models/word.dart": {
@@ -192,9 +192,9 @@
     "semantic_hash": ""
   },
   "lib/screens/review_screen.dart": {
-    "mtime": 1789153379.6871276,
-    "seen": 1789153399.3228018,
-    "ast_hash": "669bc8ebd43f1095764e66c04e0209d5",
+    "mtime": 1789154745.9037254,
+    "seen": 1789154773.2674139,
+    "ast_hash": "3f084531a0fbe0ccb3973b485bd4272c",
     "semantic_hash": ""
   },
   "lib/screens/settings_screen.dart": {
@@ -228,9 +228,9 @@
     "semantic_hash": ""
   },
   "lib/services/media_cache_service.dart": {
-    "mtime": 1789153359.4584472,
-    "seen": 1789153399.3228018,
-    "ast_hash": "744170b0748f3a97fd3a70a3516fafb1",
+    "mtime": 1789154566.0987694,
+    "seen": 1789154773.2674139,
+    "ast_hash": "f786ae73970680fe2fdc9b0f599f5a8e",
     "semantic_hash": ""
   },
   "lib/services/progress_service.dart": {
@@ -252,9 +252,9 @@
     "semantic_hash": ""
   },
   "lib/services/wordup_api.dart": {
-    "mtime": 1789074731.6505823,
-    "seen": 1789075041.8664424,
-    "ast_hash": "ae268c574cce01fc3b60b721d76f2928",
+    "mtime": 1789154514.051475,
+    "seen": 1789154773.2674139,
+    "ast_hash": "74c31354eaa0e1250d1ace9fed3fceeb",
     "semantic_hash": ""
   },
   "lib/stubs/webview_windows_stub.dart": {
@@ -1158,9 +1158,9 @@
     "semantic_hash": ""
   },
   "lib/widgets/cached_media_image.dart": {
-    "mtime": 1789153369.8671565,
-    "seen": 1789153399.3228018,
-    "ast_hash": "ef86271e8fa837de1182e623f11bc334",
+    "mtime": 1789154585.6352906,
+    "seen": 1789154773.2674139,
+    "ast_hash": "72a8af1633e7a87d3caaff941a970ddd",
     "semantic_hash": ""
   },
   "scripts/image_sync.py": {

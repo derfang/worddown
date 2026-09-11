@@ -92,8 +92,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
       _premadeQuestions.clear();
     });
 
-    // Proactively pre-make the first 3 questions right away
-    for (int i = 0; i < 3 && i < _dueWords.length; i++) {
+    // Proactively pre-make the first 5 questions right away
+    for (int i = 0; i < 5 && i < _dueWords.length; i++) {
       _getOrPrepareQuestion(i);
     }
 
@@ -189,9 +189,6 @@ class _ReviewScreenState extends State<ReviewScreen> {
           }
         } catch (_) {}
       }
-
-      // Also fire background media caching for all senses
-      MediaCacheService.cacheWordMedia(word.id, wordData).catchError((_) {});
     }
 
     // 3. Pre-fetch dictionary pronunciation audio
@@ -310,8 +307,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
       return;
     }
 
-    // Keep the next 3 questions constantly pre-made
-    for (int offset = 1; offset <= 3; offset++) {
+    // Keep the next 4 questions constantly pre-made
+    for (int offset = 1; offset <= 4; offset++) {
       _getOrPrepareQuestion(_currentIndex + offset);
     }
 
@@ -510,14 +507,16 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
     await _progressService.recordReview(_currentDictWord!.id, isCorrect);
     
-    // Fetch rich data in background for the overlay
-    WordupApi.fetchWordData(_currentDictWord!.id.toString(), wordText: _currentDictWord!.text).then((json) {
-      if (mounted) {
-        setState(() {
-          _currentWordData = WordData.fromJson(_currentDictWord!.id, json);
-        });
-      }
-    }).catchError((_) {}); // Ignore fetch errors in review
+    // Ensure rich data is available for the overlay if not already resolved
+    if (_currentWordData == null) {
+      WordupApi.fetchWordData(_currentDictWord!.id.toString(), wordText: _currentDictWord!.text).then((json) {
+        if (mounted && json.isNotEmpty) {
+          setState(() {
+            _currentWordData = WordData.fromJson(_currentDictWord!.id, json);
+          });
+        }
+      }).catchError((_) {});
+    }
 
     await Future.delayed(Duration(milliseconds: 1200));
 
@@ -1166,6 +1165,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: CachedMediaImage(
+                      key: ValueKey('${_currentDictWord!.id}_$displayImageUrl'),
                       wordId: _currentDictWord!.id,
                       imageUrl: displayImageUrl,
                       width: double.infinity,
