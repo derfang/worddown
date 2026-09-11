@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 import 'progress_service.dart';
 import 'database_service.dart';
@@ -345,6 +346,15 @@ class WordupApi {
     return File('${dir.path}/tts_temp_$_ttsPlaybackIndex.mp3');
   }
 
+  static Future<File> _getPersistentTtsFile(String hash) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final cacheDir = Directory('${dir.path}/wordup_audio_cache');
+    if (!await cacheDir.exists()) {
+      await cacheDir.create(recursive: true);
+    }
+    return File('${cacheDir.path}/tts_$hash.mp3');
+  }
+
   static Future<String> getAudioPath(String wordId, {String? wordText, required bool isUk, required bool useGoogleTts}) async {
     final text = wordText ?? 'word';
     final lang = isUk ? 'en-uk' : 'en-us';
@@ -359,7 +369,7 @@ class WordupApi {
       if (kIsWeb) return dictUrl;
       
       final file = await _getLocalFile('${wordId}_dict_$lang.mp3');
-      if (await file.exists()) return file.path;
+      if (await file.exists() && (await file.length()) > 0) return file.path;
       
       try {
         final response = await http.get(Uri.parse(dictUrl)).timeout(const Duration(seconds: 5));
@@ -367,11 +377,13 @@ class WordupApi {
           await file.writeAsBytes(response.bodyBytes);
           return file.path;
         }
-      } catch (e) {
-        throw Exception('Dictionary API timed out or is unreachable');
+      } catch (_) {
+        // Fallback to TTS if dictionary times out or is unreachable
+        return getSentenceAudioPath(text, isUk: isUk);
       }
       
-      throw Exception('Dictionary audio not found for this accent');
+      // Fallback to TTS if dictionary audio not found
+      return getSentenceAudioPath(text, isUk: isUk);
     }
   }
 
@@ -408,7 +420,7 @@ class WordupApi {
     return chunks;
   }
 
-  static Future<String> _fetchGoogleSentenceAudio(String text, {required bool isUk}) async {
+  static Future<String> _fetchGoogleSentenceAudio(String text, {required bool isUk, File? targetFile}) async {
     final lang = isUk ? 'en-uk' : 'en-us';
     final baseUrl = '${EncryptionService.decryptString('GMYdOcvHclMrN1/WjlGrHmOwZw4A0OLl4lrHfVFiDFo5ADRT1LBAE6dONVg+MdLjfWI2EojCarPcBZiHivvBCA==')}$lang&client=tw-ob&q=';
     
@@ -433,7 +445,7 @@ class WordupApi {
       if (kIsWeb) {
         return 'data:audio/mp3;base64,${base64Encode(combinedBytes)}';
       }
-      final file = await _getTempTtsFile();
+      final file = targetFile ?? await _getTempTtsFile();
       await file.writeAsBytes(combinedBytes);
       return file.path;
     }
@@ -441,6 +453,16 @@ class WordupApi {
   }
 
   static Future<String> getSentenceAudioPath(String text, {required bool isUk}) async {
+    final lang = isUk ? 'en-uk' : 'en-us';
+    final textHash = md5.convert(utf8.encode('$lang:${text.trim()}')).toString();
+
+    if (!kIsWeb) {
+      final cachedFile = await _getPersistentTtsFile(textHash);
+      if (await cachedFile.exists() && (await cachedFile.length()) > 0) {
+        return cachedFile.path;
+      }
+    }
+
     final settings = SettingsService();
     final enableEdge = settings.enableEdgeTts;
     final enableGoogle = settings.enableGoogleTts;
@@ -461,7 +483,7 @@ class WordupApi {
           if (kIsWeb) {
             return 'data:audio/mp3;base64,${base64Encode(audioBytes)}';
           }
-          final file = await _getTempTtsFile();
+          final file = await _getPersistentTtsFile(textHash);
           await file.writeAsBytes(audioBytes);
           return file.path;
         }
@@ -473,7 +495,8 @@ class WordupApi {
       }
     }
 
-    return await _fetchGoogleSentenceAudio(text, isUk: isUk);
+    final persistentFile = kIsWeb ? null : await _getPersistentTtsFile(textHash);
+    return await _fetchGoogleSentenceAudio(text, isUk: isUk, targetFile: persistentFile);
   }
 
 }

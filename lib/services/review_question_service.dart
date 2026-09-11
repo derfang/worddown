@@ -32,6 +32,9 @@ class PreparedReviewQuestion {
   final List<QuestionTypeVariant> variants;
   int currentVariantIndex;
   final String? displayImageUrl;
+  final String? wordAudioPath;
+  final String? exampleAudioPath;
+  final String? exampleText;
 
   PreparedReviewQuestion({
     required this.word,
@@ -39,6 +42,9 @@ class PreparedReviewQuestion {
     required this.variants,
     this.currentVariantIndex = 0,
     required this.displayImageUrl,
+    this.wordAudioPath,
+    this.exampleAudioPath,
+    this.exampleText,
   });
 
   QuestionTypeVariant get currentVariant => variants[currentVariantIndex];
@@ -185,8 +191,36 @@ class ReviewQuestionService {
       }
     }
 
-    // 3. Pre-fetch dictionary pronunciation audio
-    WordupApi.getAudioPath(word.id.toString(), wordText: word.text, isUk: false, useGoogleTts: false).catchError((_) => '');
+    // 3. Pre-fetch and await pronunciation audio + sentence audio
+    String? wordAudioPath;
+    try {
+      wordAudioPath = await WordupApi.getAudioPath(
+        word.id.toString(),
+        wordText: word.text,
+        isUk: false,
+        useGoogleTts: false,
+      );
+    } catch (_) {}
+
+    String? exampleText;
+    String? exampleAudioPath;
+    if (wordData != null) {
+      for (final sense in wordData.senses) {
+        if (sense.ex.trim().isNotEmpty) {
+          exampleText = sense.ex.trim();
+          break;
+        }
+      }
+      if (exampleText != null && exampleText.isNotEmpty) {
+        final sentenceText = 'For example, $exampleText';
+        try {
+          exampleAudioPath = await WordupApi.getSentenceAudioPath(
+            sentenceText,
+            isUk: false,
+          );
+        } catch (_) {}
+      }
+    }
 
     // 4. Pre-make ALL available question type variants for instant shuffle
     final settings = SettingsService();
@@ -219,6 +253,9 @@ class ReviewQuestionService {
       variants: variants,
       currentVariantIndex: 0,
       displayImageUrl: displayImageUrl,
+      wordAudioPath: wordAudioPath,
+      exampleAudioPath: exampleAudioPath,
+      exampleText: exampleText,
     );
     _completedQuestions[index] = prepared;
     return prepared;

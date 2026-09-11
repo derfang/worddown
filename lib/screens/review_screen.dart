@@ -79,7 +79,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
     _showWordDetails = false;
 
     if (variant.type == 'meaning' || variant.type == 'listening' || variant.type == 'synonym' || variant.type == 'antonym' || variant.type == 'misspelling') {
-      _playAudio(question.word.id.toString(), question.word.text);
+      if (question.wordAudioPath != null && question.wordAudioPath!.isNotEmpty) {
+        _playAudioPathDirectly(question.wordAudioPath!);
+      } else {
+        _playAudio(question.word.id.toString(), question.word.text);
+      }
     }
   }
 
@@ -126,7 +130,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
     });
 
     if (variant.type == 'meaning' || variant.type == 'listening' || variant.type == 'synonym' || variant.type == 'antonym' || variant.type == 'misspelling') {
-      _playAudio(_activePreparedQuestion!.word.id.toString(), _activePreparedQuestion!.word.text);
+      if (_activePreparedQuestion?.wordAudioPath != null && _activePreparedQuestion!.wordAudioPath!.isNotEmpty) {
+        _playAudioPathDirectly(_activePreparedQuestion!.wordAudioPath!);
+      } else {
+        _playAudio(_activePreparedQuestion!.word.id.toString(), _activePreparedQuestion!.word.text);
+      }
     }
   }
 
@@ -137,10 +145,27 @@ class _ReviewScreenState extends State<ReviewScreen> {
     _audioPlayer.stop();
   }
 
+  void _playAudioPathDirectly(String path) {
+    _stopAllAudio();
+    try {
+      if (path.startsWith('http') || path.startsWith('data:')) {
+        _audioPlayer.play(UrlSource(path));
+      } else {
+        _audioPlayer.play(DeviceFileSource(path));
+      }
+    } catch (_) {}
+  }
 
   String _getCurrentExample() {
-    if (_currentWordData != null && _currentWordData!.senses.isNotEmpty) {
-      return _currentWordData!.senses.first.ex;
+    if (_activePreparedQuestion?.exampleText != null && _activePreparedQuestion!.exampleText!.isNotEmpty) {
+      return _activePreparedQuestion!.exampleText!;
+    }
+    if (_currentWordData != null) {
+      for (final s in _currentWordData!.senses) {
+        if (s.ex.trim().isNotEmpty) {
+          return s.ex.trim();
+        }
+      }
     }
     return '';
   }
@@ -150,7 +175,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     try {
       final path = await WordupApi.getAudioPath(wordId, wordText: text, isUk: false, useGoogleTts: false);
       if (path.isNotEmpty) {
-        if (path.startsWith('http')) {
+        if (path.startsWith('http') || path.startsWith('data:')) {
           await _audioPlayer.play(UrlSource(path));
         } else {
           await _audioPlayer.play(DeviceFileSource(path));
@@ -164,7 +189,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     try {
       final path = await WordupApi.getSentenceAudioPath(exampleText, isUk: false);
       if (path.isNotEmpty) {
-        if (path.startsWith('http')) {
+        if (path.startsWith('http') || path.startsWith('data:')) {
           await _audioPlayer.play(UrlSource(path));
         } else {
           await _audioPlayer.play(DeviceFileSource(path));
@@ -178,16 +203,24 @@ class _ReviewScreenState extends State<ReviewScreen> {
     final word = _currentDictWord;
     if (word == null) return;
 
-    // Prefetch sentence audio in parallel while the word audio is loading & playing
-    final sentenceAudioFuture = () async {
+    final activeQuestion = _activePreparedQuestion;
+
+    // Use pre-fetched sentence audio if available, or fetch in parallel
+    final Future<String?> sentenceAudioFuture = () async {
+      if (activeQuestion?.exampleAudioPath != null && activeQuestion!.exampleAudioPath!.isNotEmpty) {
+        return activeQuestion.exampleAudioPath;
+      }
       try {
         String example = _getCurrentExample();
         if (example.isEmpty && _currentWordData == null) {
           final json = await WordupApi.fetchWordData(word.id.toString(), wordText: word.text);
           if (currentSeq != _audioSequenceId || !mounted) return null;
           final data = WordData.fromJson(word.id, json);
-          if (data.senses.isNotEmpty) {
-            example = data.senses.first.ex;
+          for (final s in data.senses) {
+            if (s.ex.trim().isNotEmpty) {
+              example = s.ex.trim();
+              break;
+            }
           }
         }
         if (example.trim().isNotEmpty) {
@@ -200,16 +233,19 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
     // 1. Play the word pronunciation (US dict audio)
     try {
-      final wordAudioPath = await WordupApi.getAudioPath(
-        word.id.toString(),
-        wordText: word.text,
-        isUk: false,
-        useGoogleTts: false,
-      );
+      String wordAudioPath = activeQuestion?.wordAudioPath ?? '';
+      if (wordAudioPath.isEmpty) {
+        wordAudioPath = await WordupApi.getAudioPath(
+          word.id.toString(),
+          wordText: word.text,
+          isUk: false,
+          useGoogleTts: false,
+        );
+      }
       if (currentSeq != _audioSequenceId || !mounted) return;
 
       if (wordAudioPath.isNotEmpty) {
-        if (wordAudioPath.startsWith('http')) {
+        if (wordAudioPath.startsWith('http') || wordAudioPath.startsWith('data:')) {
           await _audioPlayer.play(UrlSource(wordAudioPath));
         } else {
           await _audioPlayer.play(DeviceFileSource(wordAudioPath));
@@ -241,7 +277,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
       if (currentSeq != _audioSequenceId || !mounted) return;
 
       if (exampleAudioPath != null && exampleAudioPath.isNotEmpty) {
-        if (exampleAudioPath.startsWith('http')) {
+        if (exampleAudioPath.startsWith('http') || exampleAudioPath.startsWith('data:')) {
           await _audioPlayer.play(UrlSource(exampleAudioPath));
         } else {
           await _audioPlayer.play(DeviceFileSource(exampleAudioPath));

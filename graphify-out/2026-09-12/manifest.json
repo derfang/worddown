@@ -174,15 +174,15 @@
     "semantic_hash": ""
   },
   "lib/screens/home_screen.dart": {
-    "mtime": 1789074805.3156855,
-    "seen": 1789075041.8664424,
-    "ast_hash": "934b103040ab14c101c1519423164400",
+    "mtime": 1789161270.6320145,
+    "seen": 1789161435.1409328,
+    "ast_hash": "5ee5ff0814adc9876c4cec04334e587c",
     "semantic_hash": ""
   },
   "lib/screens/learning_session_screen.dart": {
-    "mtime": 1788884941.867775,
-    "seen": 1788885078.3286335,
-    "ast_hash": "959a47a477178e59efd33e3c98e64e77",
+    "mtime": 1789161302.4822567,
+    "seen": 1789161435.1409328,
+    "ast_hash": "bf257a5936ba8ed2df7b9e9f695da08f",
     "semantic_hash": ""
   },
   "lib/screens/login_screen.dart": {
@@ -192,9 +192,9 @@
     "semantic_hash": ""
   },
   "lib/screens/review_screen.dart": {
-    "mtime": 1789156922.8407087,
-    "seen": 1789156942.9524753,
-    "ast_hash": "0513df70abeab8c1412b9d660c42bb94",
+    "mtime": 1789161398.453596,
+    "seen": 1789161435.1409328,
+    "ast_hash": "a8532fb023cfa65c8d44479468c9cee1",
     "semantic_hash": ""
   },
   "lib/screens/settings_screen.dart": {
@@ -1173,6 +1173,12 @@
     "mtime": 1789149991.4135735,
     "seen": 1789153399.3228018,
     "ast_hash": "8f0937464a8aa19dbc82c9048dc2fbbe",
+    "semantic_hash": ""
+  },
+  "lib/services/review_question_service.dart": {
+    "mtime": 1789161410.236442,
+    "seen": 1789161435.1409328,
+    "ast_hash": "2bdfc420f8fbb71988fa4f30f29abcc6",
     "semantic_hash": ""
   }
 }
