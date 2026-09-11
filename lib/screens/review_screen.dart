@@ -17,6 +17,36 @@ class ReviewOption {
   ReviewOption(this.id, this.text, this.isCorrect);
 }
 
+class QuestionTypeVariant {
+  final String type;
+  final List<ReviewOption> options;
+  final dynamic questionData;
+
+  QuestionTypeVariant({
+    required this.type,
+    required this.options,
+    required this.questionData,
+  });
+}
+
+class PreparedReviewQuestion {
+  final DictWord word;
+  final WordData? wordData;
+  final List<QuestionTypeVariant> variants;
+  int currentVariantIndex;
+  final String? displayImageUrl;
+
+  PreparedReviewQuestion({
+    required this.word,
+    required this.wordData,
+    required this.variants,
+    this.currentVariantIndex = 0,
+    required this.displayImageUrl,
+  });
+
+  QuestionTypeVariant get currentVariant => variants[currentVariantIndex];
+}
+
 class ReviewScreen extends StatefulWidget {
   @override
   _ReviewScreenState createState() => _ReviewScreenState();
@@ -37,6 +67,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
   WordData? _currentWordData;
   dynamic _questionData; // stores extra context (e.g. quote text) for the current question
   final AudioPlayer _audioPlayer = AudioPlayer();
+
+  final Map<int, Future<PreparedReviewQuestion?>> _premadeQuestions = {};
+  PreparedReviewQuestion? _activePreparedQuestion;
   
   @override
   void initState() {
@@ -56,24 +89,224 @@ class _ReviewScreenState extends State<ReviewScreen> {
       _dueWords = _progressService.dueWords;
       _dueWords.shuffle(); // Shuffle for random review order
       _currentIndex = 0;
+      _premadeQuestions.clear();
     });
-    _prefetchUpcomingWords();
+
+    // Proactively pre-make the first 3 questions right away
+    for (int i = 0; i < 3 && i < _dueWords.length; i++) {
+      _getOrPrepareQuestion(i);
+    }
+
     _loadNextWord();
   }
 
-  void _prefetchUpcomingWords() {
-    // Proactively prefetch the next two words in line
-    for (int offset = 1; offset <= 2; offset++) {
-      final nextIdx = _currentIndex + offset;
-      if (nextIdx < _dueWords.length) {
-        final nextWordId = _dueWords[nextIdx].wordId;
-        WordupApi.prefetchWord(nextWordId);
+  Future<PreparedReviewQuestion?> _getOrPrepareQuestion(int index) {
+    if (index >= _dueWords.length) return Future.value(null);
+    return _premadeQuestions.putIfAbsent(index, () => _buildPreparedQuestion(index));
+  }
+
+  List<DictWord> _getRelevantDistractors(int count, {required int excludeId}) {
+    final Set<int> candidateIds = {};
+
+    // 1. From learning ladder words
+    for (var lp in _progressService.learningWords) {
+      if (lp.wordId != excludeId) candidateIds.add(lp.wordId);
+    }
+
+    // 2. From to-learn queue
+    for (var qId in _progressService.queuedWordsToLearn) {
+      if (qId != excludeId) candidateIds.add(qId);
+    }
+
+    final List<DictWord> pool = [];
+    for (var id in candidateIds) {
+      final w = DatabaseService.getWordById(id);
+      if (w != null) pool.add(w);
+    }
+
+    pool.shuffle();
+    final List<DictWord> results = pool.take(count).toList();
+
+    // 3. Fallback to common dictionary words if user has fewer learning words
+    if (results.length < count) {
+      final existingIds = results.map((w) => w.id).toSet()..add(excludeId);
+      final randomTop = DatabaseService.getRandomWords(count - results.length + 5);
+      for (var rw in randomTop) {
+        if (!existingIds.contains(rw.id)) {
+          results.add(rw);
+          existingIds.add(rw.id);
+          if (results.length >= count) break;
+        }
       }
     }
+
+    return results;
+  }
+
+  Future<PreparedReviewQuestion?> _buildPreparedQuestion(int index) async {
+    if (index >= _dueWords.length) return null;
+    final p = _dueWords[index];
+    final word = DatabaseService.getWordById(p.wordId);
+    if (word == null) return null;
+
+    // 1. Fetch / resolve WordData JSON
+    WordData? wordData;
+    try {
+      final json = await WordupApi.fetchWordData(word.id.toString(), wordText: word.text, isPrefetch: true);
+      if (json.isNotEmpty) {
+        wordData = WordData.fromJson(word.id, json);
+      }
+    } catch (_) {}
+
+    // 2. Pre-cache word illustration into RAM + disk
+    String? displayImageUrl;
+    if (wordData != null) {
+      List<String> availableImages = [];
+      if (wordData.imageUrl != null && wordData.imageUrl!.isNotEmpty) {
+        availableImages.add(wordData.imageUrl!);
+      }
+      for (var sense in wordData.senses) {
+        if (sense.imageUrl != null && sense.imageUrl!.isNotEmpty) availableImages.add(sense.imageUrl!);
+        for (var tip in sense.tips) {
+          if (tip.imageUrl != null && tip.imageUrl!.isNotEmpty) availableImages.add(tip.imageUrl!);
+        }
+      }
+      availableImages = availableImages.toSet().toList();
+
+      if (availableImages.isNotEmpty) {
+        final preferredUrl = _progressService.getPreferredImage(word.id);
+        displayImageUrl = (preferredUrl != null && availableImages.contains(preferredUrl))
+            ? preferredUrl
+            : availableImages.first;
+
+        // Warm up into RAM & disk
+        MediaCacheService.getLocalFile(word.id, displayImageUrl).then((localFile) {
+          if (!mounted) return;
+          if (localFile != null && localFile.existsSync()) {
+            precacheImage(FileImage(localFile), context).catchError((_) {});
+          } else {
+            precacheImage(NetworkImage(displayImageUrl!), context).catchError((_) {});
+            MediaCacheService.cacheSingleMedia(word.id, displayImageUrl).then((savedFile) {
+              if (mounted && savedFile != null) {
+                precacheImage(FileImage(savedFile), context).catchError((_) {});
+              }
+            }).catchError((_) {});
+          }
+        }).catchError((_) {});
+      }
+
+      // Also fire background media caching for all senses
+      MediaCacheService.cacheWordMedia(word.id, wordData).catchError((_) {});
+    }
+
+    // 3. Pre-fetch dictionary pronunciation audio
+    WordupApi.getAudioPath(word.id.toString(), wordText: word.text, isUk: false, useGoogleTts: false).catchError((_) => '');
+
+    // 4. Pre-make ALL available question type variants for instant shuffle
+    final settings = SettingsService();
+    List<String> types = [];
+    if (settings.enableMeaningQuestion) types.add('meaning');
+    if (settings.enableQuoteQuestion && wordData != null && wordData.quotes.isNotEmpty) types.add('quote');
+    if (settings.enableSynonymQuestion && wordData != null && wordData.senses.any((s) => s.sy.isNotEmpty)) types.add('synonym');
+    if (settings.enableAntonymQuestion && wordData != null && wordData.senses.any((s) => s.op.isNotEmpty)) types.add('antonym');
+    if (settings.enableExampleQuestion && wordData != null && wordData.senses.any((s) => s.ex.isNotEmpty)) types.add('example');
+    if (settings.enableMisspellingQuestion && wordData != null && wordData.misspellings.isNotEmpty) types.add('misspelling');
+    if (settings.enableSpellingQuestion) types.add('listening');
+    if (settings.enableCompareQuestion && wordData != null && wordData.comparisons.isNotEmpty) types.add('compare');
+
+    if (types.isEmpty) types.add('meaning');
+    types.shuffle();
+
+    final List<QuestionTypeVariant> variants = [];
+    for (var type in types) {
+      final v = _generateVariant(type, word, wordData);
+      if (v != null) variants.add(v);
+    }
+    if (variants.isEmpty) {
+      final fallback = _generateVariant('meaning', word, wordData);
+      if (fallback != null) variants.add(fallback);
+    }
+
+    return PreparedReviewQuestion(
+      word: word,
+      wordData: wordData,
+      variants: variants,
+      currentVariantIndex: 0,
+      displayImageUrl: displayImageUrl,
+    );
+  }
+
+  QuestionTypeVariant? _generateVariant(String type, DictWord word, WordData? data) {
+    dynamic questionData;
+    List<ReviewOption> options = [];
+    final distractors = _getRelevantDistractors(3, excludeId: word.id);
+
+    if (type == 'meaning' || type == 'listening') {
+      options.add(ReviewOption(word.id, word.meaning, true));
+      for (var d in distractors) {
+        options.add(ReviewOption(d.id, d.meaning, false));
+      }
+    } else if (type == 'quote' || type == 'example') {
+      final isQuote = type == 'quote';
+      if (isQuote) {
+        if (data == null || data.quotes.isEmpty) return null;
+        final quote = (data.quotes.toList()..shuffle()).first;
+        questionData = quote;
+      } else {
+        if (data == null || !data.senses.any((s) => s.ex.isNotEmpty)) return null;
+        final sense = data.senses.firstWhere((s) => s.ex.isNotEmpty);
+        questionData = sense.ex;
+      }
+      options.add(ReviewOption(word.id, word.text, true));
+      for (var d in distractors) {
+        options.add(ReviewOption(d.id, d.text, false));
+      }
+    } else if (type == 'synonym' || type == 'antonym') {
+      final isSynonym = type == 'synonym';
+      if (data == null || !data.senses.any((s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty)) return null;
+      final sense = data.senses.firstWhere((s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty);
+      final rawList = isSynonym ? sense.sy : sense.op;
+      final targetWords = rawList.split(',').map((e) => e.trim()).toList()..shuffle();
+      final correctText = targetWords.take(3).join(', ');
+      questionData = correctText;
+
+      options.add(ReviewOption(word.id, correctText, true));
+      for (var d in distractors) {
+        options.add(ReviewOption(d.id, d.text, false));
+      }
+    } else if (type == 'compare') {
+      if (data == null || data.comparisons.isEmpty) return null;
+      final comp = (data.comparisons.toList()..shuffle()).first;
+      questionData = comp;
+      options.add(ReviewOption(word.id, word.text, true));
+      options.add(ReviewOption(-1, comp.word, false));
+      final dist2 = _getRelevantDistractors(2, excludeId: word.id);
+      options.add(ReviewOption(dist2[0].id, dist2[0].text, false));
+      if (dist2.length > 1) {
+        options.add(ReviewOption(dist2[1].id, dist2[1].text, false));
+      }
+    } else if (type == 'misspelling') {
+      if (data == null || data.misspellings.isEmpty) return null;
+      List<String> miss = data.misspellings.split(RegExp(r'[,|]')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      miss.shuffle();
+      List<String> selectedMiss = miss.take(3).toList();
+      while (selectedMiss.length < 3) {
+        String fake = _generateFakeMisspelling(word.text, selectedMiss.length);
+        if (!selectedMiss.contains(fake) && fake != word.text) {
+          selectedMiss.add(fake);
+        }
+      }
+      options.add(ReviewOption(word.id, word.text, true));
+      for (int i = 0; i < selectedMiss.length; i++) {
+        options.add(ReviewOption(-1, selectedMiss[i], false));
+      }
+    }
+
+    options.shuffle();
+    return QuestionTypeVariant(type: type, options: options, questionData: questionData);
   }
 
   Future<void> _loadNextWord() async {
-    _prefetchUpcomingWords();
     if (_currentIndex >= _dueWords.length) {
       setState(() {
         _isLoading = false;
@@ -82,198 +315,62 @@ class _ReviewScreenState extends State<ReviewScreen> {
       return;
     }
 
+    // Keep the next 3 questions constantly pre-made
+    for (int offset = 1; offset <= 3; offset++) {
+      _getOrPrepareQuestion(_currentIndex + offset);
+    }
+
+    // Await pre-made question for current index
+    PreparedReviewQuestion? prepared;
+    if (_premadeQuestions.containsKey(_currentIndex)) {
+      prepared = await _premadeQuestions[_currentIndex];
+    } else {
+      prepared = await _getOrPrepareQuestion(_currentIndex);
+    }
+
+    if (!mounted || prepared == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    final question = prepared;
+    _activePreparedQuestion = question;
+    final variant = question.currentVariant;
+
     setState(() {
-      _isLoading = true;
+      _currentDictWord = question.word;
+      _currentWordData = question.wordData;
+      _currentQuestionType = variant.type;
+      _currentOptions = variant.options;
+      _questionData = variant.questionData;
+      _selectedOptionId = null;
+      _wasCorrect = null;
+      _showWordDetails = false;
+      _isLoading = false;
     });
 
-    final p = _dueWords[_currentIndex];
-    final word = DatabaseService.getWordById(p.wordId);
-    
-    // Fetch WordData to decide question types
-    WordData? wordData;
-    try {
-      final json = await WordupApi.fetchWordData(word!.id.toString(), wordText: word.text);
-      wordData = WordData.fromJson(word.id, json);
-    } catch (_) {}
-
-    // Pick a random question type based on settings and available data in word
-    await _generateQuestion(word!, wordData);
-  }
-
-  Future<void> _generateQuestion(DictWord word, WordData? data) async {
-    final settings = SettingsService();
-    List<String> availableTypes = [];
-    
-    if (settings.enableMeaningQuestion) availableTypes.add('meaning');
-    if (settings.enableQuoteQuestion && data != null && data.quotes.isNotEmpty) availableTypes.add('quote');
-    if (settings.enableSynonymQuestion && data != null && data.senses.any((s) => s.sy.isNotEmpty)) availableTypes.add('synonym');
-    if (settings.enableAntonymQuestion && data != null && data.senses.any((s) => s.op.isNotEmpty)) availableTypes.add('antonym');
-    if (settings.enableExampleQuestion && data != null && data.senses.any((s) => s.ex.isNotEmpty)) availableTypes.add('example');
-    if (settings.enableMisspellingQuestion && data != null && data.misspellings.isNotEmpty) availableTypes.add('misspelling');
-    if (settings.enableSpellingQuestion) availableTypes.add('listening');
-    if (settings.enableCompareQuestion && data != null && data.comparisons.isNotEmpty) availableTypes.add('compare');
-    
-    if (availableTypes.isEmpty) availableTypes.add('meaning'); // Fallback
-    
-    availableTypes.shuffle();
-    final type = availableTypes.first;
-    
-    dynamic questionData;
-    List<ReviewOption> options = [];
-    final distractors = DatabaseService.getRandomWords(3, excludeId: word.id);
-    
-    if (type == 'meaning' || type == 'listening') {
-      options.add(ReviewOption(word.id, word.meaning, true));
-      for (var d in distractors) {
-        options.add(ReviewOption(d.id, d.meaning, false));
-      }
-      _playAudio(word.id.toString(), word.text);
-    } else if (type == 'quote' || type == 'example') {
-      final isQuote = type == 'quote';
-      
-      if (isQuote) {
-        final quote = (data!.quotes.toList()..shuffle()).first;
-        questionData = quote;
-      } else {
-        final sense = data!.senses.firstWhere((s) => s.ex.isNotEmpty);
-        questionData = sense.ex;
-      }
-      
-      options.add(ReviewOption(word.id, word.text, true));
-      for (var d in distractors) {
-        options.add(ReviewOption(d.id, d.text, false));
-      }
-    } else if (type == 'synonym' || type == 'antonym') {
-      final isSynonym = type == 'synonym';
-      final sense = data!.senses.firstWhere((s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty);
-      final rawList = isSynonym ? sense.sy : sense.op;
-      
-      final targetWords = rawList.split(',').map((e) => e.trim()).toList()..shuffle();
-      final correctText = targetWords.take(3).join(', ');
-      
-      questionData = correctText; // Just store it, we don't strictly use questionData for the UI in these types but good for consistency
-      options.add(ReviewOption(word.id, correctText, true));
-
-      // Fetch 10 random words to find distractors that have synonyms/antonyms
-      final potentialDistractors = DatabaseService.getRandomWords(10, excludeId: word.id);
-      
-      List<String> distractorTexts = [];
-      await Future.wait(potentialDistractors.map((d) async {
-        if (distractorTexts.length >= 3) return; // We already have enough
-        try {
-          final json = await WordupApi.fetchWordData(d.id.toString(), wordText: d.text);
-          final wd = WordData.fromJson(d.id, json);
-          final dSense = wd.senses.firstWhere((s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty, orElse: () => WordSense(id: '', de: '', ex: '', ty: ''));
-          final dRawList = isSynonym ? dSense.sy : dSense.op;
-          if (dRawList.isNotEmpty) {
-            final dWords = dRawList.split(',').map((e) => e.trim()).toList()..shuffle();
-            final text = dWords.take(3).join(', ');
-            if (!distractorTexts.contains(text) && distractorTexts.length < 3) {
-              distractorTexts.add(text);
-            }
-          }
-        } catch (_) {}
-      }));
-      
-      // If we couldn't find enough real distractors with synonyms/antonyms, fake them
-      while (distractorTexts.length < 3) {
-        final fakes = DatabaseService.getRandomWords(3).map((w) => w.text).toList();
-        distractorTexts.add(fakes.join(', '));
-      }
-      
-      for (var i = 0; i < 3; i++) {
-        options.add(ReviewOption(distractors[i].id, distractorTexts[i], false));
-      }
-      _playAudio(word.id.toString(), word.text);
-    } else if (type == 'compare') {
-      final comp = (data!.comparisons.toList()..shuffle()).first;
-      questionData = comp;
-      options.add(ReviewOption(word.id, word.text, true));
-      options.add(ReviewOption(-1, comp.word, false)); // The word being compared to
-      final dist2 = DatabaseService.getRandomWords(2, excludeId: word.id);
-      options.add(ReviewOption(dist2[0].id, dist2[0].text, false));
-      options.add(ReviewOption(dist2[1].id, dist2[1].text, false));
-    } else if (type == 'misspelling') {
-      List<String> miss = data!.misspellings.split(RegExp(r'[,|]')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-      miss.shuffle();
-      
-      List<String> selectedMiss = miss.take(3).toList();
-      while (selectedMiss.length < 3) {
-        String fake = _generateFakeMisspelling(word.text, selectedMiss.length);
-        if (!selectedMiss.contains(fake) && fake != word.text) {
-          selectedMiss.add(fake);
-        }
-      }
-      
-      options.add(ReviewOption(word.id, word.text, true));
-      for (int i = 0; i < 3; i++) {
-        options.add(ReviewOption(-1, selectedMiss[i], false));
-      }
-      _playAudio(word.id.toString(), word.text);
-    }
-    
-    options.shuffle();
-
-    if (mounted) {
-      setState(() {
-        _currentDictWord = word;
-        _currentQuestionType = type;
-        _currentOptions = options;
-        _selectedOptionId = null;
-        _wasCorrect = null;
-        _showWordDetails = false;
-        _currentWordData = data;
-        _questionData = questionData;
-        _isLoading = false;
-      });
-      _preloadWordMediaAndPrecache(word, data);
+    if (variant.type == 'meaning' || variant.type == 'listening' || variant.type == 'synonym' || variant.type == 'antonym' || variant.type == 'misspelling') {
+      _playAudio(question.word.id.toString(), question.word.text);
     }
   }
 
-  void _preloadWordMediaAndPrecache(DictWord word, WordData? data) {
-    if (data == null) return;
+  void _shuffleQuestionType() {
+    if (_activePreparedQuestion == null || _activePreparedQuestion!.variants.length <= 1) return;
 
-    // 1. Kick off full media caching in background (fire-and-forget)
-    MediaCacheService.cacheWordMedia(word.id, data).catchError((_) {});
+    final nextIndex = (_activePreparedQuestion!.currentVariantIndex + 1) % _activePreparedQuestion!.variants.length;
+    _activePreparedQuestion!.currentVariantIndex = nextIndex;
+    final variant = _activePreparedQuestion!.currentVariant;
 
-    // 2. Identify the primary card image
-    List<String> availableImages = [];
-    if (data.imageUrl != null && data.imageUrl!.isNotEmpty) {
-      availableImages.add(data.imageUrl!);
-    }
-    for (var sense in data.senses) {
-      if (sense.imageUrl != null && sense.imageUrl!.isNotEmpty) availableImages.add(sense.imageUrl!);
-      for (var tip in sense.tips) {
-        if (tip.imageUrl != null && tip.imageUrl!.isNotEmpty) availableImages.add(tip.imageUrl!);
-      }
-    }
-    availableImages = availableImages.toSet().toList();
-    if (availableImages.isEmpty) return;
+    setState(() {
+      _currentQuestionType = variant.type;
+      _currentOptions = variant.options;
+      _questionData = variant.questionData;
+      _selectedOptionId = null;
+      _wasCorrect = null;
+    });
 
-    String? preferredUrl = _progressService.getPreferredImage(word.id);
-    String targetUrl = (preferredUrl != null && availableImages.contains(preferredUrl))
-        ? preferredUrl
-        : availableImages.first;
-
-    // 3. Precache into RAM + disk immediately while user is answering the quiz
-    MediaCacheService.getLocalFile(word.id, targetUrl).then((localFile) {
-      if (!mounted) return;
-      if (localFile != null && localFile.existsSync()) {
-        precacheImage(FileImage(localFile), context).catchError((_) {});
-      } else {
-        precacheImage(NetworkImage(targetUrl), context).catchError((_) {});
-        MediaCacheService.cacheSingleMedia(word.id, targetUrl).then((savedFile) {
-          if (mounted && savedFile != null) {
-            precacheImage(FileImage(savedFile), context).catchError((_) {});
-          }
-        }).catchError((_) {});
-      }
-    }).catchError((_) {});
-
-    // 4. Proactively prefetch the NEXT word in the review queue
-    if (_currentIndex + 1 < _dueWords.length) {
-      final nextWord = _dueWords[_currentIndex + 1];
-      WordupApi.prefetchWord(nextWord.wordId).catchError((_) {});
+    if (variant.type == 'meaning' || variant.type == 'listening' || variant.type == 'synonym' || variant.type == 'antonym' || variant.type == 'misspelling') {
+      _playAudio(_activePreparedQuestion!.word.id.toString(), _activePreparedQuestion!.word.text);
     }
   }
 
@@ -283,6 +380,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     _audioSequenceId++;
     _audioPlayer.stop();
   }
+
 
   String _getCurrentExample() {
     if (_currentWordData != null && _currentWordData!.senses.isNotEmpty) {
@@ -831,10 +929,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     flex: 1,
                     child: IconButton(
                       icon: Icon(Icons.shuffle, color: Colors.white54, size: 20),
-                      onPressed: () async {
-                        setState(() => _isLoading = true);
-                        await _generateQuestion(_currentDictWord!, _currentWordData);
-                      },
+                      onPressed: _shuffleQuestionType,
                       tooltip: 'Change Question Type',
                     ),
                   ),
