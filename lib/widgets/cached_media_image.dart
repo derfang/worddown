@@ -36,34 +36,36 @@ class _CachedMediaImageState extends State<CachedMediaImage> {
   }
 
   Future<void> _checkLocalCache() async {
-    // 1. Check local disk cache (instant — was already downloaded before)
+    // 1. Check local disk cache (instant — if was already cached/pre-cached)
     final file = await MediaCacheService.getLocalFile(widget.wordId, widget.imageUrl);
-    if (file != null) {
+    if (file != null && await file.exists() && await file.length() > 0) {
       if (mounted) setState(() => _localFile = file);
       return;
     }
 
-    // 2. Try to fetch from Hugging Face backup (encrypted → decrypt → save to disk)
-    final hfFile = await MediaCacheService.fetchAndDecryptFromHuggingFace(
+    // 2. Not yet on disk — start ensuring media is cached via Hugging Face or CDN.
+    // If it takes longer than 250ms, kick off Image.network fallback so the user
+    // never stares at a stalled spinner while downloading.
+    bool resolved = false;
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (!resolved && mounted && _localFile == null && _fallbackUrl == null) {
+        setState(() => _fallbackUrl = widget.imageUrl);
+      }
+    });
+
+    final cachedFile = await MediaCacheService.ensureMediaCached(
       widget.wordId,
       widget.imageUrl,
     );
-    if (hfFile != null) {
-      if (mounted) setState(() => _localFile = hfFile);
-      return;
-    }
+    resolved = true;
 
-    // 3. Fall back to original CDN URL and cache it for next time
-    MediaCacheService.cacheSingleMedia(widget.wordId, widget.imageUrl).then((downloaded) {
-      if (mounted && downloaded != null) {
-        setState(() => _localFile = downloaded);
-      } else if (mounted) {
-        // Let Image.network render directly from the CDN URL
+    if (mounted) {
+      if (cachedFile != null) {
+        setState(() => _localFile = cachedFile);
+      } else if (_fallbackUrl == null) {
         setState(() => _fallbackUrl = widget.imageUrl);
       }
-    }).catchError((_) {
-      if (mounted) setState(() => _fallbackUrl = widget.imageUrl);
-    });
+    }
   }
 
   @override

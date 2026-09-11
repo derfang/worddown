@@ -179,20 +179,15 @@ class _ReviewScreenState extends State<ReviewScreen> {
             ? preferredUrl
             : availableImages.first;
 
-        // Warm up into RAM & disk
-        MediaCacheService.getLocalFile(word.id, displayImageUrl).then((localFile) {
-          if (!mounted) return;
-          if (localFile != null && localFile.existsSync()) {
-            precacheImage(FileImage(localFile), context).catchError((_) {});
-          } else {
-            precacheImage(NetworkImage(displayImageUrl!), context).catchError((_) {});
-            MediaCacheService.cacheSingleMedia(word.id, displayImageUrl).then((savedFile) {
-              if (mounted && savedFile != null) {
-                precacheImage(FileImage(savedFile), context).catchError((_) {});
-              }
-            }).catchError((_) {});
+        // Truly pre-fetch & ensure media is cached to disk and decoded into RAM
+        try {
+          final cachedFile = await MediaCacheService.ensureMediaCached(word.id, displayImageUrl);
+          if (mounted && cachedFile != null && cachedFile.existsSync()) {
+            await precacheImage(FileImage(cachedFile), context).catchError((_) {});
+          } else if (mounted) {
+            await precacheImage(NetworkImage(displayImageUrl), context).catchError((_) {});
           }
-        }).catchError((_) {});
+        } catch (_) {}
       }
 
       // Also fire background media caching for all senses

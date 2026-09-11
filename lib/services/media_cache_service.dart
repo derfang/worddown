@@ -58,7 +58,7 @@ class MediaCacheService {
       if (await file.exists() && await file.length() > 0) {
         return file;
       }
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
         await file.writeAsBytes(response.bodyBytes);
         return file;
@@ -96,7 +96,7 @@ class MediaCacheService {
     if (hfUrl == null) return null;
 
     try {
-      final response = await http.get(Uri.parse(hfUrl));
+      final response = await http.get(Uri.parse(hfUrl)).timeout(const Duration(milliseconds: 2000));
       if (response.statusCode != 200) return null;
 
       final plainBytes = EncryptionService.decryptBytes(response.bodyBytes);
@@ -114,6 +114,33 @@ class MediaCacheService {
     }
   }
 
+  /// Ensures media is cached locally to disk:
+  /// 1. Instant return if already on local disk.
+  /// 2. Fetches & decrypts from Hugging Face backup (with 2s timeout).
+  /// 3. Falls back to original CDN URL (with 5s timeout).
+  /// Returns the local File, or null if all attempts fail.
+  static Future<File?> ensureMediaCached(int wordId, String originalUrl) async {
+    // 1. Check local disk
+    final local = await getLocalFile(wordId, originalUrl);
+    if (local != null && await local.exists() && await local.length() > 0) {
+      return local;
+    }
+
+    // 2. Try Hugging Face backup
+    try {
+      final hfFile = await fetchAndDecryptFromHuggingFace(wordId, originalUrl);
+      if (hfFile != null && await hfFile.exists() && await hfFile.length() > 0) {
+        return hfFile;
+      }
+    } catch (_) {}
+
+    // 3. Fall back to original CDN
+    try {
+      return await cacheSingleMedia(wordId, originalUrl);
+    } catch (_) {}
+
+    return null;
+  }
 
   static Future<void> cacheWordMedia(int wordId, WordData data) async {
     try {
@@ -148,7 +175,7 @@ class MediaCacheService {
           final file = File('${cacheDir.path}/$fileName');
           
           if (!await file.exists()) {
-            final response = await http.get(Uri.parse(url));
+            final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
             if (response.statusCode == 200) {
               await file.writeAsBytes(response.bodyBytes);
             }
