@@ -47,8 +47,12 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
   @override
   void initState() {
     super.initState();
-    _queue = _progressService.queuedWordsToLearn;
-    _queue.shuffle(); // Randomize learning order
+    _queue = List<int>.from(_progressService.queuedWordsToLearn);
+    if (_queue.length > 1) {
+      final first = _queue.removeAt(0);
+      _queue.shuffle();
+      _queue.insert(0, first);
+    }
     
     if (_queue.isEmpty) {
       _currentStep = SessionStep.finished;
@@ -80,7 +84,7 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
     }
 
     for (final id in upcomingIds) {
-      WordupApi.prefetchWord(id);
+      WordupApi.prefetchWord(id, includeMedia: true, includeAudio: true);
     }
   }
 

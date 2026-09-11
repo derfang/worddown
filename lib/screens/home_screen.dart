@@ -9,6 +9,7 @@ import '../services/sync_service.dart';
 import '../services/wordup_api.dart';
 import 'learning_session_screen.dart';
 import 'sync_status_screen.dart';
+import '../services/review_question_service.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -44,23 +45,24 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _prefetchUpcomingWords() {
-    // Proactively prefetch the upcoming Review and Learning words while on Home screen
+    // Proactively prepare Review Session questions & prefetch upcoming words while on Home screen
     Future.microtask(() async {
       try {
+        if (mounted) {
+          ReviewQuestionService().prepareReviewSession(context: context);
+        } else {
+          ReviewQuestionService().prepareReviewSession();
+        }
+
         final progress = ProgressService();
         final Set<int> candidateIds = {};
 
-        // 1. First word to review (due for practice)
-        if (progress.dueWords.isNotEmpty) {
-          candidateIds.add(progress.dueWords.first.wordId);
-        }
-
-        // 2. First word to learn (from queued words)
+        // 1. First word to learn (from queued words)
         if (progress.queuedWordsToLearn.isNotEmpty) {
           candidateIds.add(progress.queuedWordsToLearn.first);
         }
 
-        // 3. Fallback to first active learning ladder word if no due words
+        // 2. Fallback to first active learning ladder word if no queued words
         if (candidateIds.isEmpty && progress.learningWords.isNotEmpty) {
           candidateIds.add(progress.learningWords.first.wordId);
         }
