@@ -507,9 +507,13 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
     await _progressService.recordReview(_currentDictWord!.id, isCorrect);
     
-    // Ensure rich data is available for the overlay if not already resolved
-    if (_currentWordData == null) {
-      WordupApi.fetchWordData(_currentDictWord!.id.toString(), wordText: _currentDictWord!.text).then((json) {
+    // Ensure rich data with illustrations is available for the overlay
+    if (_currentWordData == null || !_currentWordData!.senses.any((s) => s.imageUrl != null && s.imageUrl!.isNotEmpty)) {
+      WordupApi.fetchWordData(
+        _currentDictWord!.id.toString(),
+        wordText: _currentDictWord!.text,
+        isPrefetch: true,
+      ).then((json) {
         if (mounted && json.isNotEmpty) {
           setState(() {
             _currentWordData = WordData.fromJson(_currentDictWord!.id, json);
@@ -1198,7 +1202,61 @@ class _ReviewScreenState extends State<ReviewScreen> {
               ),
             ),
           ] else ...[
-            Spacer(),
+            SizedBox(height: 16),
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                ),
+                child: _currentWordData != null && _currentWordData!.senses.length > 1
+                    ? ListView(
+                        padding: EdgeInsets.zero,
+                        children: [
+                          Text('OTHER DEFINITIONS', style: TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                          SizedBox(height: 8),
+                          for (int sIdx = 1; sIdx < _currentWordData!.senses.length; sIdx++) ...[
+                            Container(
+                              margin: EdgeInsets.only(bottom: 8),
+                              padding: EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.04),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${sIdx + 1}. ${_currentWordData!.senses[sIdx].de}',
+                                    style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                                  ),
+                                  if (_currentWordData!.senses[sIdx].ex.isNotEmpty) ...[
+                                    SizedBox(height: 4),
+                                    Text(
+                                      '“${_currentWordData!.senses[sIdx].ex}”',
+                                      style: TextStyle(color: Colors.white38, fontSize: 12, fontStyle: FontStyle.italic),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      )
+                    : Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.auto_stories_rounded, size: 40, color: Colors.white24),
+                            SizedBox(height: 8),
+                            Text('No illustration in dictionary', style: TextStyle(color: Colors.white38, fontSize: 13)),
+                          ],
+                        ),
+                      ),
+              ),
+            ),
           ],
           SizedBox(height: 16),
           Container(

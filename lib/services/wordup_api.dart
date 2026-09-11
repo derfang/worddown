@@ -100,22 +100,36 @@ class WordupApi {
       if (kIsWeb) _webMemoryCache[wordId] = data;
     }
 
-    // 3. Asynchronously fetch Zann extra quotes in the background without blocking the UI
+    // 3. Fetch Zann data for illustrations & extra quotes
     if (wordText != null && data != null) {
       final currentData = data;
       if (!currentData.containsKey('ZannSenses') || !currentData.containsKey('ZannQuotes')) {
-        _fetchZannDataOnly(wordText).then((zannData) async {
-          if (zannData.isNotEmpty) {
-            if (zannData.containsKey('ZannQuotes')) currentData['ZannQuotes'] = zannData['ZannQuotes'];
-            if (zannData.containsKey('ZannSenses')) currentData['ZannSenses'] = zannData['ZannSenses'];
-            if (!kIsWeb && localFile != null) {
-              await localFile.writeAsString(json.encode(currentData));
+        if (isPrefetch) {
+          // When prefetching, await Zann data so WordData is populated with sense image URLs
+          try {
+            final zannData = await _fetchZannDataOnly(wordText);
+            if (zannData.isNotEmpty) {
+              if (zannData.containsKey('ZannQuotes')) currentData['ZannQuotes'] = zannData['ZannQuotes'];
+              if (zannData.containsKey('ZannSenses')) currentData['ZannSenses'] = zannData['ZannSenses'];
+              if (!kIsWeb && localFile != null) {
+                await localFile.writeAsString(json.encode(currentData));
+              }
             }
-            if (onExtraDataLoaded != null) {
-              onExtraDataLoaded(zannData);
+          } catch (_) {}
+        } else {
+          _fetchZannDataOnly(wordText).then((zannData) async {
+            if (zannData.isNotEmpty) {
+              if (zannData.containsKey('ZannQuotes')) currentData['ZannQuotes'] = zannData['ZannQuotes'];
+              if (zannData.containsKey('ZannSenses')) currentData['ZannSenses'] = zannData['ZannSenses'];
+              if (!kIsWeb && localFile != null) {
+                await localFile.writeAsString(json.encode(currentData));
+              }
+              if (onExtraDataLoaded != null) {
+                onExtraDataLoaded(zannData);
+              }
             }
-          }
-        }).catchError((_) {});
+          }).catchError((_) {});
+        }
       }
     }
     
@@ -204,7 +218,7 @@ class WordupApi {
     try {
       final zannRoot = wordText.toLowerCase().replaceAll(' ', '-');
       final url = Uri.parse('${EncryptionService.decryptString('4SARJC22cy8Xc8tGNtqJXytZeeNhNbFt9NzS1+kNQeQ6xCPSemgLBlTS6jrRzkT7')}$zannRoot');
-      final response = await _client.get(url, headers: {'accept': 'text/html'});
+      final response = await _client.get(url, headers: {'accept': 'text/html'}).timeout(const Duration(seconds: 4));
       if (response.statusCode == 200) {
         // Run heavy Regex and JSON decode in background!
         return await compute(_parseZannHtml, response.body);
