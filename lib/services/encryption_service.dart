@@ -64,4 +64,20 @@ class EncryptionService {
     final encrypted = Encrypted(Uint8List.fromList(encryptedBytes));
     return encrypter.decrypt(encrypted, iv: iv);
   }
+
+  /// Decrypts raw AES-256-CBC encrypted bytes and returns the plain bytes.
+  /// Used for encrypted image files (.webp.enc) from Hugging Face.
+  static Uint8List? decryptBytes(List<int> encryptedBytes) {
+    if (_masterKeyBase64 == null) return null;
+    try {
+      final key = Key.fromBase64(_masterKeyBase64!);
+      final iv = IV.fromBase64(_masterIvBase64!);
+      final encrypter = Encrypter(AES(key, mode: AESMode.cbc, padding: 'PKCS7'));
+      final encrypted = Encrypted(Uint8List.fromList(encryptedBytes));
+      final decrypted = encrypter.decryptBytes(encrypted, iv: iv);
+      return Uint8List.fromList(decrypted);
+    } catch (e) {
+      return null;
+    }
+  }
 }

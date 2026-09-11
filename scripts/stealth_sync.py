@@ -53,8 +53,29 @@ def init_target_db(db_path: str):
     ''')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_word_rank ON word_data(rank)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_word_text ON word_data(word)')
+
+    # Media sync tracking: which words have had their images uploaded to Hugging Face
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS media_sync_status (
+            word_id      INTEGER PRIMARY KEY,
+            images_count INTEGER DEFAULT 0,
+            hf_paths     TEXT,
+            synced_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Global image deduplication registry
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS image_registry (
+            original_url TEXT PRIMARY KEY,
+            hf_path      TEXT NOT NULL,
+            uploaded_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     conn.commit()
     return conn
+
 
 def get_synced_ids(conn: sqlite3.Connection) -> set:
     cursor = conn.cursor()

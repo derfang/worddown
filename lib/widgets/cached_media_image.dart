@@ -26,6 +26,8 @@ class CachedMediaImage extends StatefulWidget {
 
 class _CachedMediaImageState extends State<CachedMediaImage> {
   File? _localFile;
+  // Fallback URL after HF lookup; if HF also fails, this stays null and we use original CDN.
+  String? _fallbackUrl;
 
   @override
   void initState() {
@@ -34,29 +36,44 @@ class _CachedMediaImageState extends State<CachedMediaImage> {
   }
 
   Future<void> _checkLocalCache() async {
+    // 1. Check local disk cache (instant — was already downloaded before)
     final file = await MediaCacheService.getLocalFile(widget.wordId, widget.imageUrl);
-    if (mounted) {
-      if (file != null) {
-        setState(() {
-          _localFile = file;
-        });
-      } else {
-        // Asynchronously cache on demand
-        MediaCacheService.cacheSingleMedia(widget.wordId, widget.imageUrl).then((downloadedFile) {
-          if (mounted && downloadedFile != null) {
-            setState(() {
-              _localFile = downloadedFile;
-            });
-          }
-        }).catchError((_) {});
-      }
+    if (file != null) {
+      if (mounted) setState(() => _localFile = file);
+      return;
     }
+
+    // 2. Try to fetch from Hugging Face backup (encrypted → decrypt → save to disk)
+    final hfFile = await MediaCacheService.fetchAndDecryptFromHuggingFace(
+      widget.wordId,
+      widget.imageUrl,
+    );
+    if (hfFile != null) {
+      if (mounted) setState(() => _localFile = hfFile);
+      return;
+    }
+
+    // 3. Fall back to original CDN URL and cache it for next time
+    MediaCacheService.cacheSingleMedia(widget.wordId, widget.imageUrl).then((downloaded) {
+      if (mounted && downloaded != null) {
+        setState(() => _localFile = downloaded);
+      } else if (mounted) {
+        // Let Image.network render directly from the CDN URL
+        setState(() => _fallbackUrl = widget.imageUrl);
+      }
+    }).catchError((_) {
+      if (mounted) setState(() => _fallbackUrl = widget.imageUrl);
+    });
   }
 
   @override
   void didUpdateWidget(CachedMediaImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.imageUrl != widget.imageUrl || oldWidget.wordId != widget.wordId) {
+      setState(() {
+        _localFile = null;
+        _fallbackUrl = null;
+      });
       _checkLocalCache();
     }
   }
@@ -71,13 +88,20 @@ class _CachedMediaImageState extends State<CachedMediaImage> {
         fit: widget.fit,
         errorBuilder: widget.errorBuilder,
       );
-    } else {
+    } else if (_fallbackUrl != null) {
       return Image.network(
-        widget.imageUrl,
+        _fallbackUrl!,
         width: widget.width,
         height: widget.height,
         fit: widget.fit,
         errorBuilder: widget.errorBuilder,
+      );
+    } else {
+      // Still loading — show sized placeholder
+      return SizedBox(
+        width: widget.width,
+        height: widget.height,
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
   }

@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import '../models/word.dart';
+import '../services/encryption_service.dart';
+
 
 class MediaCacheService {
   static Future<Directory> _getWordCacheDir(int wordId) async {
@@ -66,6 +68,52 @@ class MediaCacheService {
     }
     return null;
   }
+
+  /// Converts a WordUp/Zann CDN image URL to its Hugging Face backup URL.
+  /// e.g. https://word-images.cdn-wordup.com/sensesMobile/d70a7242-f5a5.webp
+  ///   → https://huggingface.co/datasets/derfang/worddown-media/resolve/main/images/d7/0a/d70a7242-f5a5.webp.enc
+  static String? toHuggingFaceUrl(String originalUrl) {
+    try {
+      final filename = Uri.parse(originalUrl).pathSegments.last; // e.g. "d70a7242-f5a5.webp"
+      if (filename.isEmpty || !filename.contains('.')) return null;
+      final p1 = filename.substring(0, 2).toLowerCase();
+      final p2 = filename.substring(2, 4).toLowerCase();
+      return 'https://huggingface.co/datasets/derfang/worddown-media'
+             '/resolve/main/images/$p1/$p2/$filename.enc';
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Downloads a .webp.enc from Hugging Face, decrypts it in RAM,
+  /// writes the plain .webp to disk, and returns the local File.
+  static Future<File?> fetchAndDecryptFromHuggingFace(
+    int wordId,
+    String originalUrl,
+  ) async {
+    if (!EncryptionService.isInitialized) return null;
+    final hfUrl = toHuggingFaceUrl(originalUrl);
+    if (hfUrl == null) return null;
+
+    try {
+      final response = await http.get(Uri.parse(hfUrl));
+      if (response.statusCode != 200) return null;
+
+      final plainBytes = EncryptionService.decryptBytes(response.bodyBytes);
+      if (plainBytes == null || plainBytes.isEmpty) return null;
+
+      // Store the decrypted .webp using the same stable filename as normal cache
+      final cacheDir = await _getWordCacheDir(wordId);
+      final fileName = _getFileNameFromUrl(originalUrl);
+      final file = File('${cacheDir.path}/$fileName');
+      await file.writeAsBytes(plainBytes);
+      return file;
+    } catch (e) {
+      print('Failed to fetch/decrypt HF image for $originalUrl: $e');
+      return null;
+    }
+  }
+
 
   static Future<void> cacheWordMedia(int wordId, WordData data) async {
     try {
