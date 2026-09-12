@@ -1,4 +1,4 @@
-﻿---
+---
 trigger: always_on
 description: Procedures for compiling, packaging, and storing release artifacts in the releases folder for Android and Windows.
 ---
@@ -23,11 +23,16 @@ After running `flutter build apk --release`:
    ```
 
 #### For Windows Release Builds:
-1. **Local Firebase SDK Requirement**: Always point CMake to the local extracted Firebase C++ SDK before building to avoid 404 download errors:
-   ```powershell
-   $env:FIREBASE_CPP_SDK_DIR = "$PWD\firebase_cpp_sdk_windows"
-   flutter build windows --release
-   ```
+1. **Local Firebase SDK Verification & Warning**:
+   - Before compiling for Windows, verify that the local Firebase C++ SDK is available:
+     - Check if the extracted directory `firebase_cpp_sdk_windows\include\firebase\version.h` exists.
+     - If not, check if `firebase_cpp_sdk_windows_13.11.0.zip` exists in the project root and extract it (`tar -xf firebase_cpp_sdk_windows_13.11.0.zip`).
+     - **If neither exists**: **STOP immediately and WARN the user** that the Windows build will fail with a CMake 404 download error, and request that they place `firebase_cpp_sdk_windows_13.11.0.zip` in the project root.
+   - Always point CMake to the local extracted SDK:
+     ```powershell
+     $env:FIREBASE_CPP_SDK_DIR = "$PWD\firebase_cpp_sdk_windows"
+     flutter build windows --release
+     ```
 2. Ensure `releases/Windows/` exists.
 3. Package the complete release folder into `releases\Windows\WordDown_Windows.zip`:
    ```powershell
