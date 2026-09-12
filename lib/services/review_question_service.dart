@@ -137,6 +137,7 @@ class ReviewQuestionService {
     }
 
     final lowerExcludeWords = excludeWords?.map((e) => e.trim().toLowerCase()).toSet() ?? {};
+    lowerExcludeWords.addAll({'none', 'null', 'n/a', 'na'});
 
     final List<DictWord> pool = [];
     for (var id in candidateIds) {
@@ -265,11 +266,11 @@ class ReviewQuestionService {
 
     final List<QuestionTypeVariant> variants = [];
     for (var type in types) {
-      final v = _generateVariant(type, word, wordData);
+      final v = await _generateVariant(type, word, wordData);
       if (v != null) variants.add(v);
     }
     if (variants.isEmpty) {
-      final fallback = _generateVariant('meaning', word, wordData);
+      final fallback = await _generateVariant('meaning', word, wordData);
       if (fallback != null) variants.add(fallback);
     }
 
@@ -287,7 +288,7 @@ class ReviewQuestionService {
     return prepared;
   }
 
-  QuestionTypeVariant? _generateVariant(String type, DictWord word, WordData? data) {
+  Future<QuestionTypeVariant?> _generateVariant(String type, DictWord word, WordData? data) async {
     dynamic questionData;
     List<ReviewOption> options = [];
     final distractors = getRelevantDistractors(3, excludeId: word.id);
@@ -317,13 +318,62 @@ class ReviewQuestionService {
       if (data == null || !data.senses.any((s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty)) return null;
       final sense = data.senses.firstWhere((s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty);
       final rawList = isSynonym ? sense.sy : sense.op;
-      final targetWords = rawList.split(',').map((e) => e.trim()).toList()..shuffle();
+      final targetWords = rawList
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty && e.toLowerCase() != 'none' && e.toLowerCase() != 'null' && e.toLowerCase() != 'n/a')
+          .toList()
+        ..shuffle();
+      if (targetWords.isEmpty) return null;
       final correctText = targetWords.take(3).join(', ');
       questionData = correctText;
 
       options.add(ReviewOption(word.id, correctText, true));
-      for (var d in distractors) {
-        options.add(ReviewOption(d.id, d.text, false));
+
+      final potentialDistractors = getRelevantDistractors(10, excludeId: word.id);
+      List<String> distractorTexts = [];
+      await Future.wait(potentialDistractors.map((d) async {
+        if (distractorTexts.length >= 3) return;
+        try {
+          final json = await WordupApi.fetchWordData(d.id.toString(), wordText: d.text, isPrefetch: true);
+          if (json.isNotEmpty) {
+            final wd = WordData.fromJson(d.id, json);
+            final dSense = wd.senses.firstWhere((s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty, orElse: () => WordSense(id: '', de: '', ex: '', ty: ''));
+            final dRawList = isSynonym ? dSense.sy : dSense.op;
+            if (dRawList.isNotEmpty) {
+              final dWords = dRawList
+                  .split(',')
+                  .map((e) => e.trim())
+                  .where((w) => w.isNotEmpty && w.toLowerCase() != 'none' && w.toLowerCase() != 'null' && w.toLowerCase() != 'n/a')
+                  .toList()
+                ..shuffle();
+              if (dWords.isNotEmpty) {
+                final text = dWords.take(3).join(', ');
+                if (!distractorTexts.contains(text) && text != correctText && distractorTexts.length < 3) {
+                  distractorTexts.add(text);
+                }
+              }
+            }
+          }
+        } catch (_) {}
+      }));
+
+      while (distractorTexts.length < 3) {
+        final fakes = DatabaseService.getRandomWords(6, excludeId: word.id)
+            .map((w) => w.text.trim())
+            .where((w) => w.isNotEmpty && w.toLowerCase() != 'none' && w.toLowerCase() != word.text.toLowerCase())
+            .take(3)
+            .toList();
+        if (fakes.length == 3) {
+          final text = fakes.join(', ');
+          if (!distractorTexts.contains(text) && text != correctText) {
+            distractorTexts.add(text);
+          }
+        }
+      }
+
+      for (var i = 0; i < 3; i++) {
+        options.add(ReviewOption(distractors[i].id, distractorTexts[i], false));
       }
     } else if (type == 'compare') {
       if (data == null || data.comparisons.isEmpty) return null;

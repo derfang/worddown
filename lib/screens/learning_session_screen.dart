@@ -237,7 +237,13 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
       final sense = data!.senses.firstWhere((s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty);
       final rawList = isSynonym ? sense.sy : sense.op;
       
-      final targetWords = rawList.split(',').map((e) => e.trim()).toList()..shuffle();
+      final targetWords = rawList
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty && e.toLowerCase() != 'none' && e.toLowerCase() != 'null' && e.toLowerCase() != 'n/a')
+          .toList()
+        ..shuffle();
+      if (targetWords.isEmpty) return;
       final correctText = targetWords.take(3).join(', ');
       
       questionData = correctText;
@@ -254,18 +260,34 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
           final dSense = wd.senses.firstWhere((s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty, orElse: () => WordSense(id: '', de: '', ex: '', ty: ''));
           final dRawList = isSynonym ? dSense.sy : dSense.op;
           if (dRawList.isNotEmpty) {
-            final dWords = dRawList.split(',').map((e) => e.trim()).toList()..shuffle();
-            final text = dWords.take(3).join(', ');
-            if (!distractorTexts.contains(text) && distractorTexts.length < 3) {
-              distractorTexts.add(text);
+            final dWords = dRawList
+                .split(',')
+                .map((e) => e.trim())
+                .where((e) => e.isNotEmpty && e.toLowerCase() != 'none' && e.toLowerCase() != 'null' && e.toLowerCase() != 'n/a')
+                .toList()
+              ..shuffle();
+            if (dWords.isNotEmpty) {
+              final text = dWords.take(3).join(', ');
+              if (!distractorTexts.contains(text) && text != correctText && distractorTexts.length < 3) {
+                distractorTexts.add(text);
+              }
             }
           }
         } catch (_) {}
       }));
       
       while (distractorTexts.length < 3) {
-        final fakes = DatabaseService.getRandomWords(3).map((w) => w.text).toList();
-        distractorTexts.add(fakes.join(', '));
+        final fakes = DatabaseService.getRandomWords(6, excludeId: word.id)
+            .map((w) => w.text.trim())
+            .where((w) => w.isNotEmpty && w.toLowerCase() != 'none' && w.toLowerCase() != word.text.toLowerCase())
+            .take(3)
+            .toList();
+        if (fakes.length == 3) {
+          final text = fakes.join(', ');
+          if (!distractorTexts.contains(text) && text != correctText) {
+            distractorTexts.add(text);
+          }
+        }
       }
       
       for (var i = 0; i < 3; i++) {

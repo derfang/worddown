@@ -40,10 +40,23 @@ class WordSense {
       de: json['de'] ?? '',
       ex: json['ex'] ?? '',
       ty: json['ty'] ?? '',
-      sy: json['sy'] ?? '',
-      op: json['op'] ?? '',
+      sy: _cleanWords(json['sy']),
+      op: _cleanWords(json['op']),
       tips: parsedTips,
     );
+  }
+
+  static String _cleanWords(dynamic value) {
+    if (value == null) return '';
+    final str = value.toString().trim();
+    if (str.isEmpty) return '';
+    const invalid = {'none', 'null', 'n/a', 'na', 'nil', 'no', '-'};
+    final parts = str
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty && !invalid.contains(e.toLowerCase()))
+        .toList();
+    return parts.join(', ');
   }
 }
 
