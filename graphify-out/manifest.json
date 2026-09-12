@@ -168,9 +168,9 @@
     "semantic_hash": ""
   },
   "lib/models/word.dart": {
-    "mtime": 1788539778.9082272,
-    "seen": 1788540127.7414951,
-    "ast_hash": "8f00bcc3731561181bfb68da06898115",
+    "mtime": 1789218094.175091,
+    "seen": 1789218419.10927,
+    "ast_hash": "84772d3ad32559a42ad82d984fa4172d",
     "semantic_hash": ""
   },
   "lib/screens/home_screen.dart": {
@@ -180,9 +180,9 @@
     "semantic_hash": ""
   },
   "lib/screens/learning_session_screen.dart": {
-    "mtime": 1789211963.0033803,
-    "seen": 1789212019.8144267,
-    "ast_hash": "625b31b19463abe05ef8d54cdcb653b2",
+    "mtime": 1789218121.0173578,
+    "seen": 1789218419.10927,
+    "ast_hash": "44dd1c687506fa0ec2101c8963acc571",
     "semantic_hash": ""
   },
   "lib/screens/login_screen.dart": {
@@ -300,27 +300,27 @@
     "semantic_hash": ""
   },
   "local_known_words.json": {
-    "mtime": 1788598514.816603,
-    "seen": 1788714669.318088,
-    "ast_hash": "2e9708bef5ffbd94b29c3e8166838626",
+    "mtime": 1789217976.142482,
+    "seen": 1789218419.10927,
+    "ast_hash": "93ad541b9e3f47fbdea60288e7e8dabf",
     "semantic_hash": ""
   },
   "local_preferred_images.json": {
-    "mtime": 1788598514.8190596,
-    "seen": 1788714669.318088,
-    "ast_hash": "99914b932bd37a50b983c5e7c90ae93b",
+    "mtime": 1789217976.1482978,
+    "seen": 1789218419.10927,
+    "ast_hash": "157a57a82211cce9306ba5198e257472",
     "semantic_hash": ""
   },
   "local_progress.json": {
-    "mtime": 1788598514.8155973,
-    "seen": 1788714669.318088,
-    "ast_hash": "41bc97e634917bc346fc77dcb045bd2b",
+    "mtime": 1789218050.40496,
+    "seen": 1789218419.10927,
+    "ast_hash": "6ea5f2ed6e1a8f3b6f8643ab6c934e73",
     "semantic_hash": ""
   },
   "local_to_learn.json": {
-    "mtime": 1788598514.8180628,
-    "seen": 1788714669.318088,
-    "ast_hash": "9b885ce761517ad5eff3c63366662322",
+    "mtime": 1789217976.1459289,
+    "seen": 1789218419.10927,
+    "ast_hash": "4ec9e6deb7e3f1b963bb4eb1c72d19c4",
     "semantic_hash": ""
   },
   "macos/Flutter/GeneratedPluginRegistrant.swift": {
@@ -1176,9 +1176,9 @@
     "semantic_hash": ""
   },
   "lib/services/review_question_service.dart": {
-    "mtime": 1789211825.9416525,
-    "seen": 1789212019.8144267,
-    "ast_hash": "af66ca018315b44c1cae90ec8c2fa6be",
+    "mtime": 1789218210.8955915,
+    "seen": 1789218419.10927,
+    "ast_hash": "524061fe4e2545039d8b02beca2c18ae",
     "semantic_hash": ""
   },
   ".agents/rules/release-builds.md": {

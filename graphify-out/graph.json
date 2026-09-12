@@ -3098,6 +3098,17 @@
       "source_location": null
     },
     {
+      "id": "database_service_dart",
+      "label": "database_service.dart",
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "wordup_api.dart",
+      "file_type": "code",
+      "norm_label": "database_service.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
       "id": "edge_tts_service_dart",
       "label": "edge_tts_service.dart",
       "_origin": "ast",
@@ -3450,17 +3461,6 @@
       "source_location": null
     },
     {
-      "id": "media_cache_service_dart",
-      "label": "media_cache_service.dart",
-      "_origin": "ast",
-      "community": 12,
-      "community_name": "wordup_api.dart",
-      "file_type": "code",
-      "norm_label": "media_cache_service.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
       "id": "static_final_string",
       "label": "static final String",
       "_origin": "ast",
@@ -3611,28 +3611,6 @@
       "community_name": "home_screen.dart",
       "file_type": "code",
       "norm_label": "dispose",
-      "source_file": "lib/screens/home_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_home_screen_homescreen",
-      "label": "HomeScreen",
-      "_origin": "ast",
-      "community": 13,
-      "community_name": "home_screen.dart",
-      "file_type": "code",
-      "norm_label": "homescreen",
-      "source_file": "lib/screens/home_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_home_screen_homescreenstate",
-      "label": "_HomeScreenState",
-      "_origin": "ast",
-      "community": 13,
-      "community_name": "home_screen.dart",
-      "file_type": "code",
-      "norm_label": "_homescreenstate",
       "source_file": "lib/screens/home_screen.dart",
       "source_location": null
     },
@@ -6217,28 +6195,6 @@
       "community_name": "main.dart",
       "file_type": "code",
       "norm_label": "main",
-      "source_file": "lib/main.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_main_splashloadingscreen",
-      "label": "SplashLoadingScreen",
-      "_origin": "ast",
-      "community": 26,
-      "community_name": "main.dart",
-      "file_type": "code",
-      "norm_label": "splashloadingscreen",
-      "source_file": "lib/main.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_main_splashloadingscreenstate",
-      "label": "_SplashLoadingScreenState",
-      "_origin": "ast",
-      "community": 26,
-      "community_name": "main.dart",
-      "file_type": "code",
-      "norm_label": "_splashloadingscreenstate",
       "source_file": "lib/main.dart",
       "source_location": null
     },
@@ -9178,6 +9134,50 @@
       "source_location": null
     },
     {
+      "id": "lib_main_splashloadingscreen",
+      "label": "SplashLoadingScreen",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "State",
+      "file_type": "code",
+      "norm_label": "splashloadingscreen",
+      "source_file": "lib/main.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_main_splashloadingscreenstate",
+      "label": "_SplashLoadingScreenState",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "State",
+      "file_type": "code",
+      "norm_label": "_splashloadingscreenstate",
+      "source_file": "lib/main.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_home_screen_homescreen",
+      "label": "HomeScreen",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "State",
+      "file_type": "code",
+      "norm_label": "homescreen",
+      "source_file": "lib/screens/home_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_home_screen_homescreenstate",
+      "label": "_HomeScreenState",
+      "_origin": "ast",
+      "community": 47,
+      "community_name": "State",
+      "file_type": "code",
+      "norm_label": "_homescreenstate",
+      "source_file": "lib/screens/home_screen.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_screens_word_view_screen_comparewithsection",
       "label": "CompareWithSection",
       "_origin": "ast",
@@ -9295,17 +9295,6 @@
       "community_name": "State",
       "file_type": "code",
       "norm_label": "statefulwidget",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "database_service_dart",
-      "label": "database_service.dart",
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "review_question_service.dart",
-      "file_type": "code",
-      "norm_label": "database_service.dart",
       "source_file": null,
       "source_location": null
     },
@@ -9681,6 +9670,17 @@
       "file_type": "code",
       "norm_label": "worddata",
       "source_file": "lib/services/review_question_service.dart",
+      "source_location": null
+    },
+    {
+      "id": "media_cache_service_dart",
+      "label": "media_cache_service.dart",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "review_question_service.dart",
+      "file_type": "code",
+      "norm_label": "media_cache_service.dart",
+      "source_file": null,
       "source_location": null
     },
     {
@@ -10256,28 +10256,6 @@
       "source_location": null
     },
     {
-      "id": "lib_screens_review_screen_reviewscreen",
-      "label": "ReviewScreen",
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "review_screen.dart",
-      "file_type": "code",
-      "norm_label": "reviewscreen",
-      "source_file": "lib/screens/review_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_review_screen_reviewscreenstate",
-      "label": "_ReviewScreenState",
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "review_screen.dart",
-      "file_type": "code",
-      "norm_label": "_reviewscreenstate",
-      "source_file": "lib/screens/review_screen.dart",
-      "source_location": null
-    },
-    {
       "id": "lib_screens_review_screen_reviewservice",
       "label": "_reviewService",
       "_origin": "ast",
@@ -10531,17 +10509,6 @@
       "source_location": null
     },
     {
-      "id": "lib_main_worddownapp",
-      "label": "WordDownApp",
-      "_origin": "ast",
-      "community": 52,
-      "community_name": "word_list_screen.dart",
-      "file_type": "code",
-      "norm_label": "worddownapp",
-      "source_file": "lib/main.dart",
-      "source_location": null
-    },
-    {
       "id": "lib_screens_word_list_screen",
       "label": "word_list_screen.dart",
       "_origin": "ast",
@@ -10575,17 +10542,6 @@
       "source_location": null
     },
     {
-      "id": "lib_screens_word_list_screen_wordlistscreen",
-      "label": "WordListScreen",
-      "_origin": "ast",
-      "community": 52,
-      "community_name": "word_list_screen.dart",
-      "file_type": "code",
-      "norm_label": "wordlistscreen",
-      "source_file": "lib/screens/word_list_screen.dart",
-      "source_location": null
-    },
-    {
       "id": "lib_screens_word_list_screen_words",
       "label": "words",
       "_origin": "ast",
@@ -10615,17 +10571,6 @@
       "community_name": "word_list_screen.dart",
       "file_type": "code",
       "norm_label": "../services/progress_service.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "statelesswidget",
-      "label": "StatelessWidget",
-      "_origin": "ast",
-      "community": 52,
-      "community_name": "word_list_screen.dart",
-      "file_type": "code",
-      "norm_label": "statelesswidget",
       "source_file": null,
       "source_location": null
     },
@@ -10715,6 +10660,39 @@
       "norm_label": "release builds & packaging invariant",
       "source_file": ".agents/rules/release-builds.md",
       "source_location": "L6"
+    },
+    {
+      "id": "lib_main_worddownapp",
+      "label": "WordDownApp",
+      "_origin": "ast",
+      "community": 54,
+      "community_name": "WordDownApp",
+      "file_type": "code",
+      "norm_label": "worddownapp",
+      "source_file": "lib/main.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_word_list_screen_wordlistscreen",
+      "label": "WordListScreen",
+      "_origin": "ast",
+      "community": 54,
+      "community_name": "WordDownApp",
+      "file_type": "code",
+      "norm_label": "wordlistscreen",
+      "source_file": "lib/screens/word_list_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "statelesswidget",
+      "label": "StatelessWidget",
+      "_origin": "ast",
+      "community": 54,
+      "community_name": "WordDownApp",
+      "file_type": "code",
+      "norm_label": "statelesswidget",
+      "source_file": null,
+      "source_location": null
     },
     {
       "id": "readme",
@@ -10825,6 +10803,28 @@
       "source_location": "L1"
     },
     {
+      "id": "lib_screens_learning_session_screen_learningsessionscreen",
+      "label": "LearningSessionScreen",
+      "_origin": "ast",
+      "community": 56,
+      "community_name": "LearningSessionScreen",
+      "file_type": "code",
+      "norm_label": "learningsessionscreen",
+      "source_file": "lib/screens/learning_session_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_learning_session_screen_learningsessionscreenstate",
+      "label": "_LearningSessionScreenState",
+      "_origin": "ast",
+      "community": 56,
+      "community_name": "LearningSessionScreen",
+      "file_type": "code",
+      "norm_label": "_learningsessionscreenstate",
+      "source_file": "lib/screens/learning_session_screen.dart",
+      "source_location": null
+    },
+    {
       "id": "scratch_interceptor_index",
       "label": "index.js",
       "_origin": "ast",
@@ -10867,6 +10867,28 @@
       "norm_label": "puppeteer",
       "source_file": "scratch/interceptor/index.js",
       "source_location": "L1"
+    },
+    {
+      "id": "lib_screens_review_screen_reviewscreen",
+      "label": "ReviewScreen",
+      "_origin": "ast",
+      "community": 58,
+      "community_name": "ReviewScreen",
+      "file_type": "code",
+      "norm_label": "reviewscreen",
+      "source_file": "lib/screens/review_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_review_screen_reviewscreenstate",
+      "label": "_ReviewScreenState",
+      "_origin": "ast",
+      "community": 58,
+      "community_name": "ReviewScreen",
+      "file_type": "code",
+      "norm_label": "_reviewscreenstate",
+      "source_file": "lib/screens/review_screen.dart",
+      "source_location": null
     },
     {
       "id": "firebasefirestore",
@@ -11275,6 +11297,17 @@
       "community_name": "word.dart",
       "file_type": "code",
       "norm_label": "authorrole",
+      "source_file": "lib/models/word.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_models_word_cleanwords",
+      "label": "_cleanWords",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "word.dart",
+      "file_type": "code",
+      "norm_label": "_cleanwords",
       "source_file": "lib/models/word.dart",
       "source_location": null
     },
@@ -12298,28 +12331,6 @@
       "community_name": "learning_session_screen.dart",
       "file_type": "code",
       "norm_label": "_isloadingtest",
-      "source_file": "lib/screens/learning_session_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_learning_session_screen_learningsessionscreen",
-      "label": "LearningSessionScreen",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "learning_session_screen.dart",
-      "file_type": "code",
-      "norm_label": "learningsessionscreen",
-      "source_file": "lib/screens/learning_session_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_learning_session_screen_learningsessionscreenstate",
-      "label": "_LearningSessionScreenState",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "learning_session_screen.dart",
-      "file_type": "code",
-      "norm_label": "_learningsessionscreenstate",
       "source_file": "lib/screens/learning_session_screen.dart",
       "source_location": null
     },
@@ -17886,6 +17897,17 @@
     {
       "source": "lib_models_word",
       "target": "lib_models_word_authorrole",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/models/word.dart",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_models_word",
+      "target": "lib_models_word_cleanwords",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -28562,5 +28584,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "c5e9675e3de41e0020e4a531f5bdc11092367901"
+  "built_at_commit": "6cd5b9f9212f229a018a0bb5b01c497794a5be0e"
 }

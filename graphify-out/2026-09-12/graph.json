@@ -10647,6 +10647,10 @@
       "community": 53,
       "community_name": "1. Artifact Placement in `releases/`",
       "file_type": "document",
+      "frontmatter": {
+        "trigger": "always_on",
+        "description": "Procedures for compiling, packaging, and storing release artifacts in the releases folder for Android and Windows."
+      },
       "node_kind": "page",
       "norm_label": "release-builds.md",
       "source_file": ".agents/rules/release-builds.md",
@@ -10674,7 +10678,7 @@
       "node_kind": "heading",
       "norm_label": "2. build cache & disk management",
       "source_file": ".agents/rules/release-builds.md",
-      "source_location": "L39"
+      "source_location": "L44"
     },
     {
       "id": "agents_rules_release_builds_for_android_release_builds",
@@ -16138,7 +16142,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": ".agents/rules/release-builds.md",
-      "source_location": "L39",
+      "source_location": "L44",
       "weight": 1.0
     },
     {
@@ -28558,5 +28562,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "696531983bc5ccae29ff35380d310d9d7a901240"
+  "built_at_commit": "c5e9675e3de41e0020e4a531f5bdc11092367901"
 }
