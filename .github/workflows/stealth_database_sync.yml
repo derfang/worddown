@@ -30,6 +30,11 @@ on:
 permissions:
   contents: write
 
+# Prevent concurrent runs from clobbering the database or racing on the API branch
+concurrency:
+  group: stealth-database-sync
+  cancel-in-progress: false
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -134,6 +139,7 @@ jobs:
             if ! git diff --cached --quiet; then
               COUNT=$(ls -1 words/*.enc | wc -l)
               git commit -m "Sync $COUNT encrypted words to API branch [skip ci]"
+              git pull --rebase origin api || true
               git push origin api
               echo "Successfully pushed $COUNT encrypted words to 'api' branch."
             else
