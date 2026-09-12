@@ -1180,5 +1180,11 @@
     "seen": 1789212019.8144267,
     "ast_hash": "af66ca018315b44c1cae90ec8c2fa6be",
     "semantic_hash": ""
+  },
+  ".agents/rules/release-builds.md": {
+    "mtime": 1789215332.8709247,
+    "seen": 1789215365.85365,
+    "ast_hash": "f7c44882b2b7f103f97764b01bdb66d8",
+    "semantic_hash": ""
   }
 }
