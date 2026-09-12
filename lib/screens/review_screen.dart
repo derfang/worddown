@@ -694,7 +694,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
   Widget _buildCompareQuestion() {
     final comp = _questionData as WordComparison;
     
-    final pattern = RegExp(RegExp.escape(_currentDictWord!.text), caseSensitive: false);
+    final pattern = RegExp(r'\b' + RegExp.escape(_currentDictWord!.text) + r'(s|es|ed|ing|d)?\b', caseSensitive: false);
     final masked = comp.text.replaceAll(pattern, '_______');
 
     return _buildQuestionContainer(

@@ -192,7 +192,10 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
     if (settings.enableExampleQuestion && data != null && data.senses.any((s) => s.ex.isNotEmpty)) availableTypes.add('example');
     if (settings.enableMisspellingQuestion && data != null && data.misspellings.isNotEmpty) availableTypes.add('misspelling');
     if (settings.enableSpellingQuestion) availableTypes.add('listening');
-    if (settings.enableCompareQuestion && data != null && data.comparisons.isNotEmpty) availableTypes.add('compare');
+    final comparePattern = RegExp(r'\b' + RegExp.escape(word.text) + r'(s|es|ed|ing|d)?\b', caseSensitive: false);
+    if (settings.enableCompareQuestion && data != null && data.comparisons.any((c) => comparePattern.hasMatch(c.text))) {
+      availableTypes.add('compare');
+    }
     
     if (availableTypes.isEmpty) availableTypes.add('meaning');
     
@@ -269,13 +272,45 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
         options.add(ReviewOption(distractors[i].id, distractorTexts[i], false));
       }
     } else if (type == 'compare') {
-      final comp = (data!.comparisons.toList()..shuffle()).first;
+      final pattern = RegExp(r'\b' + RegExp.escape(word.text) + r'(s|es|ed|ing|d)?\b', caseSensitive: false);
+      final validComps = data!.comparisons.where((c) => pattern.hasMatch(c.text)).toList();
+      final comp = (validComps..shuffle()).first;
       questionData = comp;
+
+      final Set<String> excludeWords = data.comparisons.map((c) => c.word.trim().toLowerCase()).toSet();
+      excludeWords.add(word.text.trim().toLowerCase());
+
       options.add(ReviewOption(word.id, word.text, true));
-      options.add(ReviewOption(-1, comp.word, false));
-      final dist2 = DatabaseService.getRandomWords(2, excludeId: word.id);
-      options.add(ReviewOption(dist2[0].id, dist2[0].text, false));
-      options.add(ReviewOption(dist2[1].id, dist2[1].text, false));
+
+      final Set<int> candidateIds = {};
+      for (var lp in _progressService.learningWords) {
+        if (lp.wordId != word.id) candidateIds.add(lp.wordId);
+      }
+      for (var qId in _progressService.queuedWordsToLearn) {
+        if (qId != word.id) candidateIds.add(qId);
+      }
+
+      final List<DictWord> pool = [];
+      for (var id in candidateIds) {
+        final w = DatabaseService.getWordById(id);
+        if (w != null && !excludeWords.contains(w.text.trim().toLowerCase())) {
+          pool.add(w);
+        }
+      }
+      pool.shuffle();
+      final dist = pool.take(3).toList();
+      if (dist.length < 3) {
+        final randomWords = DatabaseService.getRandomWords(15, excludeId: word.id);
+        for (var rw in randomWords) {
+          if (!excludeWords.contains(rw.text.trim().toLowerCase()) && !dist.any((d) => d.id == rw.id)) {
+            dist.add(rw);
+            if (dist.length >= 3) break;
+          }
+        }
+      }
+      for (var d in dist) {
+        options.add(ReviewOption(d.id, d.text, false));
+      }
     } else if (type == 'misspelling') {
       List<String> miss = data!.misspellings.split(RegExp(r'[,|]')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
       miss.shuffle();
@@ -602,10 +637,12 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
       );
     } else if (type == 'compare' && _questionData != null) {
       final comp = _questionData as WordComparison;
+      final pattern = RegExp(r'\b' + RegExp.escape(word.text) + r'(s|es|ed|ing|d)?\b', caseSensitive: false);
+      final masked = comp.text.replaceAll(pattern, '_______');
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Which word fits this explanation?', style: TextStyle(color: Colors.white70, fontSize: 18)),
+          Text('Fill in the blank for this comparison:', style: TextStyle(color: Colors.white70, fontSize: 18)),
           SizedBox(height: 24),
           Container(
             padding: EdgeInsets.all(20),
@@ -613,7 +650,7 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
               color: Colors.white.withOpacity(0.05),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Text(comp.text, style: TextStyle(color: Colors.white, fontSize: 20, height: 1.4), textAlign: TextAlign.center),
+            child: Text(masked, style: TextStyle(color: Colors.white, fontSize: 20, height: 1.4), textAlign: TextAlign.center),
           ),
         ],
       );

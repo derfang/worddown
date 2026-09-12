@@ -125,7 +125,7 @@ class ReviewQuestionService {
     _completedQuestions.clear();
   }
 
-  List<DictWord> getRelevantDistractors(int count, {required int excludeId}) {
+  List<DictWord> getRelevantDistractors(int count, {required int excludeId, Set<String>? excludeWords}) {
     final progress = ProgressService();
     final Set<int> candidateIds = {};
 
@@ -136,10 +136,14 @@ class ReviewQuestionService {
       if (qId != excludeId) candidateIds.add(qId);
     }
 
+    final lowerExcludeWords = excludeWords?.map((e) => e.trim().toLowerCase()).toSet() ?? {};
+
     final List<DictWord> pool = [];
     for (var id in candidateIds) {
       final w = DatabaseService.getWordById(id);
-      if (w != null) pool.add(w);
+      if (w != null && !lowerExcludeWords.contains(w.text.trim().toLowerCase())) {
+        pool.add(w);
+      }
     }
 
     pool.shuffle();
@@ -147,9 +151,9 @@ class ReviewQuestionService {
 
     if (results.length < count) {
       final existingIds = results.map((w) => w.id).toSet()..add(excludeId);
-      final randomTop = DatabaseService.getRandomWords(count - results.length + 5);
+      final randomTop = DatabaseService.getRandomWords(count - results.length + 15);
       for (var rw in randomTop) {
-        if (!existingIds.contains(rw.id)) {
+        if (!existingIds.contains(rw.id) && !lowerExcludeWords.contains(rw.text.trim().toLowerCase())) {
           results.add(rw);
           existingIds.add(rw.id);
           if (results.length >= count) break;
@@ -323,14 +327,23 @@ class ReviewQuestionService {
       }
     } else if (type == 'compare') {
       if (data == null || data.comparisons.isEmpty) return null;
-      final comp = (data.comparisons.toList()..shuffle()).first;
+
+      // Only keep comparisons whose text actually contains the target word
+      final pattern = RegExp(r'\b' + RegExp.escape(word.text) + r'(s|es|ed|ing|d)?\b', caseSensitive: false);
+      final validComps = data.comparisons.where((c) => pattern.hasMatch(c.text)).toList();
+      if (validComps.isEmpty) return null;
+
+      final comp = (validComps..shuffle()).first;
       questionData = comp;
+
+      // Exclude ALL compared words from the options so options aren't confusingly similar
+      final Set<String> excludeWords = data.comparisons.map((c) => c.word.trim().toLowerCase()).toSet();
+      excludeWords.add(word.text.trim().toLowerCase());
+
       options.add(ReviewOption(word.id, word.text, true));
-      options.add(ReviewOption(-1, comp.word, false));
-      final dist2 = getRelevantDistractors(2, excludeId: word.id);
-      options.add(ReviewOption(dist2[0].id, dist2[0].text, false));
-      if (dist2.length > 1) {
-        options.add(ReviewOption(dist2[1].id, dist2[1].text, false));
+      final dist = getRelevantDistractors(3, excludeId: word.id, excludeWords: excludeWords);
+      for (var d in dist) {
+        options.add(ReviewOption(d.id, d.text, false));
       }
     } else if (type == 'misspelling') {
       if (data == null || data.misspellings.isEmpty) return null;
