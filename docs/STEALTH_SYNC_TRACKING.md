@@ -36,10 +36,10 @@ This document tracks the ongoing background data ingestion pipeline, synchronizi
 
 | Metric | Current Status (as of Sep 12, 2026) | Target Total | Progress (%) |
 | :--- | :--- | :--- | :--- |
-| **Total Synced Words** | **5,320** *(+500 currently in progress)* | 42,200 | **12.6%** |
-| **Encrypted API Branch Files** | **5,320** files (`api` branch: `words/*.enc`) | 42,200 | **12.6%** |
+| **Total Synced Words** | **6,320** | 42,200 | **15.0%** |
+| **Encrypted API Branch Files** | **5,320** files (`api` branch: `words/*.enc`) | 42,200 | **15.0%** |
 | **Hugging Face Media Files** | **19,663** encrypted `.webp.enc` images | ~100,000+ | ~**20%** |
-| **Release Database Size** | **70.06 MB** (`wordup_database.db`) | ~350 MB | — |
+| **Release Database Size** | **88.56 MB** (`wordup_database.db`) | ~350 MB | — |
 | **Active Run in Progress** | Run `34697636295` (triggered 13:52 UTC) | +500 words | In Progress |
 
 ---
