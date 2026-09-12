@@ -3461,6 +3461,17 @@
       "source_location": null
     },
     {
+      "id": "media_cache_service_dart",
+      "label": "media_cache_service.dart",
+      "_origin": "ast",
+      "community": 12,
+      "community_name": "wordup_api.dart",
+      "file_type": "code",
+      "norm_label": "media_cache_service.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
       "id": "static_final_string",
       "label": "static final String",
       "_origin": "ast",
@@ -3611,6 +3622,28 @@
       "community_name": "home_screen.dart",
       "file_type": "code",
       "norm_label": "dispose",
+      "source_file": "lib/screens/home_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_home_screen_homescreen",
+      "label": "HomeScreen",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "home_screen.dart",
+      "file_type": "code",
+      "norm_label": "homescreen",
+      "source_file": "lib/screens/home_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_home_screen_homescreenstate",
+      "label": "_HomeScreenState",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "home_screen.dart",
+      "file_type": "code",
+      "norm_label": "_homescreenstate",
       "source_file": "lib/screens/home_screen.dart",
       "source_location": null
     },
@@ -6199,6 +6232,28 @@
       "source_location": null
     },
     {
+      "id": "lib_main_splashloadingscreen",
+      "label": "SplashLoadingScreen",
+      "_origin": "ast",
+      "community": 26,
+      "community_name": "main.dart",
+      "file_type": "code",
+      "norm_label": "splashloadingscreen",
+      "source_file": "lib/main.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_main_splashloadingscreenstate",
+      "label": "_SplashLoadingScreenState",
+      "_origin": "ast",
+      "community": 26,
+      "community_name": "main.dart",
+      "file_type": "code",
+      "norm_label": "_splashloadingscreenstate",
+      "source_file": "lib/main.dart",
+      "source_location": null
+    },
+    {
       "id": "package_google_fonts_google_fonts_dart",
       "label": "package:google_fonts/google_fonts.dart",
       "_origin": "ast",
@@ -7847,147 +7902,76 @@
       "source_location": null
     },
     {
-      "id": "lib_screens_settings_screen",
-      "label": "settings_screen.dart",
+      "id": "docs_stealth_sync_tracking",
+      "label": "STEALTH_SYNC_TRACKING.md",
       "_origin": "ast",
       "community": 37,
-      "community_name": "settings_screen.dart",
-      "file_type": "code",
-      "norm_label": "settings_screen.dart",
-      "source_file": "lib/screens/settings_screen.dart",
-      "source_location": null
+      "community_name": "WordUp Database & Media Sync Tracking",
+      "file_type": "document",
+      "node_kind": "page",
+      "norm_label": "stealth_sync_tracking.md",
+      "source_file": "docs/STEALTH_SYNC_TRACKING.md",
+      "source_location": "L1"
     },
     {
-      "id": "lib_screens_settings_screen_buildtoggle",
-      "label": "_buildToggle",
+      "id": "docs_stealth_sync_tracking_1_overview_architecture",
+      "label": "1. Overview & Architecture",
       "_origin": "ast",
       "community": 37,
-      "community_name": "settings_screen.dart",
-      "file_type": "code",
-      "norm_label": "_buildtoggle",
-      "source_file": "lib/screens/settings_screen.dart",
-      "source_location": null
+      "community_name": "WordUp Database & Media Sync Tracking",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "1. overview & architecture",
+      "source_file": "docs/STEALTH_SYNC_TRACKING.md",
+      "source_location": "L7"
     },
     {
-      "id": "lib_screens_settings_screen_createstate",
-      "label": "createState",
+      "id": "docs_stealth_sync_tracking_2_current_progress_snapshot",
+      "label": "2. Current Progress Snapshot",
       "_origin": "ast",
       "community": 37,
-      "community_name": "settings_screen.dart",
-      "file_type": "code",
-      "norm_label": "createstate",
-      "source_file": "lib/screens/settings_screen.dart",
-      "source_location": null
+      "community_name": "WordUp Database & Media Sync Tracking",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "2. current progress snapshot",
+      "source_file": "docs/STEALTH_SYNC_TRACKING.md",
+      "source_location": "L35"
     },
     {
-      "id": "lib_screens_settings_screen_languages",
-      "label": "_languages",
+      "id": "docs_stealth_sync_tracking_3_how_to_check_progress_remotely",
+      "label": "3. How to Check Progress Remotely",
       "_origin": "ast",
       "community": 37,
-      "community_name": "settings_screen.dart",
-      "file_type": "code",
-      "norm_label": "_languages",
-      "source_file": "lib/screens/settings_screen.dart",
-      "source_location": null
+      "community_name": "WordUp Database & Media Sync Tracking",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "3. how to check progress remotely",
+      "source_file": "docs/STEALTH_SYNC_TRACKING.md",
+      "source_location": "L47"
     },
     {
-      "id": "lib_screens_settings_screen_settingsscreen",
-      "label": "SettingsScreen",
+      "id": "docs_stealth_sync_tracking_pipeline_stages_per_run",
+      "label": "Pipeline Stages per Run",
       "_origin": "ast",
       "community": 37,
-      "community_name": "settings_screen.dart",
-      "file_type": "code",
-      "norm_label": "settingsscreen",
-      "source_file": "lib/screens/settings_screen.dart",
-      "source_location": null
+      "community_name": "WordUp Database & Media Sync Tracking",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "pipeline stages per run",
+      "source_file": "docs/STEALTH_SYNC_TRACKING.md",
+      "source_location": "L14"
     },
     {
-      "id": "lib_screens_settings_screen_settingsscreenstate",
-      "label": "_SettingsScreenState",
+      "id": "docs_stealth_sync_tracking_wordup_database_media_sync_tracking",
+      "label": "WordUp Database & Media Sync Tracking",
       "_origin": "ast",
       "community": 37,
-      "community_name": "settings_screen.dart",
-      "file_type": "code",
-      "norm_label": "_settingsscreenstate",
-      "source_file": "lib/screens/settings_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_settings_screen_settingsservice",
-      "label": "_settingsService",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "settings_screen.dart",
-      "file_type": "code",
-      "norm_label": "_settingsservice",
-      "source_file": "lib/screens/settings_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_services_settings_service_settingsservice",
-      "label": "SettingsService",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "settings_screen.dart",
-      "file_type": "code",
-      "norm_label": "settingsservice",
-      "source_file": "lib/services/settings_service.dart",
-      "source_location": null
-    },
-    {
-      "id": "login_screen_dart",
-      "label": "login_screen.dart",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "settings_screen.dart",
-      "file_type": "code",
-      "norm_label": "login_screen.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "services_encryption_service_dart",
-      "label": "../services/encryption_service.dart",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "settings_screen.dart",
-      "file_type": "code",
-      "norm_label": "../services/encryption_service.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "services_settings_service_dart",
-      "label": "../services/settings_service.dart",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "settings_screen.dart",
-      "file_type": "code",
-      "norm_label": "../services/settings_service.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "services_wordup_api_dart",
-      "label": "../services/wordup_api.dart",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "settings_screen.dart",
-      "file_type": "code",
-      "norm_label": "../services/wordup_api.dart",
-      "source_file": null,
-      "source_location": null
-    },
-    {
-      "id": "static_const_map",
-      "label": "static const Map",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "settings_screen.dart",
-      "file_type": "code",
-      "norm_label": "static const map",
-      "source_file": null,
-      "source_location": null
+      "community_name": "WordUp Database & Media Sync Tracking",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "wordup database & media sync tracking",
+      "source_file": "docs/STEALTH_SYNC_TRACKING.md",
+      "source_location": "L1"
     },
     {
       "id": "scratch_analyze_local2",
@@ -9134,47 +9118,25 @@
       "source_location": null
     },
     {
-      "id": "lib_main_splashloadingscreen",
-      "label": "SplashLoadingScreen",
+      "id": "lib_screens_learning_session_screen_learningsessionscreen",
+      "label": "LearningSessionScreen",
       "_origin": "ast",
       "community": 47,
       "community_name": "State",
       "file_type": "code",
-      "norm_label": "splashloadingscreen",
-      "source_file": "lib/main.dart",
+      "norm_label": "learningsessionscreen",
+      "source_file": "lib/screens/learning_session_screen.dart",
       "source_location": null
     },
     {
-      "id": "lib_main_splashloadingscreenstate",
-      "label": "_SplashLoadingScreenState",
+      "id": "lib_screens_learning_session_screen_learningsessionscreenstate",
+      "label": "_LearningSessionScreenState",
       "_origin": "ast",
       "community": 47,
       "community_name": "State",
       "file_type": "code",
-      "norm_label": "_splashloadingscreenstate",
-      "source_file": "lib/main.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_home_screen_homescreen",
-      "label": "HomeScreen",
-      "_origin": "ast",
-      "community": 47,
-      "community_name": "State",
-      "file_type": "code",
-      "norm_label": "homescreen",
-      "source_file": "lib/screens/home_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_home_screen_homescreenstate",
-      "label": "_HomeScreenState",
-      "_origin": "ast",
-      "community": 47,
-      "community_name": "State",
-      "file_type": "code",
-      "norm_label": "_homescreenstate",
-      "source_file": "lib/screens/home_screen.dart",
+      "norm_label": "_learningsessionscreenstate",
+      "source_file": "lib/screens/learning_session_screen.dart",
       "source_location": null
     },
     {
@@ -9296,6 +9258,17 @@
       "file_type": "code",
       "norm_label": "statefulwidget",
       "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "lib_models_word_worddata",
+      "label": "WordData",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "review_question_service.dart",
+      "file_type": "code",
+      "norm_label": "worddata",
+      "source_file": "lib/models/word.dart",
       "source_location": null
     },
     {
@@ -9670,17 +9643,6 @@
       "file_type": "code",
       "norm_label": "worddata",
       "source_file": "lib/services/review_question_service.dart",
-      "source_location": null
-    },
-    {
-      "id": "media_cache_service_dart",
-      "label": "media_cache_service.dart",
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "review_question_service.dart",
-      "file_type": "code",
-      "norm_label": "media_cache_service.dart",
-      "source_file": null,
       "source_location": null
     },
     {
@@ -10256,6 +10218,28 @@
       "source_location": null
     },
     {
+      "id": "lib_screens_review_screen_reviewscreen",
+      "label": "ReviewScreen",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "review_screen.dart",
+      "file_type": "code",
+      "norm_label": "reviewscreen",
+      "source_file": "lib/screens/review_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_review_screen_reviewscreenstate",
+      "label": "_ReviewScreenState",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "review_screen.dart",
+      "file_type": "code",
+      "norm_label": "_reviewscreenstate",
+      "source_file": "lib/screens/review_screen.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_screens_review_screen_reviewservice",
       "label": "_reviewService",
       "_origin": "ast",
@@ -10509,6 +10493,17 @@
       "source_location": null
     },
     {
+      "id": "lib_main_worddownapp",
+      "label": "WordDownApp",
+      "_origin": "ast",
+      "community": 52,
+      "community_name": "word_list_screen.dart",
+      "file_type": "code",
+      "norm_label": "worddownapp",
+      "source_file": "lib/main.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_screens_word_list_screen",
       "label": "word_list_screen.dart",
       "_origin": "ast",
@@ -10542,6 +10537,17 @@
       "source_location": null
     },
     {
+      "id": "lib_screens_word_list_screen_wordlistscreen",
+      "label": "WordListScreen",
+      "_origin": "ast",
+      "community": 52,
+      "community_name": "word_list_screen.dart",
+      "file_type": "code",
+      "norm_label": "wordlistscreen",
+      "source_file": "lib/screens/word_list_screen.dart",
+      "source_location": null
+    },
+    {
       "id": "lib_screens_word_list_screen_words",
       "label": "words",
       "_origin": "ast",
@@ -10571,6 +10577,17 @@
       "community_name": "word_list_screen.dart",
       "file_type": "code",
       "norm_label": "../services/progress_service.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "statelesswidget",
+      "label": "StatelessWidget",
+      "_origin": "ast",
+      "community": 52,
+      "community_name": "word_list_screen.dart",
+      "file_type": "code",
+      "norm_label": "statelesswidget",
       "source_file": null,
       "source_location": null
     },
@@ -10662,37 +10679,52 @@
       "source_location": "L6"
     },
     {
-      "id": "lib_main_worddownapp",
-      "label": "WordDownApp",
+      "id": "agents_rules_stealth_sync",
+      "label": "stealth-sync.md",
       "_origin": "ast",
       "community": 54,
-      "community_name": "WordDownApp",
-      "file_type": "code",
-      "norm_label": "worddownapp",
-      "source_file": "lib/main.dart",
-      "source_location": null
+      "community_name": "Stealth WordUp Database & Media Sync Invariant",
+      "file_type": "document",
+      "node_kind": "page",
+      "norm_label": "stealth-sync.md",
+      "source_file": ".agents/rules/stealth-sync.md",
+      "source_location": "L1"
     },
     {
-      "id": "lib_screens_word_list_screen_wordlistscreen",
-      "label": "WordListScreen",
+      "id": "agents_rules_stealth_sync_stealth_wordup_database_media_sync_invariant",
+      "label": "Stealth WordUp Database & Media Sync Invariant",
       "_origin": "ast",
       "community": 54,
-      "community_name": "WordDownApp",
-      "file_type": "code",
-      "norm_label": "wordlistscreen",
-      "source_file": "lib/screens/word_list_screen.dart",
-      "source_location": null
+      "community_name": "Stealth WordUp Database & Media Sync Invariant",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "stealth wordup database & media sync invariant",
+      "source_file": ".agents/rules/stealth-sync.md",
+      "source_location": "L1"
     },
     {
-      "id": "statelesswidget",
-      "label": "StatelessWidget",
+      "id": "agents_rules_stealth_sync_tracking_checking_progress",
+      "label": "Tracking & Checking Progress",
       "_origin": "ast",
       "community": 54,
-      "community_name": "WordDownApp",
-      "file_type": "code",
-      "norm_label": "statelesswidget",
-      "source_file": null,
-      "source_location": null
+      "community_name": "Stealth WordUp Database & Media Sync Invariant",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "tracking & checking progress",
+      "source_file": ".agents/rules/stealth-sync.md",
+      "source_location": "L13"
+    },
+    {
+      "id": "agents_rules_stealth_sync_workflow_details",
+      "label": "Workflow Details",
+      "_origin": "ast",
+      "community": 54,
+      "community_name": "Stealth WordUp Database & Media Sync Invariant",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "workflow details",
+      "source_file": ".agents/rules/stealth-sync.md",
+      "source_location": "L5"
     },
     {
       "id": "readme",
@@ -10803,28 +10835,6 @@
       "source_location": "L1"
     },
     {
-      "id": "lib_screens_learning_session_screen_learningsessionscreen",
-      "label": "LearningSessionScreen",
-      "_origin": "ast",
-      "community": 56,
-      "community_name": "LearningSessionScreen",
-      "file_type": "code",
-      "norm_label": "learningsessionscreen",
-      "source_file": "lib/screens/learning_session_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_learning_session_screen_learningsessionscreenstate",
-      "label": "_LearningSessionScreenState",
-      "_origin": "ast",
-      "community": 56,
-      "community_name": "LearningSessionScreen",
-      "file_type": "code",
-      "norm_label": "_learningsessionscreenstate",
-      "source_file": "lib/screens/learning_session_screen.dart",
-      "source_location": null
-    },
-    {
       "id": "scratch_interceptor_index",
       "label": "index.js",
       "_origin": "ast",
@@ -10867,28 +10877,6 @@
       "norm_label": "puppeteer",
       "source_file": "scratch/interceptor/index.js",
       "source_location": "L1"
-    },
-    {
-      "id": "lib_screens_review_screen_reviewscreen",
-      "label": "ReviewScreen",
-      "_origin": "ast",
-      "community": 58,
-      "community_name": "ReviewScreen",
-      "file_type": "code",
-      "norm_label": "reviewscreen",
-      "source_file": "lib/screens/review_screen.dart",
-      "source_location": null
-    },
-    {
-      "id": "lib_screens_review_screen_reviewscreenstate",
-      "label": "_ReviewScreenState",
-      "_origin": "ast",
-      "community": 58,
-      "community_name": "ReviewScreen",
-      "file_type": "code",
-      "norm_label": "_reviewscreenstate",
-      "source_file": "lib/screens/review_screen.dart",
-      "source_location": null
     },
     {
       "id": "firebasefirestore",
@@ -12093,17 +12081,6 @@
       "source_location": null
     },
     {
-      "id": "lib_models_word_worddata",
-      "label": "WordData",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "learning_session_screen.dart",
-      "file_type": "code",
-      "norm_label": "worddata",
-      "source_file": "lib/models/word.dart",
-      "source_location": null
-    },
-    {
       "id": "lib_screens_learning_session_screen",
       "label": "learning_session_screen.dart",
       "_origin": "ast",
@@ -12486,6 +12463,149 @@
       "file_type": "code",
       "norm_label": "_wascorrect",
       "source_file": "lib/screens/learning_session_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_settings_screen",
+      "label": "settings_screen.dart",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "learning_session_screen.dart",
+      "file_type": "code",
+      "norm_label": "settings_screen.dart",
+      "source_file": "lib/screens/settings_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_settings_screen_buildtoggle",
+      "label": "_buildToggle",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "learning_session_screen.dart",
+      "file_type": "code",
+      "norm_label": "_buildtoggle",
+      "source_file": "lib/screens/settings_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_settings_screen_createstate",
+      "label": "createState",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "learning_session_screen.dart",
+      "file_type": "code",
+      "norm_label": "createstate",
+      "source_file": "lib/screens/settings_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_settings_screen_languages",
+      "label": "_languages",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "learning_session_screen.dart",
+      "file_type": "code",
+      "norm_label": "_languages",
+      "source_file": "lib/screens/settings_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_settings_screen_settingsscreen",
+      "label": "SettingsScreen",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "learning_session_screen.dart",
+      "file_type": "code",
+      "norm_label": "settingsscreen",
+      "source_file": "lib/screens/settings_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_settings_screen_settingsscreenstate",
+      "label": "_SettingsScreenState",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "learning_session_screen.dart",
+      "file_type": "code",
+      "norm_label": "_settingsscreenstate",
+      "source_file": "lib/screens/settings_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_screens_settings_screen_settingsservice",
+      "label": "_settingsService",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "learning_session_screen.dart",
+      "file_type": "code",
+      "norm_label": "_settingsservice",
+      "source_file": "lib/screens/settings_screen.dart",
+      "source_location": null
+    },
+    {
+      "id": "lib_services_settings_service_settingsservice",
+      "label": "SettingsService",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "learning_session_screen.dart",
+      "file_type": "code",
+      "norm_label": "settingsservice",
+      "source_file": "lib/services/settings_service.dart",
+      "source_location": null
+    },
+    {
+      "id": "login_screen_dart",
+      "label": "login_screen.dart",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "learning_session_screen.dart",
+      "file_type": "code",
+      "norm_label": "login_screen.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "services_encryption_service_dart",
+      "label": "../services/encryption_service.dart",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "learning_session_screen.dart",
+      "file_type": "code",
+      "norm_label": "../services/encryption_service.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "services_settings_service_dart",
+      "label": "../services/settings_service.dart",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "learning_session_screen.dart",
+      "file_type": "code",
+      "norm_label": "../services/settings_service.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "services_wordup_api_dart",
+      "label": "../services/wordup_api.dart",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "learning_session_screen.dart",
+      "file_type": "code",
+      "norm_label": "../services/wordup_api.dart",
+      "source_file": null,
+      "source_location": null
+    },
+    {
+      "id": "static_const_map",
+      "label": "static const Map",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "learning_session_screen.dart",
+      "file_type": "code",
+      "norm_label": "static const map",
+      "source_file": null,
       "source_location": null
     },
     {
@@ -16157,6 +16277,39 @@
       "weight": 1.0
     },
     {
+      "source": "agents_rules_stealth_sync",
+      "target": "agents_rules_stealth_sync_stealth_wordup_database_media_sync_invariant",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".agents/rules/stealth-sync.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "agents_rules_stealth_sync_stealth_wordup_database_media_sync_invariant",
+      "target": "agents_rules_stealth_sync_tracking_checking_progress",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".agents/rules/stealth-sync.md",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "agents_rules_stealth_sync_stealth_wordup_database_media_sync_invariant",
+      "target": "agents_rules_stealth_sync_workflow_details",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".agents/rules/stealth-sync.md",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
       "source": "agents_workflows_graphify",
       "target": "agents_workflows_graphify_workflow_graphify",
       "relation": "contains",
@@ -16418,6 +16571,61 @@
       "confidence_score": 1.0,
       "source_file": "docs/ARCHITECTURE.md",
       "source_location": "L65",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_stealth_sync_tracking",
+      "target": "docs_stealth_sync_tracking_wordup_database_media_sync_tracking",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STEALTH_SYNC_TRACKING.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_stealth_sync_tracking_1_overview_architecture",
+      "target": "docs_stealth_sync_tracking_pipeline_stages_per_run",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STEALTH_SYNC_TRACKING.md",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_stealth_sync_tracking_wordup_database_media_sync_tracking",
+      "target": "docs_stealth_sync_tracking_2_current_progress_snapshot",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STEALTH_SYNC_TRACKING.md",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_stealth_sync_tracking_wordup_database_media_sync_tracking",
+      "target": "docs_stealth_sync_tracking_3_how_to_check_progress_remotely",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STEALTH_SYNC_TRACKING.md",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_stealth_sync_tracking_wordup_database_media_sync_tracking",
+      "target": "docs_stealth_sync_tracking_1_overview_architecture",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/STEALTH_SYNC_TRACKING.md",
+      "source_location": "L7",
       "weight": 1.0
     },
     {
@@ -28584,5 +28792,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "6cd5b9f9212f229a018a0bb5b01c497794a5be0e"
+  "built_at_commit": "98aa27b33106e50765337ea3c0c2160daa09a56b"
 }

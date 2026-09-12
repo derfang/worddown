@@ -312,9 +312,9 @@
     "semantic_hash": ""
   },
   "local_progress.json": {
-    "mtime": 1789218050.40496,
-    "seen": 1789218419.10927,
-    "ast_hash": "6ea5f2ed6e1a8f3b6f8643ab6c934e73",
+    "mtime": 1789219294.853844,
+    "seen": 1789221803.9598267,
+    "ast_hash": "d8110063cd04c124f2edc9df08bf2e3a",
     "semantic_hash": ""
   },
   "local_to_learn.json": {
@@ -1185,6 +1185,18 @@
     "mtime": 1789215332.8709247,
     "seen": 1789215365.85365,
     "ast_hash": "f7c44882b2b7f103f97764b01bdb66d8",
+    "semantic_hash": ""
+  },
+  ".agents/rules/stealth-sync.md": {
+    "mtime": 1789221789.007125,
+    "seen": 1789221803.9598267,
+    "ast_hash": "9fed324d1372f009f9148818866d0194",
+    "semantic_hash": ""
+  },
+  "docs/STEALTH_SYNC_TRACKING.md": {
+    "mtime": 1789221763.0803387,
+    "seen": 1789221803.9598267,
+    "ast_hash": "2ff1475d6559f1e3b0acf05d57cb8f49",
     "semantic_hash": ""
   }
 }
