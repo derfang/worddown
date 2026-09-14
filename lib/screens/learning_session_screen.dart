@@ -179,21 +179,29 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
     WordData? data;
     try {
       final json = await WordupApi.fetchWordData(word.id.toString(), wordText: word.text);
-      data = WordData.fromJson(word.id, json);
+      if (json.isNotEmpty) {
+        data = WordData.fromJson(word.id, json);
+      }
     } catch (_) {}
+
+    if (data == null || data.senses.isEmpty) {
+      print('⏩ [LearningSession] Skipping word $wordId ("${word.text}") due to missing cloud definitions.');
+      _nextAction();
+      return;
+    }
 
     final settings = SettingsService();
     List<String> availableTypes = [];
     
     if (settings.enableMeaningQuestion) availableTypes.add('meaning');
-    if (settings.enableQuoteQuestion && data != null && data.quotes.isNotEmpty) availableTypes.add('quote');
-    if (settings.enableSynonymQuestion && data != null && data.senses.any((s) => s.sy.isNotEmpty)) availableTypes.add('synonym');
-    if (settings.enableAntonymQuestion && data != null && data.senses.any((s) => s.op.isNotEmpty)) availableTypes.add('antonym');
-    if (settings.enableExampleQuestion && data != null && data.senses.any((s) => s.ex.isNotEmpty)) availableTypes.add('example');
-    if (settings.enableMisspellingQuestion && data != null && data.misspellings.isNotEmpty) availableTypes.add('misspelling');
+    if (settings.enableQuoteQuestion && data.quotes.isNotEmpty) availableTypes.add('quote');
+    if (settings.enableSynonymQuestion && data.senses.any((s) => s.sy.isNotEmpty)) availableTypes.add('synonym');
+    if (settings.enableAntonymQuestion && data.senses.any((s) => s.op.isNotEmpty)) availableTypes.add('antonym');
+    if (settings.enableExampleQuestion && data.senses.any((s) => s.ex.isNotEmpty)) availableTypes.add('example');
+    if (settings.enableMisspellingQuestion && data.misspellings.isNotEmpty) availableTypes.add('misspelling');
     if (settings.enableSpellingQuestion) availableTypes.add('listening');
     final comparePattern = RegExp(r'\b' + RegExp.escape(word.text) + r'(s|es|ed|ing|d)?\b', caseSensitive: false);
-    if (settings.enableCompareQuestion && data != null && data.comparisons.any((c) => comparePattern.hasMatch(c.text))) {
+    if (settings.enableCompareQuestion && data.comparisons.any((c) => comparePattern.hasMatch(c.text))) {
       availableTypes.add('compare');
     }
     

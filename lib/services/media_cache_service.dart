@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import '../models/word.dart';
@@ -15,14 +16,23 @@ class MediaCacheService {
     return _appDocsPath!;
   }
 
+  @visibleForTesting
+  static void resetAppDocsPathForTesting() {
+    _appDocsPath = null;
+  }
+
   /// Synchronous instantaneous check (0ms) to see if media is already on disk.
   static File? getLocalFileSync(int wordId, String originalUrl) {
     if (_appDocsPath == null) return null;
     try {
       final fileName = _getFileNameFromUrl(originalUrl);
       final file = File('$_appDocsPath/wordup_cache/$wordId/$fileName');
-      if (file.existsSync() && file.lengthSync() > 0) {
-        return file;
+      if (file.existsSync()) {
+        if (file.lengthSync() > 0) {
+          return file;
+        } else {
+          try { file.deleteSync(); } catch (_) {}
+        }
       }
     } catch (_) {}
     return null;
@@ -64,7 +74,11 @@ class MediaCacheService {
       final fileName = _getFileNameFromUrl(originalUrl);
       final file = File('${cacheDir.path}/$fileName');
       if (await file.exists()) {
-        return file;
+        if (await file.length() > 0) {
+          return file;
+        } else {
+          try { await file.delete(); } catch (_) {}
+        }
       }
     } catch (e) {
       print('Error getting local file for $originalUrl: $e');
@@ -199,9 +213,15 @@ class MediaCacheService {
           final fileName = _getFileNameFromUrl(url);
           final file = File('${cacheDir.path}/$fileName');
           
+          if (await file.exists()) {
+            if (await file.length() == 0) {
+              try { await file.delete(); } catch (_) {}
+            }
+          }
+
           if (!await file.exists()) {
             final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
-            if (response.statusCode == 200) {
+            if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
               await file.writeAsBytes(response.bodyBytes);
             }
           }

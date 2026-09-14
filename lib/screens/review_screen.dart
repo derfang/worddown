@@ -104,8 +104,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
     final prepared = await _reviewService.getOrPrepareQuestion(_currentIndex, context: context);
 
-    if (!mounted || prepared == null) {
-      setState(() => _isLoading = false);
+    if (!mounted) return;
+
+    if (prepared == null) {
+      print('⏩ [ReviewScreen] Skipping word at index $_currentIndex (cloud data failed or missing senses). Advancing to next word.');
+      _currentIndex++;
+      await _loadNextWord();
       return;
     }
 

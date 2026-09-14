@@ -185,6 +185,17 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
       );
       
       final data = WordData.fromJson(widget.wordId, json);
+
+      if (data.senses.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          _showRetrySnackBar();
+        }
+        return;
+      }
+
       if (_pendingZannData != null) {
         _wordData = data;
         _mergeZannData(_pendingZannData!);
@@ -199,6 +210,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
           _isKnown = ProgressService().knownWordIds.contains(widget.wordId);
           _isQueued = ProgressService().isInLearningQueue(widget.wordId);
           _isLoading = false;
+          _error = '';
         });
         
         // Autoplay the audio when the word loads
@@ -207,11 +219,51 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
           _isLoading = false;
         });
+        _showRetrySnackBar();
       }
     }
+  }
+
+  void _showRetrySnackBar() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.cloud_off_rounded, color: Colors.amberAccent, size: 20),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Could not load word details. Check network.',
+                style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF1E293B),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Colors.white12),
+        ),
+        action: SnackBarAction(
+          label: 'Retry',
+          textColor: Colors.cyanAccent,
+          onPressed: () {
+            setState(() {
+              _isLoading = true;
+              _error = '';
+            });
+            _loadData();
+            _fetchTranslation();
+          },
+        ),
+      ),
+    );
   }
 
   void _mergeZannData(Map<String, dynamic> extraData) {

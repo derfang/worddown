@@ -64,6 +64,12 @@ class WordupApi {
     return File('${cacheDir.path}/$filename');
   }
 
+  static bool _isValidWordData(Map<String, dynamic>? data) {
+    if (data == null || data.isEmpty) return false;
+    final senses = data['Senses'];
+    return senses is List && senses.isNotEmpty;
+  }
+
   static Future<Map<String, dynamic>> fetchWordData(
     String wordId, {
     String? wordText,
@@ -74,35 +80,59 @@ class WordupApi {
     bool needsCdnFetch = false;
     File? localFile;
 
-    // 1. Load local cache
+    // 1. Load local cache with integrity check
     if (kIsWeb) {
-      if (_webMemoryCache.containsKey(wordId)) {
+      if (_webMemoryCache.containsKey(wordId) && _isValidWordData(_webMemoryCache[wordId])) {
         data = _webMemoryCache[wordId]!;
       } else {
+        _webMemoryCache.remove(wordId);
         needsCdnFetch = true;
       }
     } else {
       localFile = await _getLocalFile('$wordId.json');
       if (await localFile.exists()) {
-        final contents = await localFile.readAsString();
-        data = await compute(_decodeJsonMap, contents);
-        print('💾 [WordupApi] Word $wordId ${wordText != null ? "(\"$wordText\") " : ""}loaded instantly from LOCAL CACHE');
+        try {
+          if (await localFile.length() > 2) {
+            final contents = await localFile.readAsString();
+            final decoded = await compute(_decodeJsonMap, contents);
+            if (_isValidWordData(decoded)) {
+              data = decoded;
+              print('💾 [WordupApi] Word $wordId ${wordText != null ? "(\"$wordText\") " : ""}loaded instantly from LOCAL CACHE');
+            } else {
+              print('⚠️ [WordupApi] Corrupt or incomplete cache for word $wordId (missing Senses). Purging file and re-fetching.');
+              try { await localFile.delete(); } catch (_) {}
+              needsCdnFetch = true;
+            }
+          } else {
+            print('⚠️ [WordupApi] Empty cache file for word $wordId. Purging file and re-fetching.');
+            try { await localFile.delete(); } catch (_) {}
+            needsCdnFetch = true;
+          }
+        } catch (e) {
+          print('⚠️ [WordupApi] Failed to parse cached JSON for word $wordId: $e. Purging file.');
+          try { await localFile.delete(); } catch (_) {}
+          needsCdnFetch = true;
+        }
       } else {
         needsCdnFetch = true;
       }
     }
 
-    // 2. Fetch from network (GitHub Cloud REST API first, WordUp CDN fallback)
+    // 2. Fetch from network (WordUp CDN first, GitHub Cloud REST API fallback)
     if (needsCdnFetch) {
       data = await _downloadWord(wordId, wordText: wordText);
-      if (!kIsWeb && localFile != null) {
-        await localFile.writeAsString(json.encode(data));
+      if (_isValidWordData(data)) {
+        if (!kIsWeb && localFile != null) {
+          await localFile.writeAsString(json.encode(data));
+        }
+        if (kIsWeb) _webMemoryCache[wordId] = data;
+      } else {
+        print('❌ [WordupApi] Network fetch for word $wordId failed or returned invalid data. NOT caching failure.');
       }
-      if (kIsWeb) _webMemoryCache[wordId] = data;
     }
 
-    // 3. Fetch Zann data for illustrations & extra quotes
-    if (wordText != null && data != null) {
+    // 3. Fetch Zann data for illustrations & extra quotes (only if base word data is valid)
+    if (wordText != null && data != null && _isValidWordData(data)) {
       final currentData = data;
       if (!currentData.containsKey('ZannSenses') || !currentData.containsKey('ZannQuotes')) {
         if (isPrefetch) {
@@ -112,7 +142,7 @@ class WordupApi {
             if (zannData.isNotEmpty) {
               if (zannData.containsKey('ZannQuotes')) currentData['ZannQuotes'] = zannData['ZannQuotes'];
               if (zannData.containsKey('ZannSenses')) currentData['ZannSenses'] = zannData['ZannSenses'];
-              if (!kIsWeb && localFile != null) {
+              if (!kIsWeb && localFile != null && _isValidWordData(currentData)) {
                 await localFile.writeAsString(json.encode(currentData));
               }
             }
@@ -122,7 +152,7 @@ class WordupApi {
             if (zannData.isNotEmpty) {
               if (zannData.containsKey('ZannQuotes')) currentData['ZannQuotes'] = zannData['ZannQuotes'];
               if (zannData.containsKey('ZannSenses')) currentData['ZannSenses'] = zannData['ZannSenses'];
-              if (!kIsWeb && localFile != null) {
+              if (!kIsWeb && localFile != null && _isValidWordData(currentData)) {
                 await localFile.writeAsString(json.encode(currentData));
               }
               if (onExtraDataLoaded != null) {
@@ -369,7 +399,13 @@ class WordupApi {
       if (kIsWeb) return dictUrl;
       
       final file = await _getLocalFile('${wordId}_dict_$lang.mp3');
-      if (await file.exists() && (await file.length()) > 0) return file.path;
+      if (await file.exists()) {
+        if (await file.length() > 0) {
+          return file.path;
+        } else {
+          try { await file.delete(); } catch (_) {}
+        }
+      }
       
       try {
         final response = await http.get(Uri.parse(dictUrl)).timeout(const Duration(seconds: 5));

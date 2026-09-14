@@ -180,6 +180,12 @@ class ReviewQuestionService {
       }
     } catch (_) {}
 
+    // If cloud data could not be fetched or has no senses, skip this word from review
+    if (wordData == null || wordData.senses.isEmpty) {
+      print('⚠️ [ReviewQuestionService] Word ${word.id} ("${word.text}") has no rich definitions/senses. Skipping.');
+      return null;
+    }
+
     // 2. Pre-cache word illustration into RAM + disk
     String? displayImageUrl;
     if (wordData != null) {
@@ -253,13 +259,13 @@ class ReviewQuestionService {
     final settings = SettingsService();
     List<String> types = [];
     if (settings.enableMeaningQuestion) types.add('meaning');
-    if (settings.enableQuoteQuestion && wordData != null && wordData.quotes.isNotEmpty) types.add('quote');
-    if (settings.enableSynonymQuestion && wordData != null && wordData.senses.any((s) => s.sy.isNotEmpty)) types.add('synonym');
-    if (settings.enableAntonymQuestion && wordData != null && wordData.senses.any((s) => s.op.isNotEmpty)) types.add('antonym');
-    if (settings.enableExampleQuestion && wordData != null && wordData.senses.any((s) => s.ex.isNotEmpty)) types.add('example');
-    if (settings.enableMisspellingQuestion && wordData != null && wordData.misspellings.isNotEmpty) types.add('misspelling');
+    if (settings.enableQuoteQuestion && wordData.quotes.isNotEmpty) types.add('quote');
+    if (settings.enableSynonymQuestion && wordData.senses.any((s) => s.sy.isNotEmpty)) types.add('synonym');
+    if (settings.enableAntonymQuestion && wordData.senses.any((s) => s.op.isNotEmpty)) types.add('antonym');
+    if (settings.enableExampleQuestion && wordData.senses.any((s) => s.ex.isNotEmpty)) types.add('example');
+    if (settings.enableMisspellingQuestion && wordData.misspellings.isNotEmpty) types.add('misspelling');
     if (settings.enableSpellingQuestion) types.add('listening');
-    if (settings.enableCompareQuestion && wordData != null && wordData.comparisons.isNotEmpty) types.add('compare');
+    if (settings.enableCompareQuestion && wordData.comparisons.isNotEmpty) types.add('compare');
 
     if (types.isEmpty) types.add('meaning');
     types.shuffle();
@@ -272,6 +278,9 @@ class ReviewQuestionService {
     if (variants.isEmpty) {
       final fallback = await _generateVariant('meaning', word, wordData);
       if (fallback != null) variants.add(fallback);
+    }
+    if (variants.isEmpty) {
+      return null;
     }
 
     final prepared = PreparedReviewQuestion(
