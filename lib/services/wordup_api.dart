@@ -5,7 +5,6 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:archive/archive.dart';
-import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 import 'progress_service.dart';
 import 'database_service.dart';
@@ -54,6 +53,11 @@ class WordupApi {
   static final String _token = EncryptionService.decryptString('+af/iXwKxqZD7kKqV20wJYIV908a3oM1/VoQfveGmXXWRs2AZlEx3Np4BzXarCpL');
   static final Map<String, Map<String, dynamic>> _webMemoryCache = {};
   static final http.Client _client = http.Client();
+
+  /// Clears the in-memory cache
+  static void clearMemoryCache() {
+    _webMemoryCache.clear();
+  }
   
   static Future<File> _getLocalFile(String filename) async {
     final dir = await getApplicationDocumentsDirectory();
@@ -368,21 +372,16 @@ class WordupApi {
     return await compute(_decodeGzipBytes, response.bodyBytes);
   }
 
-  static int _ttsPlaybackIndex = 0;
-
-  static Future<File> _getTempTtsFile() async {
-    final dir = await getTemporaryDirectory();
-    _ttsPlaybackIndex = (_ttsPlaybackIndex + 1) % 5;
-    return File('${dir.path}/tts_temp_$_ttsPlaybackIndex.mp3');
-  }
-
-  static Future<File> _getPersistentTtsFile(String hash) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final cacheDir = Directory('${dir.path}/wordup_audio_cache');
-    if (!await cacheDir.exists()) {
-      await cacheDir.create(recursive: true);
+  /// Automatically clean up any legacy persistent TTS audio cache directory
+  static void purgeLegacyTtsCache() {
+    if (!kIsWeb) {
+      getApplicationDocumentsDirectory().then((dir) {
+        final cacheDir = Directory('${dir.path}/wordup_audio_cache');
+        if (cacheDir.existsSync()) {
+          cacheDir.deleteSync(recursive: true);
+        }
+      }).catchError((_) {});
     }
-    return File('${cacheDir.path}/tts_$hash.mp3');
   }
 
   static Future<String> getAudioPath(String wordId, {String? wordText, required bool isUk, required bool useGoogleTts}) async {
@@ -423,7 +422,7 @@ class WordupApi {
     }
   }
 
-  static List<String> _splitTextForTts(String text, {int maxChunkLength = 140}) {
+  static List<String> _splitTextForTts(String text, {int maxChunkLength = 200}) {
     final List<String> chunks = [];
     final sentences = text.split(RegExp(r'(?<=[.;:?!,])\s+'));
     
@@ -456,20 +455,26 @@ class WordupApi {
     return chunks;
   }
 
-  static Future<String> _fetchGoogleSentenceAudio(String text, {required bool isUk, File? targetFile}) async {
+  static Future<String> _fetchGoogleSentenceAudio(String text, {required bool isUk}) async {
     final lang = isUk ? 'en-uk' : 'en-us';
     final baseUrl = '${EncryptionService.decryptString('GMYdOcvHclMrN1/WjlGrHmOwZw4A0OLl4lrHfVFiDFo5ADRT1LBAE6dONVg+MdLjfWI2EojCarPcBZiHivvBCA==')}$lang&client=tw-ob&q=';
     
-    if (kIsWeb && text.length <= 140) {
+    if (text.length <= 200) {
       return '$baseUrl${Uri.encodeComponent(text)}';
     }
 
-    final chunks = _splitTextForTts(text, maxChunkLength: 140);
-    final List<int> combinedBytes = [];
+    final chunks = _splitTextForTts(text, maxChunkLength: 200);
 
-    for (var chunk in chunks) {
-      final url = '$baseUrl${Uri.encodeComponent(chunk)}';
-      final response = await http.get(Uri.parse(url));
+    // Fetch all chunks in parallel for maximum speed
+    final responses = await Future.wait(
+      chunks.map((chunk) {
+        final url = '$baseUrl${Uri.encodeComponent(chunk)}';
+        return http.get(Uri.parse(url)).timeout(const Duration(seconds: 8));
+      }),
+    );
+
+    final List<int> combinedBytes = [];
+    for (var response in responses) {
       if (response.statusCode == 200) {
         combinedBytes.addAll(response.bodyBytes);
       } else {
@@ -478,34 +483,24 @@ class WordupApi {
     }
 
     if (combinedBytes.isNotEmpty) {
-      if (kIsWeb) {
-        return 'data:audio/mp3;base64,${base64Encode(combinedBytes)}';
-      }
-      final file = targetFile ?? await _getTempTtsFile();
-      await file.writeAsBytes(combinedBytes);
-      return file.path;
+      return 'data:audio/mp3;base64,${base64Encode(combinedBytes)}';
     }
     throw Exception('Failed to load Google TTS audio');
   }
 
   static Future<String> getSentenceAudioPath(String text, {required bool isUk}) async {
-    final lang = isUk ? 'en-uk' : 'en-us';
-    final textHash = md5.convert(utf8.encode('$lang:${text.trim()}')).toString();
-
-    if (!kIsWeb) {
-      final cachedFile = await _getPersistentTtsFile(textHash);
-      if (await cachedFile.exists() && (await cachedFile.length()) > 0) {
-        return cachedFile.path;
-      }
-    }
-
     final settings = SettingsService();
     final enableEdge = settings.enableEdgeTts;
     final enableGoogle = settings.enableGoogleTts;
 
+    // For longer texts/quotes (>120 chars), prioritize Edge TTS since it synthesizes full paragraphs in a single fast WebSocket connection
     bool useEdge = true;
     if (enableEdge && enableGoogle) {
-      useEdge = Random().nextBool();
+      if (text.trim().length > 120) {
+        useEdge = true;
+      } else {
+        useEdge = Random().nextBool();
+      }
     } else if (enableEdge) {
       useEdge = true;
     } else {
@@ -516,12 +511,7 @@ class WordupApi {
       try {
         final audioBytes = await EdgeTtsService.synthesize(text, isUk: isUk);
         if (audioBytes.isNotEmpty) {
-          if (kIsWeb) {
-            return 'data:audio/mp3;base64,${base64Encode(audioBytes)}';
-          }
-          final file = await _getPersistentTtsFile(textHash);
-          await file.writeAsBytes(audioBytes);
-          return file.path;
+          return 'data:audio/mp3;base64,${base64Encode(audioBytes)}';
         }
       } catch (e) {
         print('Edge TTS failed ($e), falling back to Google TTS...');
@@ -531,8 +521,7 @@ class WordupApi {
       }
     }
 
-    final persistentFile = kIsWeb ? null : await _getPersistentTtsFile(textHash);
-    return await _fetchGoogleSentenceAudio(text, isUk: isUk, targetFile: persistentFile);
+    return await _fetchGoogleSentenceAudio(text, isUk: isUk);
   }
 
 }

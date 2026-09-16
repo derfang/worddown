@@ -105,9 +105,10 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildStatColumn('Known Words', '${_progress.knownWordIds.length}', Colors.greenAccent),
+                      _buildStatColumn('Known', '${_progress.knownWordIds.length}', Colors.greenAccent),
                       _buildStatColumn('In Progress', '${_progress.allProgress.length}', Colors.blueAccent),
                       _buildStatColumn('To Learn', '${_progress.queuedWordsToLearn.length}', Colors.orangeAccent),
+                      _buildStatColumn('Pending', '${_progress.pendingSyncWordIds.length}', _progress.pendingSyncWordIds.isNotEmpty ? Colors.amberAccent : Colors.white38),
                     ],
                   ),
                 ],
@@ -115,6 +116,38 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
             ),
           ),
           SizedBox(height: 12),
+
+          // Pending Offline Sync Banner if changes pending
+          if (_progress.pendingSyncWordIds.isNotEmpty) ...[
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.cloud_queue, color: Colors.amberAccent),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '${_progress.pendingSyncWordIds.length} offline progress changes pending sync.',
+                      style: TextStyle(color: Colors.amberAccent, fontSize: 13),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _sync.isSyncing.value ? null : () async {
+                      await _sync.flushPendingSync();
+                      if (mounted) setState(() {});
+                    },
+                    child: Text('Sync Now', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amberAccent)),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 12),
+          ],
 
           // Sync State Card
           Card(

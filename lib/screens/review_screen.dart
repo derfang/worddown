@@ -511,21 +511,48 @@ class _ReviewScreenState extends State<ReviewScreen> {
     }
   }
 
+  double _getAdaptiveFontSize(String text) {
+    final len = text.length;
+    if (len <= 10) return 42;
+    if (len <= 16) return 30;
+    if (len <= 25) return 24;
+    return 20;
+  }
+
   Widget _buildWordWithAudioPrompt() {
+    final wordText = _currentDictWord!.text;
+    final fontSize = _getAdaptiveFontSize(wordText);
+    final isLongWord = !wordText.contains(' ') && wordText.length > 11;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Flexible(
-          child: Text(
-            _currentDictWord!.text,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: _currentDictWord!.text.length > 20 ? 32 : 48,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          child: isLongWord
+              ? FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    wordText,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              : Text(
+                  wordText,
+                  textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
         ),
         SizedBox(width: 8),
         IconButton(
@@ -742,15 +769,41 @@ class _ReviewScreenState extends State<ReviewScreen> {
             SizedBox(height: 16),
             GestureDetector(
               onTap: onTapPrompt,
-              child: customMainWidget ?? Text(
-                mainText ?? '',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: onTapPrompt != null ? Colors.blueAccent : Colors.white, 
-                  fontSize: (mainText?.length ?? 0) > 50 ? 20 : ((mainText?.length ?? 0) > 20 ? 32 : 48), 
-                  fontWeight: FontWeight.bold,
-                  fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
-                ),
+              child: customMainWidget ?? Builder(
+                builder: (context) {
+                  final text = mainText ?? '';
+                  final fontSize = _getAdaptiveFontSize(text);
+                  final isSingleLongWord = !text.contains(' ') && text.length > 11;
+                  
+                  if (isSingleLongWord) {
+                    return FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        text,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: onTapPrompt != null ? Colors.blueAccent : Colors.white,
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.bold,
+                          fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+                        ),
+                      ),
+                    );
+                  }
+                  
+                  return Text(
+                    text,
+                    textAlign: TextAlign.center,
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: onTapPrompt != null ? Colors.blueAccent : Colors.white,
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.bold,
+                      fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+                    ),
+                  );
+                },
               ),
             ),
               SizedBox(height: 48),

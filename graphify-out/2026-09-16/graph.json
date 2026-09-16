@@ -698,7 +698,7 @@
       "file_type": "code",
       "norm_label": "extract_image_urls()",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L139"
+      "source_location": "L137"
     },
     {
       "id": "scripts_image_sync_fetch_url_bytes",
@@ -710,7 +710,7 @@
       "file_type": "code",
       "norm_label": "fetch_url_bytes()",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L90"
+      "source_location": "L88"
     },
     {
       "id": "scripts_image_sync_load_key_iv",
@@ -734,7 +734,7 @@
       "file_type": "code",
       "norm_label": "main()",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L405"
+      "source_location": "L404"
     },
     {
       "id": "scripts_image_sync_run_audit",
@@ -746,7 +746,7 @@
       "file_type": "code",
       "norm_label": "run_audit()",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L213"
+      "source_location": "L211"
     },
     {
       "id": "scripts_image_sync_run_scrape",
@@ -758,7 +758,7 @@
       "file_type": "code",
       "norm_label": "run_scrape()",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L255"
+      "source_location": "L253"
     },
     {
       "id": "scripts_image_sync_scrape_zann",
@@ -770,7 +770,7 @@
       "file_type": "code",
       "norm_label": "scrape_zann()",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L180"
+      "source_location": "L178"
     },
     {
       "id": "scripts_image_sync_validate_word_json",
@@ -782,7 +782,7 @@
       "file_type": "code",
       "norm_label": "validate_word_json()",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L100"
+      "source_location": "L98"
     },
     {
       "id": "app_fetchandrenderword",
@@ -9602,18 +9602,7 @@
       "source_location": "L1"
     },
     {
-      "id": "scripts_image_sync_rationale_101",
-      "label": "Returns True only when the JSON payload is structurally sound. All checks are\u2026",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "image_sync.py",
-      "file_type": "rationale",
-      "norm_label": "returns true only when the json payload is structurally sound. all checks are...",
-      "source_file": "scripts/image_sync.py",
-      "source_location": "L101"
-    },
-    {
-      "id": "scripts_image_sync_rationale_140",
+      "id": "scripts_image_sync_rationale_138",
       "label": "Returns a list of dicts describing every image associated with this word. Each\u2026",
       "_origin": "ast",
       "community": 41,
@@ -9621,10 +9610,10 @@
       "file_type": "rationale",
       "norm_label": "returns a list of dicts describing every image associated with this word. each...",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L140"
+      "source_location": "L138"
     },
     {
-      "id": "scripts_image_sync_rationale_181",
+      "id": "scripts_image_sync_rationale_179",
       "label": "Returns a dict with keys: ZannWordImage, ZannSenses, ZannQuotes. Returns empty\u2026",
       "_origin": "ast",
       "community": 41,
@@ -9632,7 +9621,7 @@
       "file_type": "rationale",
       "norm_label": "returns a dict with keys: zannwordimage, zannsenses, zannquotes. returns empty...",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L181"
+      "source_location": "L179"
     },
     {
       "id": "scripts_image_sync_rationale_77",
@@ -9644,6 +9633,17 @@
       "norm_label": "map a cdn url to a sharded hugging face path. e.g. https://word-images.cdn-...",
       "source_file": "scripts/image_sync.py",
       "source_location": "L77"
+    },
+    {
+      "id": "scripts_image_sync_rationale_99",
+      "label": "Returns True only when the JSON payload is structurally sound. All checks are\u2026",
+      "_origin": "ast",
+      "community": 41,
+      "community_name": "image_sync.py",
+      "file_type": "rationale",
+      "norm_label": "returns true only when the json payload is structurally sound. all checks are...",
+      "source_file": "scripts/image_sync.py",
+      "source_location": "L99"
     },
     {
       "id": "bin_encryptor",
@@ -13820,7 +13820,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L423",
+      "source_location": "L422",
       "weight": 1.0
     },
     {
@@ -13832,7 +13832,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L426",
+      "source_location": "L425",
       "weight": 1.0
     },
     {
@@ -13844,7 +13844,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L430",
+      "source_location": "L429",
       "weight": 1.0
     },
     {
@@ -13856,7 +13856,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L224",
+      "source_location": "L222",
       "weight": 1.0
     },
     {
@@ -13868,7 +13868,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L305",
+      "source_location": "L303",
       "weight": 1.0
     },
     {
@@ -13880,7 +13880,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L310",
+      "source_location": "L308",
       "weight": 1.0
     },
     {
@@ -13892,7 +13892,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L316",
+      "source_location": "L314",
       "weight": 1.0
     },
     {
@@ -13904,7 +13904,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L324",
+      "source_location": "L322",
       "weight": 1.0
     },
     {
@@ -13916,7 +13916,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L334",
+      "source_location": "L332",
       "weight": 1.0
     },
     {
@@ -13928,7 +13928,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L335",
+      "source_location": "L333",
       "weight": 1.0
     },
     {
@@ -13940,7 +13940,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/image_sync.py",
-      "source_location": "L188",
+      "source_location": "L186",
       "weight": 1.0
     },
     {
@@ -18220,24 +18220,13 @@
     },
     {
       "source": "scripts_image_sync",
-      "target": "scripts_image_sync_validate_word_json",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/image_sync.py",
-      "source_location": "L100",
-      "weight": 1.0
-    },
-    {
-      "source": "scripts_image_sync",
       "target": "scripts_image_sync_extract_image_urls",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "scripts/image_sync.py",
-      "source_location": "L139",
+      "source_location": "L137",
       "weight": 1.0
     },
     {
@@ -18248,7 +18237,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "scripts/image_sync.py",
-      "source_location": "L180",
+      "source_location": "L178",
       "weight": 1.0
     },
     {
@@ -18259,7 +18248,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "scripts/image_sync.py",
-      "source_location": "L213",
+      "source_location": "L211",
       "weight": 1.0
     },
     {
@@ -18270,7 +18259,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "scripts/image_sync.py",
-      "source_location": "L255",
+      "source_location": "L253",
       "weight": 1.0
     },
     {
@@ -18281,7 +18270,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "scripts/image_sync.py",
-      "source_location": "L405",
+      "source_location": "L404",
       "weight": 1.0
     },
     {
@@ -18336,7 +18325,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "scripts/image_sync.py",
-      "source_location": "L90",
+      "source_location": "L88",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_image_sync",
+      "target": "scripts_image_sync_validate_word_json",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/image_sync.py",
+      "source_location": "L98",
       "weight": 1.0
     },
     {
@@ -30363,36 +30363,25 @@
       "weight": 1.0
     },
     {
-      "source": "scripts_image_sync_rationale_101",
-      "target": "scripts_image_sync_validate_word_json",
-      "relation": "rationale_for",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/image_sync.py",
-      "source_location": "L101",
-      "weight": 1.0
-    },
-    {
-      "source": "scripts_image_sync_rationale_140",
+      "source": "scripts_image_sync_rationale_138",
       "target": "scripts_image_sync_extract_image_urls",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "scripts/image_sync.py",
-      "source_location": "L140",
+      "source_location": "L138",
       "weight": 1.0
     },
     {
-      "source": "scripts_image_sync_rationale_181",
+      "source": "scripts_image_sync_rationale_179",
       "target": "scripts_image_sync_scrape_zann",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "scripts/image_sync.py",
-      "source_location": "L181",
+      "source_location": "L179",
       "weight": 1.0
     },
     {
@@ -30404,6 +30393,17 @@
       "confidence_score": 1.0,
       "source_file": "scripts/image_sync.py",
       "source_location": "L77",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_image_sync_rationale_99",
+      "target": "scripts_image_sync_validate_word_json",
+      "relation": "rationale_for",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/image_sync.py",
+      "source_location": "L99",
       "weight": 1.0
     },
     {

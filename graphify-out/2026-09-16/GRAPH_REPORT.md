@@ -1,7 +1,7 @@
-# Graph Report - worddown  (2026-09-16)
+# Graph Report - worddown  (2026-09-15)
 
 ## Corpus Check
-- 133 files · ~151,015 words
+- 133 files · ~150,976 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -273,7 +273,7 @@ Nodes (12): dart:convert, main, maxCount, progress, words, main, mire, progress 
 
 ### Community 41 - "image_sync.py"
 Cohesion: 0.22
-Nodes (14): compute_hf_path(), encrypt_bytes(), extract_image_urls(), fetch_url_bytes(), _load_key_iv(), main(), Returns True only when the JSON payload is structurally sound. All checks are…, Returns a list of dicts describing every image associated with this word. Each… (+6 more)
+Nodes (14): compute_hf_path(), encrypt_bytes(), extract_image_urls(), fetch_url_bytes(), _load_key_iv(), main(), Returns a list of dicts describing every image associated with this word. Each…, Returns a dict with keys: ZannWordImage, ZannSenses, ZannQuotes. Returns empty… (+6 more)
 
 ### Community 42 - "dart:io"
 Cohesion: 0.14

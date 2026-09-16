@@ -219,9 +219,6 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
       for (var d in distractors) {
         options.add(ReviewOption(d.id, d.meaning, false));
       }
-      if (type == 'listening') {
-        _playAudio(word.id.toString(), word.text);
-      }
     } else if (type == 'quote' || type == 'example') {
       final isQuote = type == 'quote';
       String text;
@@ -357,7 +354,6 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
       for (int i = 0; i < 3; i++) {
         options.add(ReviewOption(-1, selectedMiss[i], false));
       }
-      _playAudio(word.id.toString(), word.text);
     }
     
     options.shuffle();
@@ -371,16 +367,23 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
         _questionData = questionData;
         _isLoadingTest = false;
       });
+
+      // Auto-play audio for all audible question types
+      if (type == 'meaning' || type == 'listening' || type == 'synonym' || type == 'antonym' || type == 'misspelling') {
+        _playAudio(word.id.toString(), word.text);
+      }
     }
   }
 
   Future<void> _playAudio(String wordId, String text) async {
     try {
       final path = await WordupApi.getAudioPath(wordId, wordText: text, isUk: false, useGoogleTts: false);
-      if (path.startsWith('http')) {
-        await _audioPlayer.play(UrlSource(path));
-      } else {
-        await _audioPlayer.play(DeviceFileSource(path));
+      if (path.isNotEmpty) {
+        if (path.startsWith('http') || path.startsWith('data:')) {
+          await _audioPlayer.play(UrlSource(path));
+        } else {
+          await _audioPlayer.play(DeviceFileSource(path));
+        }
       }
     } catch (_) {}
   }
@@ -449,6 +452,7 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
       );
     }
 
+    final theme = Theme.of(context);
     // Otherwise, we are in Test mode
     return Scaffold(
       appBar: AppBar(
@@ -456,10 +460,22 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      backgroundColor: Color(0xFF1E1B4B),
-      body: _isLoadingTest 
-          ? Center(child: CircularProgressIndicator(color: Colors.cyan))
-          : _buildTestBody(),
+      extendBodyBehindAppBar: true,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.scaffoldBackgroundColor,
+              Color(0xFF1E1B4B), // Deep indigo matching ReviewScreen
+            ],
+          ),
+        ),
+        child: _isLoadingTest 
+            ? Center(child: CircularProgressIndicator(color: Colors.cyan))
+            : _buildTestBody(),
+      ),
     );
   }
 
@@ -497,6 +513,58 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
     );
   }
 
+  double _getAdaptiveFontSize(String text) {
+    final len = text.length;
+    if (len <= 10) return 42;
+    if (len <= 16) return 30;
+    if (len <= 25) return 24;
+    return 20;
+  }
+
+  Widget _buildWordWithAudioPrompt(String text) {
+    final fontSize = _getAdaptiveFontSize(text);
+    final isSingleLongWord = !text.contains(' ') && text.length > 11;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Flexible(
+          child: isSingleLongWord
+              ? FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    text,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              : Text(
+                  text,
+                  textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+        ),
+        SizedBox(width: 8),
+        IconButton(
+          icon: Icon(Icons.volume_up_rounded, color: Colors.cyanAccent, size: 28),
+          onPressed: () => _playAudio(_currentDictWord!.id.toString(), _currentDictWord!.text),
+          tooltip: 'Listen to pronunciation',
+        ),
+      ],
+    );
+  }
+
   Widget _buildTestBody() {
     if (_currentDictWord == null) return Container();
     
@@ -510,70 +578,66 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
               children: [
                 // Question Area
                 Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
                   child: _buildQuestionContent(),
                 ),
                 
                 // Options Area
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ..._currentOptions.map((opt) {
-                      bool isSelected = _selectedOptionId == opt.id;
-                      bool isCorrectOption = opt.isCorrect;
-                      
-                      Color bgColor = Colors.white.withOpacity(0.05);
-                      Color borderColor = Colors.white.withOpacity(0.1);
-                      
-                      if (_selectedOptionId != null) {
-                        if (isCorrectOption) {
-                          bgColor = Colors.green.withOpacity(0.2);
-                          borderColor = Colors.green;
-                        } else if (isSelected && !isCorrectOption) {
-                          bgColor = Colors.red.withOpacity(0.2);
-                          borderColor = Colors.red;
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ..._currentOptions.map((opt) {
+                        Color bgColor = Colors.white.withOpacity(0.1);
+                        if (_selectedOptionId != null) {
+                          if (opt.isCorrect) {
+                            bgColor = Colors.green;
+                          } else if (opt.id == _selectedOptionId) {
+                            bgColor = Colors.red;
+                          } else {
+                            bgColor = Colors.white.withOpacity(0.05);
+                          }
                         }
-                      }
-                      
-                      return Container(
-                        margin: EdgeInsets.only(bottom: 12),
-                        width: double.infinity,
-                        child: InkWell(
-                          onTap: () => _submitAnswer(opt.id, opt.isCorrect),
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            padding: EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: bgColor,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: borderColor, width: 2),
+                        
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: bgColor,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              alignment: Alignment.center,
                             ),
+                            onPressed: () {
+                              if (_selectedOptionId == null) {
+                                _submitAnswer(opt.id, opt.isCorrect);
+                              }
+                            },
                             child: Text(
                               opt.text,
-                              style: TextStyle(color: Colors.white, fontSize: 18),
                               textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 16),
                             ),
                           ),
-                        ),
-                      );
-                    }).toList(),
-                    
-                    if (_selectedOptionId != null)
-                      Container(
-                        margin: EdgeInsets.only(top: 24),
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _nextAction,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.cyan,
-                            padding: EdgeInsets.symmetric(vertical: 20),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        );
+                      }).toList(),
+                      
+                      if (_selectedOptionId != null)
+                        Container(
+                          margin: EdgeInsets.only(top: 20),
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _nextAction,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.cyan,
+                              padding: EdgeInsets.symmetric(vertical: 18),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            child: Text('Next', style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
                           ),
-                          child: Text('Next', style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -593,9 +657,9 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('What is the meaning of', style: TextStyle(color: Colors.white70, fontSize: 18)),
+          Text('What is the meaning of...', style: TextStyle(color: Colors.white70, fontSize: 18)),
           SizedBox(height: 16),
-          Text(word.text.toUpperCase(), style: TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.w900, letterSpacing: 2)),
+          _buildWordWithAudioPrompt(word.text),
         ],
       );
     } else if (type == 'quote' && _questionData != null) {
@@ -604,13 +668,15 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Complete the quote', style: TextStyle(color: Colors.white70, fontSize: 18)),
-          SizedBox(height: 24),
-          Icon(Icons.format_quote, color: Colors.cyan.withOpacity(0.5), size: 48),
-          SizedBox(height: 16),
-          Text(text, style: TextStyle(color: Colors.white, fontSize: 24, height: 1.4), textAlign: TextAlign.center),
-          SizedBox(height: 16),
-          Text('- ${quote.authorName}', style: TextStyle(color: Colors.white54, fontSize: 16, fontStyle: FontStyle.italic)),
+          Text('Complete the quote by ${quote.authorName}:', style: TextStyle(color: Colors.white70, fontSize: 18), textAlign: TextAlign.center),
+          SizedBox(height: 20),
+          Icon(Icons.format_quote, color: Colors.cyan.withOpacity(0.5), size: 40),
+          SizedBox(height: 12),
+          Text(
+            '"$text"',
+            style: TextStyle(color: Colors.white, fontSize: 22, height: 1.4, fontStyle: FontStyle.italic),
+            textAlign: TextAlign.center,
+          ),
         ],
       );
     } else if (type == 'example' && _questionData != null) {
@@ -618,51 +684,127 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Complete the sentence', style: TextStyle(color: Colors.white70, fontSize: 18)),
-          SizedBox(height: 24),
-          Text(text, style: TextStyle(color: Colors.white, fontSize: 24, height: 1.4), textAlign: TextAlign.center),
+          Text('Fill in the blank:', style: TextStyle(color: Colors.white70, fontSize: 18)),
+          SizedBox(height: 20),
+          Text(
+            '"$text"',
+            style: TextStyle(color: Colors.white, fontSize: 22, height: 1.4, fontStyle: FontStyle.italic),
+            textAlign: TextAlign.center,
+          ),
         ],
       );
     } else if (type == 'synonym') {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Which of these are synonyms for', style: TextStyle(color: Colors.white70, fontSize: 18)),
+          Text.rich(
+            TextSpan(
+              text: 'Which word is a ',
+              style: TextStyle(color: Colors.white70, fontSize: 18),
+              children: [
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.middle,
+                  child: Container(
+                    margin: EdgeInsets.symmetric(horizontal: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.cyanAccent.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.cyanAccent.withOpacity(0.5)),
+                    ),
+                    child: Text(
+                      'synonym',
+                      style: TextStyle(
+                        color: Colors.cyanAccent,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+                TextSpan(
+                  text: ' for...',
+                  style: TextStyle(color: Colors.white70, fontSize: 18),
+                ),
+              ],
+            ),
+            textAlign: TextAlign.center,
+          ),
           SizedBox(height: 16),
-          Text(word.text.toUpperCase(), style: TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.w900, letterSpacing: 2)),
+          _buildWordWithAudioPrompt(word.text),
         ],
       );
     } else if (type == 'antonym') {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Which of these are antonyms for', style: TextStyle(color: Colors.white70, fontSize: 18)),
+          Text.rich(
+            TextSpan(
+              text: 'Which word is an ',
+              style: TextStyle(color: Colors.white70, fontSize: 18),
+              children: [
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.middle,
+                  child: Container(
+                    margin: EdgeInsets.symmetric(horizontal: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                    ),
+                    child: Text(
+                      'antonym (opposite)',
+                      style: TextStyle(
+                        color: Colors.redAccent.shade100,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+                TextSpan(
+                  text: ' of...',
+                  style: TextStyle(color: Colors.white70, fontSize: 18),
+                ),
+              ],
+            ),
+            textAlign: TextAlign.center,
+          ),
           SizedBox(height: 16),
-          Text(word.text.toUpperCase(), style: TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.w900, letterSpacing: 2)),
+          _buildWordWithAudioPrompt(word.text),
         ],
       );
     } else if (type == 'listening') {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Listen and choose the meaning', style: TextStyle(color: Colors.white70, fontSize: 18)),
-          SizedBox(height: 32),
+          Text('Listen and select the meaning', style: TextStyle(color: Colors.white70, fontSize: 18)),
+          SizedBox(height: 24),
           InkWell(
             onTap: () => _playAudio(word.id.toString(), word.text),
             borderRadius: BorderRadius.circular(50),
             child: Container(
-              padding: EdgeInsets.all(32),
+              padding: EdgeInsets.all(28),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.cyan.withOpacity(0.1),
-                border: Border.all(color: Colors.cyan, width: 2),
+                color: Colors.white.withOpacity(0.05),
+                border: Border.all(color: Colors.cyanAccent.withOpacity(0.4), width: 2),
               ),
-              child: Icon(Icons.volume_up, color: Colors.cyan, size: 64),
+              child: Icon(Icons.volume_up_rounded, color: Colors.cyanAccent, size: 56),
             ),
           ),
-          SizedBox(height: 16),
-          if (_selectedOptionId != null)
-            Text(word.text.toUpperCase(), style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+          if (_selectedOptionId != null) ...[
+            SizedBox(height: 16),
+            Text(
+              word.text,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: _getAdaptiveFontSize(word.text),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ],
       );
     } else if (type == 'compare' && _questionData != null) {
@@ -673,7 +815,7 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('Fill in the blank for this comparison:', style: TextStyle(color: Colors.white70, fontSize: 18)),
-          SizedBox(height: 24),
+          SizedBox(height: 20),
           Container(
             padding: EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -688,19 +830,19 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Choose the correct spelling', style: TextStyle(color: Colors.white70, fontSize: 18)),
-          SizedBox(height: 32),
+          Text('Listen and select the correct spelling', style: TextStyle(color: Colors.white70, fontSize: 18)),
+          SizedBox(height: 24),
           InkWell(
             onTap: () => _playAudio(word.id.toString(), word.text),
             borderRadius: BorderRadius.circular(50),
             child: Container(
-              padding: EdgeInsets.all(24),
+              padding: EdgeInsets.all(28),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.cyan.withOpacity(0.1),
-                border: Border.all(color: Colors.cyan, width: 2),
+                color: Colors.white.withOpacity(0.05),
+                border: Border.all(color: Colors.cyanAccent.withOpacity(0.4), width: 2),
               ),
-              child: Icon(Icons.volume_up, color: Colors.cyan, size: 48),
+              child: Icon(Icons.volume_up_rounded, color: Colors.cyanAccent, size: 56),
             ),
           ),
         ],

@@ -112,10 +112,11 @@ class MediaCacheService {
     try {
       final filename = Uri.parse(originalUrl).pathSegments.last; // e.g. "d70a7242-f5a5.webp"
       if (filename.isEmpty || !filename.contains('.')) return null;
-      final p1 = filename.substring(0, 2).toLowerCase();
-      final p2 = filename.substring(2, 4).toLowerCase();
+      final safeName = filename.startsWith('x00') ? 'img_$filename' : filename;
+      final p1 = safeName.substring(0, 2).toLowerCase();
+      final p2 = safeName.substring(2, 4).toLowerCase();
       return 'https://huggingface.co/datasets/derfang/worddown-media'
-             '/resolve/main/images/$p1/$p2/$filename.enc';
+             '/resolve/main/images/$p1/$p2/$safeName.enc';
     } catch (_) {
       return null;
     }

@@ -45,3 +45,4 @@ key.properties
 
 /releases/
 firebase_cpp_sdk_windows*
+*.db

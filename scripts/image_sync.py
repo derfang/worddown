@@ -80,9 +80,11 @@ def compute_hf_path(original_url: str) -> str:
          → images/d7/0a/d70a7242-f5a5.webp.enc
     """
     filename = original_url.split("/")[-1]        # e.g. "d70a7242-f5a5.webp"
-    p1 = filename[:2].lower()                     # "d7"
-    p2 = filename[2:4].lower()                    # "0a"
-    return f"images/{p1}/{p2}/{filename}.enc"
+    # Prevent /x00 path sequence which Hugging Face commit endpoint rejects
+    safe_name = f"img_{filename}" if filename.startswith("x00") else filename
+    p1 = safe_name[:2].lower()                    # "d7"
+    p2 = safe_name[2:4].lower()                   # "0a"
+    return f"images/{p1}/{p2}/{safe_name}.enc"
 
 
 def fetch_url_bytes(url: str, timeout: int = 10) -> bytes:
@@ -368,9 +370,8 @@ def run_scrape(
             )
             print(f"✅ Upload complete: {len(new_images_staged)} images pushed to {hf_repo}")
         except Exception as e:
-            print(f"❌ Hugging Face upload failed: {e}")
-            conn.close()
-            sys.exit(1)
+            print(f"⚠️ Hugging Face upload failed: {e}")
+            print("⚠️ Continuing with SQLite recording and database sync so word data is preserved.")
     else:
         print("\n📤 No new images to upload (all were deduplicated or skipped).")
 

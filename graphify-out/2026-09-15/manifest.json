@@ -162,9 +162,9 @@
     "semantic_hash": ""
   },
   "lib/main.dart": {
-    "mtime": 1789154624.791617,
-    "seen": 1789154773.2674139,
-    "ast_hash": "621adb3afa8bc9254d8774aa7b844a31",
+    "mtime": 1789492358.8508675,
+    "seen": 1789492567.1293647,
+    "ast_hash": "3e4d54a3b63296631f57a5798103b446",
     "semantic_hash": ""
   },
   "lib/models/word.dart": {
@@ -180,9 +180,9 @@
     "semantic_hash": ""
   },
   "lib/screens/learning_session_screen.dart": {
-    "mtime": 1789379909.6231222,
-    "seen": 1789380282.2279603,
-    "ast_hash": "ccae46e817f547facca0cfdbb228dd8d",
+    "mtime": 1789396792.0695677,
+    "seen": 1789396833.1775615,
+    "ast_hash": "22b26c358abc371cfa7bf05c63b71bd7",
     "semantic_hash": ""
   },
   "lib/screens/login_screen.dart": {
@@ -192,15 +192,15 @@
     "semantic_hash": ""
   },
   "lib/screens/review_screen.dart": {
-    "mtime": 1789379573.7549253,
-    "seen": 1789380282.2279603,
-    "ast_hash": "cbfe042e4bfbf3de2d2dfc3d6fba3005",
+    "mtime": 1789396670.0819101,
+    "seen": 1789396833.1775615,
+    "ast_hash": "aaab3c8d292dc6895c1d5b990056787e",
     "semantic_hash": ""
   },
   "lib/screens/settings_screen.dart": {
-    "mtime": 1789073269.8834934,
-    "seen": 1789073526.5051131,
-    "ast_hash": "b97ef28df20aaff44d149362dd0b3873",
+    "mtime": 1789495846.1571455,
+    "seen": 1789495902.5669568,
+    "ast_hash": "96562250b5cb343fb6c9f27e5d39f50e",
     "semantic_hash": ""
   },
   "lib/screens/word_list_screen.dart": {
@@ -210,9 +210,9 @@
     "semantic_hash": ""
   },
   "lib/screens/word_view_screen.dart": {
-    "mtime": 1789379721.317482,
-    "seen": 1789380282.2279603,
-    "ast_hash": "35adc4933507d3212187abea8c130400",
+    "mtime": 1789491978.54393,
+    "seen": 1789492567.1293647,
+    "ast_hash": "f1a50d4a2622e078f43f7c95041118a2",
     "semantic_hash": ""
   },
   "lib/services/database_service.dart": {
@@ -252,9 +252,9 @@
     "semantic_hash": ""
   },
   "lib/services/wordup_api.dart": {
-    "mtime": 1789379472.6066108,
-    "seen": 1789380282.2279603,
-    "ast_hash": "19f19324bfcd8fd2ba4b8fba42c122ef",
+    "mtime": 1789494354.660197,
+    "seen": 1789494805.7508676,
+    "ast_hash": "cc7cbbf60eca44245e61e9b76f46f216",
     "semantic_hash": ""
   },
   "lib/stubs/webview_windows_stub.dart": {
@@ -1209,6 +1209,18 @@
     "mtime": 1789381532.571033,
     "seen": 1789381633.0424433,
     "ast_hash": "684a5e09f4fbdb1d0db6f2e7525bee61",
+    "semantic_hash": ""
+  },
+  "lib/services/cache_manager_service.dart": {
+    "mtime": 1789494431.0694904,
+    "seen": 1789494805.7508676,
+    "ast_hash": "88229d87f5122921c5029daa769329fb",
+    "semantic_hash": ""
+  },
+  "test/cache_manager_test.dart": {
+    "mtime": 1789494695.810717,
+    "seen": 1789494805.7508676,
+    "ast_hash": "0c329145af0e6389604dfe77c7f156f3",
     "semantic_hash": ""
   }
 }

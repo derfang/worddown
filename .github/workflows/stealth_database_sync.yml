@@ -81,6 +81,7 @@ jobs:
             --api-dir api_words
 
       - name: Scrape Zann Images & Upload to Hugging Face
+        continue-on-error: true
         env:
           ENC_KEY: ${{ secrets.ENC_KEY }}
           ENC_IV: ${{ secrets.ENC_IV }}

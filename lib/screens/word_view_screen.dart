@@ -342,7 +342,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
     });
     try {
       final path = await WordupApi.getSentenceAudioPath(text, isUk: _lastIsUk);
-      if (path.startsWith('http')) {
+      if (path.startsWith('http') || path.startsWith('data:')) {
         await _audioPlayer.play(UrlSource(path));
       } else {
         await _audioPlayer.play(DeviceFileSource(path));
@@ -381,16 +381,29 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
       onPressed: () => _playSentence(text, id),
     );
   }
-  Future<void> _playVideo(WordVideo video) async {
-    // Dispose existing controllers
-    _webviewController?.dispose();
-    _chewieController?.dispose();
-    _videoPlayerController?.dispose();
 
+  MuxedStreamInfo _selectOptimizedMuxedStream(StreamManifest manifest) {
+    final muxed = manifest.muxed.toList();
+    if (muxed.isEmpty) throw Exception('No muxed streams available');
+
+    // Prefer 480p for fast startup and low data usage
+    final p480 = muxed.where((s) => s.videoQuality == VideoQuality.medium480);
+    if (p480.isNotEmpty) return p480.first;
+
+    // Fallback to 360p
+    final p360 = muxed.where((s) => s.videoQuality == VideoQuality.medium360);
+    if (p360.isNotEmpty) return p360.first;
+
+    // Lowest available muxed stream to preserve bandwidth
+    muxed.sort((a, b) => a.bitrate.compareTo(b.bitrate));
+    return muxed.first;
+  }
+
+  Future<void> _playVideo(WordVideo video) async {
+    _closeVideo();
     setState(() {
       _playingVideo = video;
       _currentVideoPositionMs = video.startTimeMs;
-      _webviewController = null;
       _videoPlayerController = null;
       _chewieController = null;
       _videoError = null;
@@ -404,7 +417,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
       try {
         final yt = YoutubeExplode();
         final manifest = await yt.videos.streamsClient.getManifest(video.youtubeId);
-        final streamInfo = manifest.muxed.withHighestBitrate();
+        final streamInfo = _selectOptimizedMuxedStream(manifest);
         final rawUrl = streamInfo.url.toString();
         yt.close();
 
@@ -476,7 +489,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
       try {
         final yt = YoutubeExplode();
         final manifest = await yt.videos.streamsClient.getManifest(video.youtubeId);
-        final streamInfo = manifest.muxed.withHighestBitrate();
+        final streamInfo = _selectOptimizedMuxedStream(manifest);
         final rawUrl = streamInfo.url.toString();
         yt.close();
 
@@ -658,7 +671,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
         isUk: isUk, 
         useGoogleTts: useGoogleTts,
       );
-      if (path.startsWith('http')) {
+      if (path.startsWith('http') || path.startsWith('data:')) {
         await _audioPlayer.play(UrlSource(path));
       } else {
         await _audioPlayer.play(DeviceFileSource(path));
