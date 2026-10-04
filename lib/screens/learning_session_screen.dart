@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:math';
 import '../services/progress_service.dart';
 import '../services/settings_service.dart';
@@ -7,13 +10,8 @@ import '../services/wordup_api.dart';
 import '../models/word.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'word_view_screen.dart';
-
-class ReviewOption {
-  final int id;
-  final String text;
-  final bool isCorrect;
-  ReviewOption(this.id, this.text, this.isCorrect);
-}
+import '../services/review_question_service.dart';
+import '../widgets/cached_media_image.dart';
 
 enum SessionStep { view, test, finished }
 
@@ -24,6 +22,7 @@ class LearningSessionScreen extends StatefulWidget {
 
 class _LearningSessionScreenState extends State<LearningSessionScreen> {
   final ProgressService _progressService = ProgressService();
+  final ReviewQuestionService _reviewService = ReviewQuestionService();
   
   List<int> _queue = [];
   List<int> _recentViews = [];
@@ -42,7 +41,10 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
   bool? _wasCorrect;
   WordData? _currentWordData;
   dynamic _questionData;
+  bool _showWordDetails = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
+  PreparedReviewQuestion? _activePreparedQuestion;
+  int _audioSequenceId = 0;
 
   @override
   void initState() {
@@ -64,40 +66,39 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
 
   void _prefetchUpcomingWords() {
     final upcomingIds = <int>[];
-    
-    // 1. Next in test queue if any
     for (final id in _testQueue) {
-      if (!upcomingIds.contains(id)) {
-        upcomingIds.add(id);
-      }
+      if (!upcomingIds.contains(id)) upcomingIds.add(id);
       if (upcomingIds.length >= 2) break;
     }
-
-    // 2. Next in new words learning queue if needed
     if (upcomingIds.length < 2) {
       for (final id in _queue) {
-        if (!upcomingIds.contains(id)) {
-          upcomingIds.add(id);
-        }
+        if (!upcomingIds.contains(id)) upcomingIds.add(id);
         if (upcomingIds.length >= 2) break;
       }
     }
-
     for (final id in upcomingIds) {
-      WordupApi.prefetchWord(id, includeMedia: true, includeAudio: true);
+      _reviewService.getOrPrepareQuestionForWord(id, context: context);
     }
   }
 
   @override
   void dispose() {
+    _stopAllAudio();
     _audioPlayer.dispose();
     super.dispose();
   }
 
+  Future<void> _stopAllAudio() async {
+    _audioSequenceId++;
+    await _audioPlayer.stop();
+  }
+
   void _nextAction() {
     _prefetchUpcomingWords();
+    _stopAllAudio();
+    _showWordDetails = false;
+
     if (_testQueue.isNotEmpty) {
-      // Next is a test
       setState(() {
         _currentStep = SessionStep.test;
         _currentWordId = _testQueue.removeAt(0);
@@ -107,9 +108,6 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
       });
       _generateQuestionFor(_currentWordId!);
     } else {
-      // Finished batch of tests, time to view a new word
-      
-      // If queue is empty, recycle any words in _recentViews that never graduated
       if (_queue.isEmpty) {
         for (var id in _recentViews) {
           if (!_graduated.contains(id)) {
@@ -126,21 +124,19 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
         if (_recentViews.length > 4) {
           final oldest = _recentViews.removeAt(0);
           if (!_graduated.contains(oldest)) {
-            _queue.add(oldest); // Put back to the end of the queue to learn again
+            _queue.add(oldest);
           }
         }
         
-        // Schedule tests: All words in the 4-word window, no matter if they graduated or not!
         _testQueue.clear();
         _testQueue.addAll(_recentViews);
-        _testQueue.shuffle(); // Shuffle tests so order is unpredictable
+        _testQueue.shuffle();
         
         setState(() {
           _currentStep = SessionStep.view;
           _currentWordId = newWord;
         });
       } else {
-        // Completely done! All words graduated!
         setState(() {
           _currentStep = SessionStep.finished;
         });
@@ -148,244 +144,42 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
     }
   }
 
-  String _generateFakeMisspelling(String correctWord, int attempt) {
-    if (correctWord.length < 3) return correctWord + (attempt == 0 ? 's' : 'ed');
-    final vowels = ['a', 'e', 'i', 'o', 'u'];
-    String modified = correctWord;
-    
-    for (int i = modified.length - 1; i >= 0; i--) {
-      if (vowels.contains(modified[i].toLowerCase())) {
-        String rep = vowels[(vowels.indexOf(modified[i].toLowerCase()) + attempt + 1) % vowels.length];
-        modified = modified.substring(0, i) + rep + modified.substring(i + 1);
-        break;
-      }
-    }
-    
-    if (modified == correctWord) {
-      if (modified.contains('c')) return modified.replaceFirst('c', 'k');
-      if (modified.contains('s')) return modified.replaceFirst('s', 'c');
-      return modified + (attempt == 0 ? 'e' : 'ly');
-    }
-    return modified;
-  }
-
   Future<void> _generateQuestionFor(int wordId) async {
-    final word = DatabaseService.getWordById(wordId);
-    if (word == null) {
+    final prepared = await _reviewService.getOrPrepareQuestionForWord(wordId, context: context);
+
+    if (!mounted) return;
+
+    if (prepared == null) {
+      print('? [LearningSession] Skipping broken word \.');
+      _progressService.graduateWord(wordId);
+      _graduated.add(wordId);
+      _recentViews.remove(wordId);
+      _testQueue.remove(wordId);
       _nextAction();
       return;
     }
 
-    WordData? data;
-    try {
-      final json = await WordupApi.fetchWordData(word.id.toString(), wordText: word.text);
-      if (json.isNotEmpty) {
-        data = WordData.fromJson(word.id, json);
-      }
-    } catch (_) {}
+    setState(() {
+      _activePreparedQuestion = prepared;
+      final variant = prepared.currentVariant;
+      _currentDictWord = prepared.word;
+      _currentWordData = prepared.wordData;
+      _currentQuestionType = variant.type;
+      _currentOptions = variant.options;
+      _questionData = variant.questionData;
+      _isLoadingTest = false;
+    });
 
-    if (data == null || data.senses.isEmpty) {
-      print('⏩ [LearningSession] Skipping word $wordId ("${word.text}") due to missing cloud definitions.');
-      _nextAction();
-      return;
-    }
-
-    final settings = SettingsService();
-    List<String> availableTypes = [];
-    
-    if (settings.enableMeaningQuestion) availableTypes.add('meaning');
-    if (settings.enableQuoteQuestion && data.quotes.isNotEmpty) availableTypes.add('quote');
-    if (settings.enableSynonymQuestion && data.senses.any((s) => s.sy.isNotEmpty)) availableTypes.add('synonym');
-    if (settings.enableAntonymQuestion && data.senses.any((s) => s.op.isNotEmpty)) availableTypes.add('antonym');
-    if (settings.enableExampleQuestion && data.senses.any((s) => s.ex.isNotEmpty)) availableTypes.add('example');
-    if (settings.enableMisspellingQuestion && data.misspellings.isNotEmpty) availableTypes.add('misspelling');
-    if (settings.enableSpellingQuestion) availableTypes.add('listening');
-    final comparePattern = RegExp(r'\b' + RegExp.escape(word.text) + r'(s|es|ed|ing|d)?\b', caseSensitive: false);
-    if (settings.enableCompareQuestion && data.comparisons.any((c) => comparePattern.hasMatch(c.text))) {
-      availableTypes.add('compare');
-    }
-    
-    if (availableTypes.isEmpty) availableTypes.add('meaning');
-    
-    availableTypes.shuffle();
-    final type = availableTypes.first;
-    
-    dynamic questionData;
-    List<ReviewOption> options = [];
-    final distractors = DatabaseService.getRandomWords(3, excludeId: word.id);
-    
-    if (type == 'meaning' || type == 'listening') {
-      options.add(ReviewOption(word.id, word.meaning, true));
-      for (var d in distractors) {
-        options.add(ReviewOption(d.id, d.meaning, false));
-      }
-    } else if (type == 'quote' || type == 'example') {
-      final isQuote = type == 'quote';
-      String text;
-      
-      if (isQuote) {
-        final quote = (data!.quotes.toList()..shuffle()).first;
-        questionData = quote;
-        text = quote.text;
-      } else {
-        final sense = data!.senses.firstWhere((s) => s.ex.isNotEmpty);
-        questionData = sense.ex;
-        text = sense.ex;
-      }
-      
-      options.add(ReviewOption(word.id, word.text, true));
-      for (var d in distractors) {
-        options.add(ReviewOption(d.id, d.text, false));
-      }
-    } else if (type == 'synonym' || type == 'antonym') {
-      final isSynonym = type == 'synonym';
-      final sense = data!.senses.firstWhere((s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty);
-      final rawList = isSynonym ? sense.sy : sense.op;
-      
-      final targetWords = rawList
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty && e.toLowerCase() != 'none' && e.toLowerCase() != 'null' && e.toLowerCase() != 'n/a')
-          .toList()
-        ..shuffle();
-      if (targetWords.isEmpty) return;
-      final correctText = targetWords.take(3).join(', ');
-      
-      questionData = correctText;
-      options.add(ReviewOption(word.id, correctText, true));
-
-      final potentialDistractors = DatabaseService.getRandomWords(10, excludeId: word.id);
-      
-      List<String> distractorTexts = [];
-      await Future.wait(potentialDistractors.map((d) async {
-        if (distractorTexts.length >= 3) return;
-        try {
-          final json = await WordupApi.fetchWordData(d.id.toString(), wordText: d.text);
-          final wd = WordData.fromJson(d.id, json);
-          final dSense = wd.senses.firstWhere((s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty, orElse: () => WordSense(id: '', de: '', ex: '', ty: ''));
-          final dRawList = isSynonym ? dSense.sy : dSense.op;
-          if (dRawList.isNotEmpty) {
-            final dWords = dRawList
-                .split(',')
-                .map((e) => e.trim())
-                .where((e) => e.isNotEmpty && e.toLowerCase() != 'none' && e.toLowerCase() != 'null' && e.toLowerCase() != 'n/a')
-                .toList()
-              ..shuffle();
-            if (dWords.isNotEmpty) {
-              final text = dWords.take(3).join(', ');
-              if (!distractorTexts.contains(text) && text != correctText && distractorTexts.length < 3) {
-                distractorTexts.add(text);
-              }
-            }
-          }
-        } catch (_) {}
-      }));
-      
-      while (distractorTexts.length < 3) {
-        final fakes = DatabaseService.getRandomWords(6, excludeId: word.id)
-            .map((w) => w.text.trim())
-            .where((w) => w.isNotEmpty && w.toLowerCase() != 'none' && w.toLowerCase() != word.text.toLowerCase())
-            .take(3)
-            .toList();
-        if (fakes.length == 3) {
-          final text = fakes.join(', ');
-          if (!distractorTexts.contains(text) && text != correctText) {
-            distractorTexts.add(text);
-          }
-        }
-      }
-      
-      for (var i = 0; i < 3; i++) {
-        options.add(ReviewOption(distractors[i].id, distractorTexts[i], false));
-      }
-    } else if (type == 'compare') {
-      final pattern = RegExp(r'\b' + RegExp.escape(word.text) + r'(s|es|ed|ing|d)?\b', caseSensitive: false);
-      final validComps = data!.comparisons.where((c) => pattern.hasMatch(c.text)).toList();
-      final comp = (validComps..shuffle()).first;
-      questionData = comp;
-
-      final Set<String> excludeWords = data.comparisons.map((c) => c.word.trim().toLowerCase()).toSet();
-      excludeWords.add(word.text.trim().toLowerCase());
-
-      options.add(ReviewOption(word.id, word.text, true));
-
-      final Set<int> candidateIds = {};
-      for (var lp in _progressService.learningWords) {
-        if (lp.wordId != word.id) candidateIds.add(lp.wordId);
-      }
-      for (var qId in _progressService.queuedWordsToLearn) {
-        if (qId != word.id) candidateIds.add(qId);
-      }
-
-      final List<DictWord> pool = [];
-      for (var id in candidateIds) {
-        final w = DatabaseService.getWordById(id);
-        if (w != null && !excludeWords.contains(w.text.trim().toLowerCase())) {
-          pool.add(w);
-        }
-      }
-      pool.shuffle();
-      final dist = pool.take(3).toList();
-      if (dist.length < 3) {
-        final randomWords = DatabaseService.getRandomWords(15, excludeId: word.id);
-        for (var rw in randomWords) {
-          if (!excludeWords.contains(rw.text.trim().toLowerCase()) && !dist.any((d) => d.id == rw.id)) {
-            dist.add(rw);
-            if (dist.length >= 3) break;
-          }
-        }
-      }
-      for (var d in dist) {
-        options.add(ReviewOption(d.id, d.text, false));
-      }
-    } else if (type == 'misspelling') {
-      List<String> miss = data!.misspellings.split(RegExp(r'[,|]')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-      miss.shuffle();
-      
-      List<String> selectedMiss = miss.take(3).toList();
-      while (selectedMiss.length < 3) {
-        String fake = _generateFakeMisspelling(word.text, selectedMiss.length);
-        if (!selectedMiss.contains(fake) && fake != word.text) {
-          selectedMiss.add(fake);
-        }
-      }
-      
-      options.add(ReviewOption(word.id, word.text, true));
-      for (int i = 0; i < 3; i++) {
-        options.add(ReviewOption(-1, selectedMiss[i], false));
-      }
-    }
-    
-    options.shuffle();
-
-    if (mounted) {
-      setState(() {
-        _currentDictWord = word;
-        _currentQuestionType = type;
-        _currentOptions = options;
-        _currentWordData = data;
-        _questionData = questionData;
-        _isLoadingTest = false;
-      });
-
-      // Auto-play audio for all audible question types
-      if (type == 'meaning' || type == 'listening' || type == 'synonym' || type == 'antonym' || type == 'misspelling') {
-        _playAudio(word.id.toString(), word.text);
-      }
-    }
-  }
-
-  Future<void> _playAudio(String wordId, String text) async {
-    try {
-      final path = await WordupApi.getAudioPath(wordId, wordText: text, isUk: false, useGoogleTts: false);
-      if (path.isNotEmpty) {
-        if (path.startsWith('http') || path.startsWith('data:')) {
-          await _audioPlayer.play(UrlSource(path));
+    if (['meaning', 'listening', 'synonym', 'antonym', 'misspelling'].contains(_currentQuestionType)) {
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
+        if (prepared.wordAudioPath != null && prepared.wordAudioPath!.isNotEmpty) {
+          _playAudioPathDirectly(prepared.wordAudioPath!);
         } else {
-          await _audioPlayer.play(DeviceFileSource(path));
+          _playAudio(prepared.word.id.toString(), prepared.word.text);
         }
-      }
-    } catch (_) {}
+      });
+    }
   }
 
   void _submitAnswer(int selectedId, bool isCorrect) async {
@@ -398,18 +192,174 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
 
     if (isCorrect) {
       _audioPlayer.play(AssetSource('sounds/success.mp3'));
-      
-      // Graduate the word from the session!
       if (!_graduated.contains(_currentDictWord!.id)) {
         _graduated.add(_currentDictWord!.id);
         await _progressService.graduateWord(_currentDictWord!.id);
       }
-      // Note: We do NOT remove it from _recentViews so it stays in the testing window!
-      
     } else {
       _audioPlayer.play(AssetSource('sounds/fail.mp3'));
-      // Stays in _activeWords
     }
+
+    if (_currentWordData == null || !_currentWordData!.senses.any((s) => s.imageUrl != null && s.imageUrl!.isNotEmpty)) {
+      WordupApi.fetchWordData(_currentDictWord!.id.toString(), wordText: _currentDictWord!.text, isPrefetch: true).then((json) {
+        if (mounted && json.isNotEmpty) {
+          setState(() {
+            _currentWordData = WordData.fromJson(_currentDictWord!.id, json);
+          });
+        }
+      }).catchError((_) {});
+    }
+
+    await Future.delayed(Duration(milliseconds: 1200));
+
+    if (mounted) {
+      setState(() {
+        _showWordDetails = true;
+      });
+      _playReviewAutoSequence();
+    }
+  }
+
+  Future<void> _playAudioPathDirectly(String path) async {
+    await _stopAllAudio();
+    try {
+      if (path.startsWith('http') || path.startsWith('data:')) {
+        await _audioPlayer.play(UrlSource(path));
+      } else {
+        await _audioPlayer.play(DeviceFileSource(path));
+      }
+    } catch (_) {}
+  }
+
+  String _getCurrentExample() {
+    if (_currentQuestionType == 'example' && _questionData is String) {
+      return _questionData as String;
+    }
+    if (_activePreparedQuestion?.exampleText != null &&
+        _activePreparedQuestion!.exampleText!.isNotEmpty) {
+      return _activePreparedQuestion!.exampleText!;
+    }
+    if (_currentWordData != null) {
+      final senses = _currentWordData!.senses.toList()..shuffle();
+      for (final s in senses) {
+        if (s.ex.trim().isNotEmpty) {
+          return s.ex.trim();
+        }
+      }
+    }
+    return '';
+  }
+
+  Future<void> _playAudio(String wordId, String text) async {
+    await _stopAllAudio();
+    try {
+      final path = await WordupApi.getAudioPath(
+        wordId,
+        wordText: text,
+        isUk: false,
+        useGoogleTts: false,
+      );
+      if (path.isNotEmpty) {
+        if (path.startsWith('http') || path.startsWith('data:')) {
+          await _audioPlayer.play(UrlSource(path));
+        } else {
+          await _audioPlayer.play(DeviceFileSource(path));
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _playReviewAutoSequence() async {
+    final currentSeq = ++_audioSequenceId;
+    final word = _currentDictWord;
+    if (word == null) return;
+
+    final activeQuestion = _activePreparedQuestion;
+
+    final Future<String?> sentenceAudioFuture = () async {
+      if (activeQuestion?.exampleAudioPath != null &&
+          activeQuestion!.exampleAudioPath!.isNotEmpty) {
+        return activeQuestion.exampleAudioPath;
+      }
+      try {
+        String example = _getCurrentExample();
+        if (example.isEmpty && _currentWordData == null) {
+          final json = await WordupApi.fetchWordData(
+            word.id.toString(),
+            wordText: word.text,
+          );
+          if (currentSeq != _audioSequenceId || !mounted) return null;
+          final data = WordData.fromJson(word.id, json);
+          for (final s in data.senses) {
+            if (s.ex.trim().isNotEmpty) {
+              example = s.ex.trim();
+              break;
+            }
+          }
+        }
+        if (example.trim().isNotEmpty) {
+          final sentenceText = 'For example, ' + example;
+          return await WordupApi.getSentenceAudioPath(
+            sentenceText,
+            isUk: false,
+          );
+        }
+      } catch (_) {}
+      return null;
+    }();
+
+    try {
+      String wordAudioPath = activeQuestion?.wordAudioPath ?? '';
+      if (wordAudioPath.isEmpty) {
+        wordAudioPath = await WordupApi.getAudioPath(
+          word.id.toString(),
+          wordText: word.text,
+          isUk: false,
+          useGoogleTts: false,
+        );
+      }
+      if (currentSeq != _audioSequenceId || !mounted) return;
+
+      if (wordAudioPath.isNotEmpty) {
+        if (wordAudioPath.startsWith('http') ||
+            wordAudioPath.startsWith('data:')) {
+          await _audioPlayer.play(UrlSource(wordAudioPath));
+        } else {
+          await _audioPlayer.play(DeviceFileSource(wordAudioPath));
+        }
+
+        final completer = Completer<void>();
+        late final StreamSubscription sub;
+        sub = _audioPlayer.onPlayerComplete.listen((_) {
+          if (!completer.isCompleted) completer.complete();
+        });
+
+        await Future.any([
+          completer.future,
+          Future.delayed(const Duration(seconds: 5)),
+        ]);
+        await sub.cancel();
+      }
+    } catch (_) {}
+
+    if (currentSeq != _audioSequenceId || !mounted) return;
+
+    await Future.delayed(const Duration(milliseconds: 170));
+    if (currentSeq != _audioSequenceId || !mounted) return;
+
+    try {
+      final exampleAudioPath = await sentenceAudioFuture;
+      if (currentSeq != _audioSequenceId || !mounted) return;
+
+      if (exampleAudioPath != null && exampleAudioPath.isNotEmpty) {
+        if (exampleAudioPath.startsWith('http') ||
+            exampleAudioPath.startsWith('data:')) {
+          await _audioPlayer.play(UrlSource(exampleAudioPath));
+        } else {
+          await _audioPlayer.play(DeviceFileSource(exampleAudioPath));
+        }
+      }
+    } catch (_) {}
   }
 
   @override
@@ -444,37 +394,93 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
     }
 
     if (_currentStep == SessionStep.view) {
-      // Use the standard WordViewScreen but override the bottom bar
       return WordViewScreen(
-        key: ValueKey('view_${_currentWordId}'), // Ensure it rebuilds for new words
+        key: ValueKey('view_'),
         wordId: _currentWordId!,
         bottomNavigationBarOverride: _buildContinueButton(),
       );
     }
 
     final theme = Theme.of(context);
-    // Otherwise, we are in Test mode
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Test', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 2)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      extendBodyBehindAppBar: true,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.scaffoldBackgroundColor,
-              Color(0xFF1E1B4B), // Deep indigo matching ReviewScreen
-            ],
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(kToolbarHeight + (defaultTargetPlatform == TargetPlatform.windows ? 16.0 : 0.0)),
+        child: Padding(
+          padding: EdgeInsets.only(top: defaultTargetPlatform == TargetPlatform.windows ? 16.0 : 0.0),
+          child: AppBar(
+            title: Text('Test', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 2)),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
           ),
         ),
-        child: _isLoadingTest 
-            ? Center(child: CircularProgressIndicator(color: Colors.cyan))
-            : _buildTestBody(),
+      ),
+      extendBodyBehindAppBar: true,
+      body: Focus(
+        autofocus: true,
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent) {
+            if (event.logicalKey == LogicalKeyboardKey.escape) {
+              Navigator.maybePop(context);
+              return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.space) {
+              if (_showWordDetails) {
+                _playAudio(_currentDictWord!.id.toString(), _currentDictWord!.text);
+              } else {
+                if (['meaning', 'listening', 'synonym', 'antonym', 'misspelling'].contains(_currentQuestionType)) {
+                  if (_activePreparedQuestion?.wordAudioPath != null && _activePreparedQuestion!.wordAudioPath!.isNotEmpty) {
+                    _playAudioPathDirectly(_activePreparedQuestion!.wordAudioPath!);
+                  } else if (_activePreparedQuestion != null) {
+                    _playAudio(_activePreparedQuestion!.word.id.toString(), _activePreparedQuestion!.word.text);
+                  }
+                }
+              }
+              return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+              if (_showWordDetails) {
+                _nextAction();
+                return KeyEventResult.handled;
+              }
+            }
+            if (!_showWordDetails) {
+              if (event.logicalKey == LogicalKeyboardKey.digit1 || event.logicalKey == LogicalKeyboardKey.numpad1) {
+                if (_currentOptions.isNotEmpty && _selectedOptionId == null) _submitAnswer(_currentOptions[0].id, _currentOptions[0].isCorrect);
+                return KeyEventResult.handled;
+              }
+              if (event.logicalKey == LogicalKeyboardKey.digit2 || event.logicalKey == LogicalKeyboardKey.numpad2) {
+                if (_currentOptions.length > 1 && _selectedOptionId == null) _submitAnswer(_currentOptions[1].id, _currentOptions[1].isCorrect);
+                return KeyEventResult.handled;
+              }
+              if (event.logicalKey == LogicalKeyboardKey.digit3 || event.logicalKey == LogicalKeyboardKey.numpad3) {
+                if (_currentOptions.length > 2 && _selectedOptionId == null) _submitAnswer(_currentOptions[2].id, _currentOptions[2].isCorrect);
+                return KeyEventResult.handled;
+              }
+              if (event.logicalKey == LogicalKeyboardKey.digit4 || event.logicalKey == LogicalKeyboardKey.numpad4) {
+                if (_currentOptions.length > 3 && _selectedOptionId == null) _submitAnswer(_currentOptions[3].id, _currentOptions[3].isCorrect);
+                return KeyEventResult.handled;
+              }
+            }
+          }
+          return KeyEventResult.ignored;
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.scaffoldBackgroundColor,
+                Color(0xFF1E1B4B),
+              ],
+            ),
+          ),
+          child: SafeArea(
+            child: _isLoadingTest 
+                ? Center(child: CircularProgressIndicator(color: Colors.cyan))
+                : _buildTestBody(),
+          ),
+        ),
       ),
     );
   }
@@ -513,6 +519,132 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
     );
   }
 
+  
+  Future<void> _playExampleAudio(String exampleText) async {
+    await _stopAllAudio();
+    try {
+      final path = await WordupApi.getSentenceAudioPath(
+        exampleText,
+        isUk: false,
+      );
+      if (path.isNotEmpty) {
+        if (path.startsWith('http') || path.startsWith('data:')) {
+          await _audioPlayer.play(UrlSource(path));
+        } else {
+          await _audioPlayer.play(DeviceFileSource(path));
+        }
+      }
+    } catch (_) {}
+  }
+
+  
+  void _shuffleQuestionType() {
+    if (_activePreparedQuestion == null ||
+        _activePreparedQuestion!.variants.length <= 1)
+      return;
+
+    final nextIndex =
+        (_activePreparedQuestion!.currentVariantIndex + 1) %
+        _activePreparedQuestion!.variants.length;
+    _activePreparedQuestion!.currentVariantIndex = nextIndex;
+    final variant = _activePreparedQuestion!.currentVariant;
+
+    setState(() {
+      _currentQuestionType = variant.type;
+      _currentOptions = variant.options;
+      _questionData = variant.questionData;
+      _selectedOptionId = null;
+      _wasCorrect = null;
+    });
+
+    if (variant.type == 'meaning' ||
+        variant.type == 'listening' ||
+        variant.type == 'synonym' ||
+        variant.type == 'antonym' ||
+        variant.type == 'misspelling') {
+      if (_activePreparedQuestion?.wordAudioPath != null &&
+          _activePreparedQuestion!.wordAudioPath!.isNotEmpty) {
+        _playAudioPathDirectly(_activePreparedQuestion!.wordAudioPath!);
+      } else {
+        _playAudio(
+          _activePreparedQuestion!.word.id.toString(),
+          _activePreparedQuestion!.word.text,
+        );
+      }
+    }
+  }
+
+  Widget _buildTestBody() {
+    if (_currentDictWord == null) return Container();
+    
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 600),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: Duration(milliseconds: 300),
+                  transitionBuilder: (Widget child, Animation<double> animation) {
+                    return FadeTransition(opacity: animation, child: child);
+                  },
+                  child: _showWordDetails
+                      ? _buildWordDetailsOverlay('Continuing...')
+                      : _buildQuestionArea(),
+                ),
+              ),
+              if (_showWordDetails)
+                Container(
+                  margin: EdgeInsets.only(top: 20),
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _nextAction,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.cyan,
+                      padding: EdgeInsets.symmetric(vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: Text('Next', style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuestionArea() {
+    switch (_currentQuestionType) {
+      case 'meaning':
+        return _buildMeaningQuestion();
+      case 'quote':
+        return _buildQuoteQuestion();
+      case 'example':
+        return _buildExampleQuestion();
+      case 'misspelling':
+        return _buildMisspellingQuestion();
+      case 'synonym':
+        return _buildSynonymQuestion();
+      case 'listening':
+        return _buildListeningQuestion();
+      case 'compare':
+        return _buildCompareQuestion();
+      case 'antonym':
+        return _buildAntonymQuestion();
+      default:
+        return Center(
+          child: Text(
+            'Unknown question type',
+            style: TextStyle(color: Colors.white),
+          ),
+        );
+    }
+  }
+
   double _getAdaptiveFontSize(String text) {
     final len = text.length;
     if (len <= 10) return 42;
@@ -528,20 +660,21 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
     return 15;
   }
 
-  Widget _buildWordWithAudioPrompt(String text) {
-    final fontSize = _getAdaptiveFontSize(text);
-    final isSingleLongWord = !text.contains(' ') && text.length > 11;
+  Widget _buildWordWithAudioPrompt() {
+    final wordText = _currentDictWord!.text;
+    final fontSize = _getAdaptiveFontSize(wordText);
+    final isLongWord = !wordText.contains(' ') && wordText.length > 11;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Flexible(
-          child: isSingleLongWord
+          child: isLongWord
               ? FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
-                    text,
+                    wordText,
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     style: TextStyle(
@@ -552,7 +685,7 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
                   ),
                 )
               : Text(
-                  text,
+                  wordText,
                   textAlign: TextAlign.center,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
@@ -565,324 +698,986 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
         ),
         SizedBox(width: 8),
         IconButton(
-          icon: Icon(Icons.volume_up_rounded, color: Colors.cyanAccent, size: 28),
-          onPressed: () => _playAudio(_currentDictWord!.id.toString(), _currentDictWord!.text),
+          icon: Icon(
+            Icons.volume_up_rounded,
+            color: Colors.cyanAccent,
+            size: 28,
+          ),
+          onPressed: () => _playAudio(
+            _currentDictWord!.id.toString(),
+            _currentDictWord!.text,
+          ),
           tooltip: 'Listen to pronunciation',
         ),
       ],
     );
   }
 
-  Widget _buildTestBody() {
-    if (_currentDictWord == null) return Container();
-    
-    return SafeArea(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: 800),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Question Area
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-                  child: _buildQuestionContent(),
-                ),
-                
-                // Options Area
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ..._currentOptions.map((opt) {
-                        Color bgColor = Colors.white.withOpacity(0.1);
-                        if (_selectedOptionId != null) {
-                          if (opt.isCorrect) {
-                            bgColor = Colors.green;
-                          } else if (opt.id == _selectedOptionId) {
-                            bgColor = Colors.red;
-                          } else {
-                            bgColor = Colors.white.withOpacity(0.05);
-                          }
-                        }
-                        
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12.0),
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: bgColor,
-                              foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              alignment: Alignment.center,
-                            ),
-                            onPressed: () {
-                              if (_selectedOptionId == null) {
-                                _submitAnswer(opt.id, opt.isCorrect);
-                              }
-                            },
-                            child: Text(
-                              opt.text,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 16),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      
-                      if (_selectedOptionId != null)
-                        Container(
-                          margin: EdgeInsets.only(top: 20),
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _nextAction,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.cyan,
-                              padding: EdgeInsets.symmetric(vertical: 18),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            ),
-                            child: Text('Next', style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
+  Widget _buildMeaningQuestion() {
+    return _buildQuestionContainer(
+      'What is the meaning of...',
+      _currentDictWord!.text,
+      false,
+      customMainWidget: _buildWordWithAudioPrompt(),
+    );
+  }
+
+  Widget _buildQuoteQuestion() {
+    final quote = _questionData as WordQuote;
+    final author = quote.authorName;
+
+    final pattern = RegExp(
+      RegExp.escape(_currentDictWord!.text),
+      caseSensitive: false,
+    );
+    final maskedQuote = quote.text.replaceAll(pattern, '_______');
+
+    return _buildQuestionContainer(
+      'Complete the quote by $author:',
+      '"$maskedQuote"',
+      true,
+      customMainWidget: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.format_quote_rounded,
+            color: Colors.cyanAccent.withValues(alpha: 0.6),
+            size: 36,
+          ),
+          SizedBox(height: 8),
+          Text(
+            '"$maskedQuote"',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: _getPassageFontSize(maskedQuote),
+              fontStyle: FontStyle.italic,
+              fontWeight: FontWeight.w500,
+              height: 1.38,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMisspellingQuestion() {
+    return _buildQuestionContainer(
+      'Listen and select the correct spelling',
+      null,
+      false,
+      onTapPrompt: () =>
+          _playAudio(_currentDictWord!.id.toString(), _currentDictWord!.text),
+      customMainWidget: Center(
+        child: Container(
+          padding: EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.volume_up_rounded,
+            size: 72,
+            color: Colors.blueAccent,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildQuestionContent() {
-    final type = _currentQuestionType;
-    final word = _currentDictWord!;
-    
-    if (type == 'meaning') {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('What is the meaning of...', style: TextStyle(color: Colors.white70, fontSize: 18)),
-          SizedBox(height: 16),
-          _buildWordWithAudioPrompt(word.text),
-        ],
-      );
-    } else if (type == 'quote' && _questionData != null) {
-      final quote = _questionData as WordQuote;
-      final pattern = RegExp(RegExp.escape(word.text), caseSensitive: false);
-      final text = quote.text.replaceAll(pattern, '_______');
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Complete the quote by ${quote.authorName}:', style: TextStyle(color: Colors.white70, fontSize: 18), textAlign: TextAlign.center),
-          SizedBox(height: 12),
-          Icon(Icons.format_quote_rounded, color: Colors.cyanAccent.withOpacity(0.6), size: 36),
-          SizedBox(height: 8),
-          Text(
-            '"$text"',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: _getPassageFontSize(text),
-              height: 1.38,
-              fontStyle: FontStyle.italic,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      );
-    } else if (type == 'example' && _questionData != null) {
-      final example = _questionData as String;
-      final pattern = RegExp(RegExp.escape(word.text), caseSensitive: false);
-      final text = example.replaceAll(pattern, '_______');
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Fill in the blank:', style: TextStyle(color: Colors.white70, fontSize: 18)),
-          SizedBox(height: 16),
-          Text(
-            '"$text"',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: _getPassageFontSize(text),
-              height: 1.38,
-              fontStyle: FontStyle.italic,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      );
-    } else if (type == 'synonym') {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text.rich(
-            TextSpan(
-              text: 'Which word is a ',
-              style: TextStyle(color: Colors.white70, fontSize: 18),
-              children: [
-                WidgetSpan(
-                  alignment: PlaceholderAlignment.middle,
-                  child: Container(
-                    margin: EdgeInsets.symmetric(horizontal: 4),
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.cyanAccent.withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.cyanAccent.withOpacity(0.5)),
-                    ),
-                    child: Text(
-                      'synonym',
-                      style: TextStyle(
-                        color: Colors.cyanAccent,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+  Widget _buildExampleQuestion() {
+    final example = _questionData as String;
+
+    final pattern = RegExp(
+      RegExp.escape(_currentDictWord!.text),
+      caseSensitive: false,
+    );
+    final maskedExample = example.replaceAll(pattern, '_______');
+
+    return _buildQuestionContainer(
+      'Fill in the blank:',
+      '"$maskedExample"',
+      true,
+      customMainWidget: Text(
+        '"$maskedExample"',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: _getPassageFontSize(maskedExample),
+          fontStyle: FontStyle.italic,
+          fontWeight: FontWeight.w500,
+          height: 1.38,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSynonymQuestion() {
+    return _buildQuestionContainer(
+      'Which word is a synonym for...',
+      _currentDictWord!.text,
+      false,
+      customMainWidget: _buildWordWithAudioPrompt(),
+      customSubtitleWidget: Text.rich(
+        TextSpan(
+          text: 'Which word is a ',
+          style: TextStyle(color: Colors.white70, fontSize: 18),
+          children: [
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Container(
+                margin: EdgeInsets.symmetric(horizontal: 4),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.cyanAccent.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: Colors.cyanAccent.withValues(alpha: 0.5),
                   ),
                 ),
-                TextSpan(
-                  text: ' for...',
-                  style: TextStyle(color: Colors.white70, fontSize: 18),
-                ),
-              ],
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 16),
-          _buildWordWithAudioPrompt(word.text),
-        ],
-      );
-    } else if (type == 'antonym') {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text.rich(
-            TextSpan(
-              text: 'Which word is an ',
-              style: TextStyle(color: Colors.white70, fontSize: 18),
-              children: [
-                WidgetSpan(
-                  alignment: PlaceholderAlignment.middle,
-                  child: Container(
-                    margin: EdgeInsets.symmetric(horizontal: 4),
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent.withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
-                    ),
-                    child: Text(
-                      'antonym (opposite)',
-                      style: TextStyle(
-                        color: Colors.redAccent.shade100,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+                child: Text(
+                  'synonym',
+                  style: TextStyle(
+                    color: Colors.cyanAccent,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
-                TextSpan(
-                  text: ' of...',
-                  style: TextStyle(color: Colors.white70, fontSize: 18),
-                ),
-              ],
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 16),
-          _buildWordWithAudioPrompt(word.text),
-        ],
-      );
-    } else if (type == 'listening') {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Listen and select the meaning', style: TextStyle(color: Colors.white70, fontSize: 18)),
-          SizedBox(height: 24),
-          InkWell(
-            onTap: () => _playAudio(word.id.toString(), word.text),
-            borderRadius: BorderRadius.circular(50),
-            child: Container(
-              padding: EdgeInsets.all(28),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
-                border: Border.all(color: Colors.cyanAccent.withOpacity(0.4), width: 2),
               ),
-              child: Icon(Icons.volume_up_rounded, color: Colors.cyanAccent, size: 56),
+            ),
+            TextSpan(
+              text: ' for...',
+              style: TextStyle(color: Colors.white70, fontSize: 18),
+            ),
+          ],
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildAntonymQuestion() {
+    return _buildQuestionContainer(
+      'Which word is an opposite (antonym) of...',
+      _currentDictWord!.text,
+      false,
+      customMainWidget: _buildWordWithAudioPrompt(),
+      customSubtitleWidget: Text.rich(
+        TextSpan(
+          text: 'Which word is an ',
+          style: TextStyle(color: Colors.white70, fontSize: 18),
+          children: [
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Container(
+                margin: EdgeInsets.symmetric(horizontal: 4),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: Colors.redAccent.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Text(
+                  'antonym (opposite)',
+                  style: TextStyle(
+                    color: Colors.redAccent.shade100,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ),
+            TextSpan(
+              text: ' of...',
+              style: TextStyle(color: Colors.white70, fontSize: 18),
+            ),
+          ],
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildListeningQuestion() {
+    return _buildQuestionContainer(
+      'Listen and select the meaning',
+      null,
+      false,
+      onTapPrompt: () =>
+          _playAudio(_currentDictWord!.id.toString(), _currentDictWord!.text),
+      customMainWidget: Center(
+        child: Container(
+          padding: EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.volume_up_rounded,
+            size: 72,
+            color: Colors.blueAccent,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompareQuestion() {
+    final comp = _questionData as WordComparison;
+
+    final pattern = RegExp(
+      r'\b' + RegExp.escape(_currentDictWord!.text) + r'(s|es|ed|ing|d)?\b',
+      caseSensitive: false,
+    );
+    final masked = comp.text.replaceAll(pattern, '_______');
+
+    return _buildQuestionContainer(
+      'Fill in the blank for this comparison:',
+      masked,
+      false,
+      customMainWidget: Container(
+        padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Text(
+          masked,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: _getPassageFontSize(masked),
+            height: 1.4,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuestionContainer(
+    String subtitle,
+    String? mainText,
+    bool isItalic, {
+    VoidCallback? onTapPrompt,
+    Widget? customMainWidget,
+    Widget? customSubtitleWidget,
+  }) {
+    final isPassage =
+        (mainText != null && mainText.length > 35) || customMainWidget != null;
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 800,
+        ), // Slightly wider for long quotes
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Spacer(),
+                  Expanded(
+                    flex: 8,
+                    child:
+                        customSubtitleWidget ??
+                        Text(
+                          subtitle,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white70, fontSize: 18),
+                        ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.shuffle,
+                        color: Colors.white54,
+                        size: 20,
+                      ),
+                      onPressed: _shuffleQuestionType,
+                      tooltip: 'Change Question Type',
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              GestureDetector(
+                onTap: onTapPrompt,
+                child:
+                    customMainWidget ??
+                    Builder(
+                      builder: (context) {
+                        final text = mainText ?? '';
+                        final isSingleLongWord =
+                            !text.contains(' ') && text.length > 11;
+
+                        if (isSingleLongWord) {
+                          return FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              text,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: onTapPrompt != null
+                                    ? Colors.blueAccent
+                                    : Colors.white,
+                                fontSize: _getAdaptiveFontSize(text),
+                                fontWeight: FontWeight.bold,
+                                fontStyle: isItalic
+                                    ? FontStyle.italic
+                                    : FontStyle.normal,
+                              ),
+                            ),
+                          );
+                        }
+
+                        final passageFontSize = _getPassageFontSize(text);
+                        return Text(
+                          text,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: onTapPrompt != null
+                                ? Colors.blueAccent
+                                : Colors.white,
+                            fontSize: passageFontSize,
+                            fontWeight: isItalic
+                                ? FontWeight.w600
+                                : FontWeight.bold,
+                            fontStyle: isItalic
+                                ? FontStyle.italic
+                                : FontStyle.normal,
+                            height: 1.38,
+                          ),
+                        );
+                      },
+                    ),
+              ),
+              SizedBox(height: isPassage ? 20 : 36),
+              ..._buildOptionsList(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildOptionsList() {
+    return _currentOptions.map((option) {
+      Color bgColor = Colors.white.withOpacity(0.1);
+      if (_selectedOptionId != null) {
+        if (option.isCorrect) {
+          bgColor = Colors.green;
+        } else if (option.id == _selectedOptionId) {
+          bgColor = Colors.red;
+        } else {
+          bgColor = Colors.white.withOpacity(0.05);
+        }
+      }
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12.0),
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: bgColor,
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            alignment: Alignment.center,
+          ),
+          onPressed: () {
+            if (_selectedOptionId == null) {
+              _submitAnswer(option.id, option.isCorrect);
+            }
+          },
+          child: Text(
+            option.text,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  Widget _buildWordDetailsOverlay(String nextStepText) {
+    String example = _getCurrentExample();
+    String meaning = _currentDictWord!.meaning;
+
+    if (_currentWordData != null) {
+      if (_currentWordData!.senses.isNotEmpty) {
+        WordSense? matchingSense;
+        if (example.isNotEmpty) {
+          try {
+            matchingSense = _currentWordData!.senses.firstWhere(
+              (s) => s.ex.trim() == example,
+            );
+          } catch (_) {}
+        }
+        if (matchingSense == null) {
+          final senses = _currentWordData!.senses.toList()..shuffle();
+          matchingSense = senses.first;
+        }
+        meaning = matchingSense.de;
+        if (example.isEmpty) {
+          example = matchingSense.ex.trim();
+        }
+      }
+    }
+
+    List<String> availableImages = [];
+    if (_currentWordData != null) {
+      if (_currentWordData!.imageUrl != null &&
+          _currentWordData!.imageUrl!.isNotEmpty) {
+        availableImages.add(_currentWordData!.imageUrl!);
+      }
+      for (var sense in _currentWordData!.senses) {
+        if (sense.imageUrl != null && sense.imageUrl!.isNotEmpty)
+          availableImages.add(sense.imageUrl!);
+        for (var tip in sense.tips) {
+          if (tip.imageUrl != null && tip.imageUrl!.isNotEmpty)
+            availableImages.add(tip.imageUrl!);
+        }
+      }
+    }
+    availableImages = availableImages.toSet().toList();
+
+    String? preferredUrl = _progressService.getPreferredImage(
+      _currentDictWord!.id,
+    );
+    String? displayImageUrl;
+    if (availableImages.isNotEmpty) {
+      if (preferredUrl != null && availableImages.contains(preferredUrl)) {
+        displayImageUrl = preferredUrl;
+      } else {
+        displayImageUrl = availableImages.first;
+      }
+    }
+
+    bool isMastered = nextStepText == 'Mastered!';
+    final rank = DatabaseService.getWordRank(_currentDictWord!.id);
+
+    final wordText = _currentDictWord!.text;
+    final pos =
+        (_currentWordData != null && _currentWordData!.senses.isNotEmpty)
+        ? _currentWordData!.senses.first.ty
+        : null;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Color(0xFF1E1E1E), // Dark background for the card
+        borderRadius: BorderRadius.circular(16),
+        border: isMastered ? Border.all(color: Colors.amber, width: 2) : null,
+        boxShadow: isMastered
+            ? [
+                BoxShadow(
+                  color: Colors.amber.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ]
+            : null,
+      ),
+      padding: EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 1. Dedicated full-width Word / Idiom title row with adaptive sizing
+          Text(
+            wordText,
+            style: TextStyle(
+              fontSize: wordText.length > 20
+                  ? 22
+                  : (wordText.length > 13 ? 26 : 30),
+              fontWeight: FontWeight.bold,
+              color: isMastered ? Colors.amber : Colors.white,
+              height: 1.2,
+            ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+          SizedBox(height: 10),
+          // 2. Unified metadata and actions bar
+          Row(
+            children: [
+              if (rank != null) ...[
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.purpleAccent.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.purpleAccent.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Text(
+                    '#$rank',
+                    style: TextStyle(
+                      color: Colors.purpleAccent.shade100,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
+              ],
+              if (pos != null && pos.isNotEmpty) ...[
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.tealAccent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.tealAccent.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Text(
+                    pos,
+                    style: TextStyle(
+                      color: Colors.tealAccent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+              Spacer(),
+              IconButton(
+                icon: Icon(
+                  Icons.volume_up_rounded,
+                  color: isMastered ? Colors.amber : Colors.cyanAccent,
+                ),
+                onPressed: () => _playAudio(
+                  _currentDictWord!.id.toString(),
+                  _currentDictWord!.text,
+                ),
+                tooltip: 'Listen to pronunciation',
+              ),
+              IconButton(
+                icon: Icon(Icons.open_in_new, color: Colors.white70),
+                onPressed: () {
+                  _stopAllAudio();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => WordViewScreen(
+                        wordId: _currentDictWord!.id,
+                        wordText: _currentDictWord!.text,
+                      ),
+                    ),
+                  );
+                },
+                tooltip: 'View Full Word Details',
+              ),
+            ],
+          ),
+          SizedBox(height: 20),
+          Text(
+            meaning,
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          if (_selectedOptionId != null) ...[
+          if (example.isNotEmpty) ...[
             SizedBox(height: 16),
-            Text(
-              word.text,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: _getAdaptiveFontSize(word.text),
-                fontWeight: FontWeight.bold,
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      example,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  IconButton(
+                    icon: Icon(
+                      Icons.volume_up_rounded,
+                      color: Colors.cyanAccent.shade100,
+                      size: 22,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: BoxConstraints(),
+                    onPressed: () => _playExampleAudio(example),
+                    tooltip: 'Listen to example',
+                  ),
+                ],
               ),
             ),
           ],
-        ],
-      );
-    } else if (type == 'compare' && _questionData != null) {
-      final comp = _questionData as WordComparison;
-      final pattern = RegExp(r'\b' + RegExp.escape(word.text) + r'(s|es|ed|ing|d)?\b', caseSensitive: false);
-      final masked = comp.text.replaceAll(pattern, '_______');
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Fill in the blank for this comparison:', style: TextStyle(color: Colors.white70, fontSize: 18)),
+          if (displayImageUrl != null) ...[
+            SizedBox(height: 16),
+            Expanded(
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: CachedMediaImage(
+                      key: ValueKey('${_currentDictWord!.id}_$displayImageUrl'),
+                      wordId: _currentDictWord!.id,
+                      imageUrl: displayImageUrl,
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  if (availableImages.length > 1)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: Icon(Icons.refresh, color: Colors.white),
+                          tooltip: 'Change Picture',
+                          onPressed: () async {
+                            int currentIdx = availableImages.indexOf(
+                              displayImageUrl!,
+                            );
+                            int nextIdx =
+                                (currentIdx + 1) % availableImages.length;
+                            await _progressService.setPreferredImage(
+                              _currentDictWord!.id,
+                              availableImages[nextIdx],
+                            );
+                            if (mounted) setState(() {});
+                          },
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ] else ...[
+            SizedBox(height: 16),
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.06),
+                  ),
+                ),
+                child:
+                    _currentWordData != null &&
+                        _currentWordData!.senses.length > 1
+                    ? ListView(
+                        padding: EdgeInsets.zero,
+                        children: [
+                          Text(
+                            'OTHER DEFINITIONS',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          for (
+                            int sIdx = 1;
+                            sIdx < _currentWordData!.senses.length;
+                            sIdx++
+                          ) ...[
+                            Container(
+                              margin: EdgeInsets.only(bottom: 8),
+                              padding: EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.04),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${sIdx + 1}. ${_currentWordData!.senses[sIdx].de}',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  if (_currentWordData!
+                                      .senses[sIdx]
+                                      .ex
+                                      .isNotEmpty) ...[
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'â€œ${_currentWordData!.senses[sIdx].ex}â€',
+                                      style: TextStyle(
+                                        color: Colors.white38,
+                                        fontSize: 12,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      )
+                    : Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.auto_stories_rounded,
+                              size: 40,
+                              color: Colors.white24,
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'No illustration in dictionary',
+                              style: TextStyle(
+                                color: Colors.white38,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+              ),
+            ),
+          ],
           SizedBox(height: 16),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white12),
+              color: isMastered
+                  ? Colors.amber.shade600
+                  : Color(0xFFC043FF), // Gold if mastered
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                if (isMastered)
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
+                  )
+                else
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 2,
+                    offset: Offset(0, 1),
+                  ),
+              ],
             ),
-            child: Text(
-              masked,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: _getPassageFontSize(masked),
-                height: 1.4,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: _nextAction,
+                    borderRadius: BorderRadius.horizontal(
+                      left: Radius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (isMastered) ...[
+                            Icon(Icons.emoji_events, color: Colors.black87),
+                            SizedBox(width: 8),
+                          ],
+                          Text(
+                            isMastered
+                                ? 'MASTERED!'
+                                : nextStepText == 'Next: Mastered!'
+                                ? 'Move to Mastered!'
+                                : 'Review in ${nextStepText.replaceAll('Next: ', '')}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: isMastered ? Colors.black87 : Colors.white,
+                            ),
+                          ),
+                          if (isMastered) ...[
+                            SizedBox(width: 8),
+                            Icon(Icons.emoji_events, color: Colors.black87),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Container(width: 1, height: 40, color: Colors.white24),
+                PopupMenuButton<String>(
+                  onSelected: (value) async {
+                    if (value == 'known') {
+                      await ProgressService().markAsKnown(_currentDictWord!.id);
+                      _nextAction();
+                    } else if (value == 'learn') {
+                      await ProgressService().markAsToLearn(
+                        _currentDictWord!.id,
+                      );
+                      _nextAction();
+                    } else if (value == 'override') {
+                      final wordId = _currentDictWord!.id;
+                      final initialStep = 0 ?? 0;
+                      final newTreatedAsCorrect = !(_wasCorrect ?? false);
+
+                      await _progressService.overrideReviewOutcome(
+                        wordId,
+                        initialStep,
+                        newTreatedAsCorrect,
+                      );
+
+                      if (mounted) {
+                        setState(() {
+                          _wasCorrect = newTreatedAsCorrect;
+                        });
+
+                        final isNowMastered = _progressService.knownWordIds
+                            .contains(wordId);
+                        final currentProg = _progressService.getProgress(
+                          wordId,
+                        );
+                        final stepNum = isNowMastered
+                            ? 12
+                            : (currentProg?.rememberCount ?? 1);
+
+                        final String msg = newTreatedAsCorrect
+                            ? (isNowMastered
+                                  ? 'Result inverted: Mastered!'
+                                  : 'Result inverted: Advanced to Step $stepNum')
+                            : (stepNum == 1
+                                  ? 'Result inverted: Reset to Step 1'
+                                  : 'Result inverted: Moved back to Step $stepNum');
+
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                Icon(
+                                  newTreatedAsCorrect
+                                      ? Icons.check_circle_rounded
+                                      : Icons.replay_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    msg,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: newTreatedAsCorrect
+                                ? Colors.green.shade800
+                                : Colors.indigo.shade800,
+                            behavior: SnackBarBehavior.floating,
+                            duration: Duration(seconds: 2),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  itemBuilder: (context) {
+                    final wasCorrect = _wasCorrect ?? false;
+                    final isResetMode =
+                        SettingsService().reviewMistakePenalty != 'oneStep';
+                    return [
+                      PopupMenuItem(
+                        value: 'override',
+                        child: Row(
+                          children: [
+                            Icon(
+                              wasCorrect
+                                  ? Icons.arrow_downward_rounded
+                                  : Icons.arrow_upward_rounded,
+                              color: wasCorrect
+                                  ? Colors.orangeAccent
+                                  : Colors.greenAccent,
+                              size: 20,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              wasCorrect
+                                  ? (isResetMode
+                                        ? 'Treat as Incorrect (Reset to Step 1)'
+                                        : 'Treat as Incorrect (Previous Step)')
+                                  : 'Treat as Correct (Next Step)',
+                            ),
+                          ],
+                        ),
+                      ),
+                      PopupMenuDivider(),
+                      PopupMenuItem(
+                        value: 'known',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.done_all_rounded,
+                              color: Colors.cyanAccent,
+                              size: 20,
+                            ),
+                            SizedBox(width: 8),
+                            Text('Mark as Known'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'learn',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.bookmark_outline_rounded,
+                              color: Colors.amberAccent,
+                              size: 20,
+                            ),
+                            SizedBox(width: 8),
+                            Text('Move to should learn'),
+                          ],
+                        ),
+                      ),
+                    ];
+                  },
+                  icon: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: isMastered ? Colors.black87 : Colors.white,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
-      );
-    } else if (type == 'misspelling') {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Listen and select the correct spelling', style: TextStyle(color: Colors.white70, fontSize: 18)),
-          SizedBox(height: 24),
-          InkWell(
-            onTap: () => _playAudio(word.id.toString(), word.text),
-            borderRadius: BorderRadius.circular(50),
-            child: Container(
-              padding: EdgeInsets.all(28),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
-                border: Border.all(color: Colors.cyanAccent.withOpacity(0.4), width: 2),
-              ),
-              child: Icon(Icons.volume_up_rounded, color: Colors.cyanAccent, size: 56),
-            ),
-          ),
-        ],
-      );
-    }
-    
-    return Text('Unknown question type: $type', style: TextStyle(color: Colors.red));
+      ),
+    );
   }
 }
