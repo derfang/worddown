@@ -1,5 +1,5 @@
 #define MyAppName "WordDown"
-#define MyAppVersion "1.2.0"
+#define MyAppVersion "1.3.0"
 #define MyAppPublisher "Derfang"
 #define MyAppURL "https://github.com/derfang/worddown"
 #define MyAppExeName "worddown_flutter.exe"

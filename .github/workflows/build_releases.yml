@@ -172,13 +172,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ steps.release_info.outputs.TAG_NAME }}"
-          PRERELEASE_FLAG=""
-          if [ "${{ steps.release_info.outputs.IS_PRERELEASE }}" = "true" ]; then
-            PRERELEASE_FLAG="--prerelease"
+          # Demote database-latest to prerelease so it never holds the repository 'Latest' badge
+          gh release edit database-latest --prerelease || true
+
+          # Create release if it doesn't exist, and set as latest for official tags
+          if [ "${{ steps.release_info.outputs.IS_PRERELEASE }}" = "false" ]; then
+            gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --latest --title "WordDown $TAG" --notes "Official multi-platform release of WordDown ($TAG) for Android and Windows."
+            gh release edit "$TAG" --latest || true
+          else
+            gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --prerelease --title "WordDown $TAG" --notes "Preview build for Android and Windows."
           fi
-          
-          # Create release if it doesn't exist
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" $PRERELEASE_FLAG --title "WordDown $TAG" --notes "Automated release build for Android and Windows."
           
           for file in release_assets/*; do
             if [ -f "$file" ]; then
