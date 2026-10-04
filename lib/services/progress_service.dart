@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'sync_service.dart';
 import 'media_cache_service.dart';
+import 'settings_service.dart';
 
 class WordProgress {
   final int wordId;
@@ -411,23 +412,58 @@ class ProgressService {
           _queuedWordsToLearn.remove(wordId);
           updatedFromCloud++;
         } else {
-          // Monotonic Conflict Resolution:
-          // Rule 1: Highest rememberCount wins (progress cannot regress)
-          if (cloudProgress.rememberCount > localProgress.rememberCount) {
+          // If local device has an unpushed modification for this word, local takes precedence
+          if (_pendingSyncWordIds.contains(wordId)) {
+            keptLocalNewer++;
+            hasLocalChanges = true;
+            continue;
+          }
+
+          // Authoritative Timestamp Resolution:
+          // The device with the latest review event is the authoritative truth,
+          // correctly handling review step drops/mistakes across devices.
+          final cloudReviewed = cloudProgress.lastReviewed;
+          final localReviewed = localProgress.lastReviewed;
+
+          if (cloudReviewed != null && localReviewed != null) {
+            if (cloudReviewed.isAfter(localReviewed)) {
+              // Cloud review happened more recently
+              _progressMap[wordId] = cloudProgress;
+              updatedFromCloud++;
+            } else if (localReviewed.isAfter(cloudReviewed)) {
+              // Local review happened more recently -> keep local and mark to sync back
+              keptLocalNewer++;
+              hasLocalChanges = true;
+            } else {
+              // Same timestamp: if intervals or steps differ, preserve the later practiceDue
+              if (cloudProgress.practiceDue.isAfter(localProgress.practiceDue)) {
+                _progressMap[wordId] = cloudProgress;
+                updatedFromCloud++;
+              } else if (localProgress.practiceDue.isAfter(cloudProgress.practiceDue)) {
+                keptLocalNewer++;
+                hasLocalChanges = true;
+              }
+            }
+          } else if (cloudReviewed != null && localReviewed == null) {
+            // Cloud has an active review timestamp, local does not
             _progressMap[wordId] = cloudProgress;
             updatedFromCloud++;
-          } else if (localProgress.rememberCount > cloudProgress.rememberCount) {
-            // Local is further ahead than cloud! Keep local!
+          } else if (localReviewed != null && cloudReviewed == null) {
+            // Local has an active review timestamp, cloud does not
             keptLocalNewer++;
             hasLocalChanges = true;
           } else {
-            // Equal rememberCount: pick the one with later lastReviewed date, or later practiceDue
-            final cloudTime = cloudProgress.lastReviewed ?? cloudProgress.practiceDue;
-            final localTime = localProgress.lastReviewed ?? localProgress.practiceDue;
-            if (cloudTime.isAfter(localTime)) {
+            // Neither has lastReviewed (legacy data): fall back to higher count or later due date
+            if (cloudProgress.rememberCount > localProgress.rememberCount) {
               _progressMap[wordId] = cloudProgress;
               updatedFromCloud++;
-            } else if (localTime.isAfter(cloudTime)) {
+            } else if (localProgress.rememberCount > cloudProgress.rememberCount) {
+              keptLocalNewer++;
+              hasLocalChanges = true;
+            } else if (cloudProgress.practiceDue.isAfter(localProgress.practiceDue)) {
+              _progressMap[wordId] = cloudProgress;
+              updatedFromCloud++;
+            } else if (localProgress.practiceDue.isAfter(cloudProgress.practiceDue)) {
               keptLocalNewer++;
               hasLocalChanges = true;
             }
@@ -604,9 +640,14 @@ class ProgressService {
         p.rememberCount++;
       }
     } else {
-      // Move down one step, but min is 1
-      if (p.rememberCount > 1) {
-        p.rememberCount--;
+      final penaltyMode = SettingsService().reviewMistakePenalty;
+      if (penaltyMode == 'oneStep') {
+        if (p.rememberCount > 1) {
+          p.rememberCount--;
+        }
+      } else {
+        // Default: reset back to step 1 (1 day)
+        p.rememberCount = 1;
       }
     }
 
@@ -620,6 +661,84 @@ class ProgressService {
     await save();
     await savePendingSync();
     SyncService().pushProgress(wordId, p.toJson());
+  }
+
+  /// Overrides the review outcome for a word, inverting or changing the quiz result.
+  /// [initialStep] is the step the word was at before the quiz was taken.
+  /// [treatedAsCorrect] indicates whether the word should now be treated as answered correctly (advancing)
+  /// or incorrectly (demoting).
+  Future<void> overrideReviewOutcome(int wordId, int initialStep, bool treatedAsCorrect) async {
+    if (treatedAsCorrect) {
+      if (initialStep >= 11) {
+        // Move to Mastered / Known
+        _progressMap.remove(wordId);
+        _knownWordIds.add(wordId);
+        markPendingSync(wordId);
+        await _saveKnownWords();
+        await save();
+        await savePendingSync();
+        MediaCacheService.clearWordCache(wordId);
+        SyncService().pushKnownWord(wordId, true);
+        SyncService().pushProgress(wordId, null);
+        return;
+      }
+
+      _knownWordIds.remove(wordId);
+      final newCount = initialStep + 1;
+      var p = _progressMap[wordId];
+      if (p == null) {
+        p = WordProgress(
+          wordId: wordId,
+          rememberCount: newCount,
+          practiceDue: DateTime.now().add(stepIntervals[newCount]),
+          lastReviewed: DateTime.now(),
+        );
+        _progressMap[wordId] = p;
+      } else {
+        p.rememberCount = newCount;
+        p.lastReviewed = DateTime.now();
+        p.practiceDue = DateTime.now().add(stepIntervals[newCount]);
+      }
+
+      markPendingSync(wordId);
+      await save();
+      await savePendingSync();
+      SyncService().pushProgress(wordId, p.toJson());
+      SyncService().pushKnownWord(wordId, false);
+    } else {
+      final wasKnown = _knownWordIds.remove(wordId);
+      if (wasKnown) {
+        await _saveKnownWords();
+        SyncService().pushKnownWord(wordId, false);
+      }
+
+      final penaltyMode = SettingsService().reviewMistakePenalty;
+      final int newCount;
+      if (penaltyMode == 'oneStep') {
+        newCount = (initialStep > 1) ? initialStep - 1 : 1;
+      } else {
+        newCount = 1;
+      }
+      var p = _progressMap[wordId];
+      if (p == null) {
+        p = WordProgress(
+          wordId: wordId,
+          rememberCount: newCount,
+          practiceDue: DateTime.now().add(stepIntervals[newCount]),
+          lastReviewed: DateTime.now(),
+        );
+        _progressMap[wordId] = p;
+      } else {
+        p.rememberCount = newCount;
+        p.lastReviewed = DateTime.now();
+        p.practiceDue = DateTime.now().add(stepIntervals[newCount]);
+      }
+
+      markPendingSync(wordId);
+      await save();
+      await savePendingSync();
+      SyncService().pushProgress(wordId, p.toJson());
+    }
   }
 
   List<WordProgress> get dueWords {

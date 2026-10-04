@@ -521,6 +521,13 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
     return 20;
   }
 
+  double _getPassageFontSize(String text) {
+    final len = text.length;
+    if (len <= 100) return 19;
+    if (len <= 200) return 17;
+    return 15;
+  }
+
   Widget _buildWordWithAudioPrompt(String text) {
     final fontSize = _getAdaptiveFontSize(text);
     final isSingleLongWord = !text.contains(' ') && text.length > 11;
@@ -536,6 +543,7 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
                   child: Text(
                     text,
                     textAlign: TextAlign.center,
+                    maxLines: 1,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: fontSize,
@@ -573,6 +581,7 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: 800),
           child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -664,31 +673,46 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
       );
     } else if (type == 'quote' && _questionData != null) {
       final quote = _questionData as WordQuote;
-      final text = quote.text.replaceAll(RegExp(word.text, caseSensitive: false), '______');
+      final pattern = RegExp(RegExp.escape(word.text), caseSensitive: false);
+      final text = quote.text.replaceAll(pattern, '_______');
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('Complete the quote by ${quote.authorName}:', style: TextStyle(color: Colors.white70, fontSize: 18), textAlign: TextAlign.center),
-          SizedBox(height: 20),
-          Icon(Icons.format_quote, color: Colors.cyan.withOpacity(0.5), size: 40),
           SizedBox(height: 12),
+          Icon(Icons.format_quote_rounded, color: Colors.cyanAccent.withOpacity(0.6), size: 36),
+          SizedBox(height: 8),
           Text(
             '"$text"',
-            style: TextStyle(color: Colors.white, fontSize: 22, height: 1.4, fontStyle: FontStyle.italic),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: _getPassageFontSize(text),
+              height: 1.38,
+              fontStyle: FontStyle.italic,
+              fontWeight: FontWeight.w500,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
       );
     } else if (type == 'example' && _questionData != null) {
-      final text = (_questionData as String).replaceAll(RegExp(word.text, caseSensitive: false), '______');
+      final example = _questionData as String;
+      final pattern = RegExp(RegExp.escape(word.text), caseSensitive: false);
+      final text = example.replaceAll(pattern, '_______');
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('Fill in the blank:', style: TextStyle(color: Colors.white70, fontSize: 18)),
-          SizedBox(height: 20),
+          SizedBox(height: 16),
           Text(
             '"$text"',
-            style: TextStyle(color: Colors.white, fontSize: 22, height: 1.4, fontStyle: FontStyle.italic),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: _getPassageFontSize(text),
+              height: 1.38,
+              fontStyle: FontStyle.italic,
+              fontWeight: FontWeight.w500,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -815,14 +839,24 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('Fill in the blank for this comparison:', style: TextStyle(color: Colors.white70, fontSize: 18)),
-          SizedBox(height: 20),
+          SizedBox(height: 16),
           Container(
-            padding: EdgeInsets.all(20),
+            padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.05),
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white12),
             ),
-            child: Text(masked, style: TextStyle(color: Colors.white, fontSize: 20, height: 1.4), textAlign: TextAlign.center),
+            child: Text(
+              masked,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: _getPassageFontSize(masked),
+                height: 1.4,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
         ],
       );

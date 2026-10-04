@@ -16,6 +16,18 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_auth.currentUser != null && mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => SplashLoadingScreen()),
+        );
+      }
+    });
+  }
+
   Future<void> _submit() async {
     setState(() {
       _isLoading = true;

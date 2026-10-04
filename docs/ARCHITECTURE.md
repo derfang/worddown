@@ -3,7 +3,7 @@
 > **Engineering Design Document**  
 > **Platform**: Flutter (Cross-Platform Windows Desktop & Android Mobile)  
 > **Backend**: Firebase Authentication & Cloud Firestore  
-> **Author**: Electrical & Telecommunications Engineering Graduate  
+> **Audience**: Software Engineers, Technical Reviewers, and AI Coding Agents  
 
 ---
 
@@ -49,7 +49,7 @@ graph TD
         MediaCache["MediaCacheService<br/>(32-Bit Stable Hash Disk Storage)"]
         Assets["Bundled Asset Dictionaries<br/>(4.5MB word_dictionary.json, Frequency Ranks)"]
         FirebaseCloud["Google Cloud / Firebase<br/>(Auth & Cloud Firestore Collections)"]
-        WordupCDN["Remote Content CDNs<br/>(WordUp GZip CDN & Zann.app SSR)"]
+        LexicalCDN["Remote Content CDNs<br/>(GZip Payload CDN & SSR Hydration Scraping)"]
     end
 
     UI --> Domain
@@ -141,20 +141,20 @@ sequenceDiagram
     actor User
     participant App as WordViewScreen
     participant Cache as MediaCacheService / Disk
-    participant CDN as WordUp CDN (GZip)
-    participant SSR as Zann.app (Next.js SSR)
+    participant CDN as Remote Lexical CDN (GZip)
+    participant SSR as Lexical Metadata Scraper
 
     User->>App: Request Word (wordId, wordText)
     App->>Cache: Query local disk cache ('wordup_cache/{id}.json')
     alt Cache Hit
         Cache-->>App: Return Decoded Word JSON
     else Cache Miss
-        App->>CDN: Fetch Binary Payload (Contents/v2025-10-23/{id}.gz)
+        App->>CDN: Fetch Binary Payload ({id}.gz)
         CDN-->>App: Return Compressed Byte Stream
         App->>App: GZipDecoder().decodeBytes() to UTF-8 JSON
-        App->>SSR: Scrape https://zann.app/dictionary/{wordText}
+        App->>SSR: Scrape SSR Dictionary Page for {wordText}
         SSR-->>App: Return HTML with <script id="__NEXT_DATA__">
-        App->>App: Regex match JSON, extract ZannQuotes & ZannSenses
+        App->>App: Regex match JSON, extract Quotes & Senses
         App->>App: Deep-merge CDN dictionary + SSR metadata
         App->>Cache: Write merged JSON to disk
     end
@@ -210,7 +210,7 @@ classDiagram
 #### Windows Desktop Pipeline:
 - **Component**: `webview_windows` (Chromium / Microsoft Edge WebView2).
 - **Technique**: Stream URLs extracted via `youtube_explode_dart` are loaded into an inline HTML5 video player with auto-seek (`video.currentTime = startSec`).
-- **Resilience Fallback**: If direct stream extraction is rate-limited, the WebView loads the standard YouTube URL and injects JavaScript to bypass cookie consent banners, hide redundant UI elements, and pin the video element full-frame.
+- **Resilience Fallback**: If direct stream extraction is rate-limited, the WebView loads the standard video URL and injects JavaScript to bypass cookie consent banners, hide redundant UI elements, and pin the video element full-frame.
 - **Conditional Compilation**: On non-Windows platforms, a custom stub `stubs/webview_windows_stub.dart` satisfies the Dart compiler without bundling native Windows C++ bindings.
 
 #### Android Mobile Pipeline:

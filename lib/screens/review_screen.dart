@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import '../services/progress_service.dart';
 import '../services/database_service.dart';
 import '../services/wordup_api.dart';
 import '../services/review_question_service.dart';
+import '../services/settings_service.dart';
 import '../models/word.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'word_view_screen.dart';
@@ -17,7 +20,7 @@ class ReviewScreen extends StatefulWidget {
 class _ReviewScreenState extends State<ReviewScreen> {
   final ProgressService _progressService = ProgressService();
   final ReviewQuestionService _reviewService = ReviewQuestionService();
-  
+
   List<WordProgress> _dueWords = [];
   int _currentIndex = 0;
   DictWord? _currentDictWord;
@@ -26,13 +29,15 @@ class _ReviewScreenState extends State<ReviewScreen> {
   List<ReviewOption> _currentOptions = [];
   int? _selectedOptionId;
   bool? _wasCorrect;
+  int? _initialRememberCount;
   bool _showWordDetails = false;
   WordData? _currentWordData;
-  dynamic _questionData; // stores extra context (e.g. quote text) for the current question
+  dynamic
+  _questionData; // stores extra context (e.g. quote text) for the current question
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   PreparedReviewQuestion? _activePreparedQuestion;
-  
+
   @override
   void initState() {
     super.initState();
@@ -77,14 +82,24 @@ class _ReviewScreenState extends State<ReviewScreen> {
     _questionData = variant.questionData;
     _selectedOptionId = null;
     _wasCorrect = null;
+    _initialRememberCount =
+        _progressService.getProgress(question.word.id)?.rememberCount ?? 0;
     _showWordDetails = false;
 
-    if (variant.type == 'meaning' || variant.type == 'listening' || variant.type == 'synonym' || variant.type == 'antonym' || variant.type == 'misspelling') {
-      if (question.wordAudioPath != null && question.wordAudioPath!.isNotEmpty) {
-        _playAudioPathDirectly(question.wordAudioPath!);
-      } else {
-        _playAudio(question.word.id.toString(), question.word.text);
-      }
+    if (variant.type == 'meaning' ||
+        variant.type == 'listening' ||
+        variant.type == 'synonym' ||
+        variant.type == 'antonym' ||
+        variant.type == 'misspelling') {
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
+        if (question.wordAudioPath != null &&
+            question.wordAudioPath!.isNotEmpty) {
+          _playAudioPathDirectly(question.wordAudioPath!);
+        } else {
+          _playAudio(question.word.id.toString(), question.word.text);
+        }
+      });
     }
   }
 
@@ -99,15 +114,23 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
     // Keep the next 4 questions constantly pre-made
     for (int offset = 1; offset <= 4; offset++) {
-      _reviewService.getOrPrepareQuestion(_currentIndex + offset, context: context);
+      _reviewService.getOrPrepareQuestion(
+        _currentIndex + offset,
+        context: context,
+      );
     }
 
-    final prepared = await _reviewService.getOrPrepareQuestion(_currentIndex, context: context);
+    final prepared = await _reviewService.getOrPrepareQuestion(
+      _currentIndex,
+      context: context,
+    );
 
     if (!mounted) return;
 
     if (prepared == null) {
-      print('⏩ [ReviewScreen] Skipping word at index $_currentIndex (cloud data failed or missing senses). Advancing to next word.');
+      print(
+        '⏩ [ReviewScreen] Skipping word at index $_currentIndex (cloud data failed or missing senses). Advancing to next word.',
+      );
       _currentIndex++;
       await _loadNextWord();
       return;
@@ -120,9 +143,13 @@ class _ReviewScreenState extends State<ReviewScreen> {
   }
 
   void _shuffleQuestionType() {
-    if (_activePreparedQuestion == null || _activePreparedQuestion!.variants.length <= 1) return;
+    if (_activePreparedQuestion == null ||
+        _activePreparedQuestion!.variants.length <= 1)
+      return;
 
-    final nextIndex = (_activePreparedQuestion!.currentVariantIndex + 1) % _activePreparedQuestion!.variants.length;
+    final nextIndex =
+        (_activePreparedQuestion!.currentVariantIndex + 1) %
+        _activePreparedQuestion!.variants.length;
     _activePreparedQuestion!.currentVariantIndex = nextIndex;
     final variant = _activePreparedQuestion!.currentVariant;
 
@@ -134,39 +161,52 @@ class _ReviewScreenState extends State<ReviewScreen> {
       _wasCorrect = null;
     });
 
-    if (variant.type == 'meaning' || variant.type == 'listening' || variant.type == 'synonym' || variant.type == 'antonym' || variant.type == 'misspelling') {
-      if (_activePreparedQuestion?.wordAudioPath != null && _activePreparedQuestion!.wordAudioPath!.isNotEmpty) {
+    if (variant.type == 'meaning' ||
+        variant.type == 'listening' ||
+        variant.type == 'synonym' ||
+        variant.type == 'antonym' ||
+        variant.type == 'misspelling') {
+      if (_activePreparedQuestion?.wordAudioPath != null &&
+          _activePreparedQuestion!.wordAudioPath!.isNotEmpty) {
         _playAudioPathDirectly(_activePreparedQuestion!.wordAudioPath!);
       } else {
-        _playAudio(_activePreparedQuestion!.word.id.toString(), _activePreparedQuestion!.word.text);
+        _playAudio(
+          _activePreparedQuestion!.word.id.toString(),
+          _activePreparedQuestion!.word.text,
+        );
       }
     }
   }
 
   int _audioSequenceId = 0;
 
-  void _stopAllAudio() {
+  Future<void> _stopAllAudio() async {
     _audioSequenceId++;
-    _audioPlayer.stop();
+    await _audioPlayer.stop();
   }
 
-  void _playAudioPathDirectly(String path) {
-    _stopAllAudio();
+  Future<void> _playAudioPathDirectly(String path) async {
+    await _stopAllAudio();
     try {
       if (path.startsWith('http') || path.startsWith('data:')) {
-        _audioPlayer.play(UrlSource(path));
+        await _audioPlayer.play(UrlSource(path));
       } else {
-        _audioPlayer.play(DeviceFileSource(path));
+        await _audioPlayer.play(DeviceFileSource(path));
       }
     } catch (_) {}
   }
 
   String _getCurrentExample() {
-    if (_activePreparedQuestion?.exampleText != null && _activePreparedQuestion!.exampleText!.isNotEmpty) {
+    if (_currentQuestionType == 'example' && _questionData is String) {
+      return _questionData as String;
+    }
+    if (_activePreparedQuestion?.exampleText != null &&
+        _activePreparedQuestion!.exampleText!.isNotEmpty) {
       return _activePreparedQuestion!.exampleText!;
     }
     if (_currentWordData != null) {
-      for (final s in _currentWordData!.senses) {
+      final senses = _currentWordData!.senses.toList()..shuffle();
+      for (final s in senses) {
         if (s.ex.trim().isNotEmpty) {
           return s.ex.trim();
         }
@@ -176,9 +216,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
   }
 
   Future<void> _playAudio(String wordId, String text) async {
-    _stopAllAudio();
+    await _stopAllAudio();
     try {
-      final path = await WordupApi.getAudioPath(wordId, wordText: text, isUk: false, useGoogleTts: false);
+      final path = await WordupApi.getAudioPath(
+        wordId,
+        wordText: text,
+        isUk: false,
+        useGoogleTts: false,
+      );
       if (path.isNotEmpty) {
         if (path.startsWith('http') || path.startsWith('data:')) {
           await _audioPlayer.play(UrlSource(path));
@@ -190,9 +235,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
   }
 
   Future<void> _playExampleAudio(String exampleText) async {
-    _stopAllAudio();
+    await _stopAllAudio();
     try {
-      final path = await WordupApi.getSentenceAudioPath(exampleText, isUk: false);
+      final path = await WordupApi.getSentenceAudioPath(
+        exampleText,
+        isUk: false,
+      );
       if (path.isNotEmpty) {
         if (path.startsWith('http') || path.startsWith('data:')) {
           await _audioPlayer.play(UrlSource(path));
@@ -212,13 +260,17 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
     // Use pre-fetched sentence audio if available, or fetch in parallel
     final Future<String?> sentenceAudioFuture = () async {
-      if (activeQuestion?.exampleAudioPath != null && activeQuestion!.exampleAudioPath!.isNotEmpty) {
+      if (activeQuestion?.exampleAudioPath != null &&
+          activeQuestion!.exampleAudioPath!.isNotEmpty) {
         return activeQuestion.exampleAudioPath;
       }
       try {
         String example = _getCurrentExample();
         if (example.isEmpty && _currentWordData == null) {
-          final json = await WordupApi.fetchWordData(word.id.toString(), wordText: word.text);
+          final json = await WordupApi.fetchWordData(
+            word.id.toString(),
+            wordText: word.text,
+          );
           if (currentSeq != _audioSequenceId || !mounted) return null;
           final data = WordData.fromJson(word.id, json);
           for (final s in data.senses) {
@@ -230,7 +282,10 @@ class _ReviewScreenState extends State<ReviewScreen> {
         }
         if (example.trim().isNotEmpty) {
           final sentenceText = 'For example, $example';
-          return await WordupApi.getSentenceAudioPath(sentenceText, isUk: false);
+          return await WordupApi.getSentenceAudioPath(
+            sentenceText,
+            isUk: false,
+          );
         }
       } catch (_) {}
       return null;
@@ -250,7 +305,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
       if (currentSeq != _audioSequenceId || !mounted) return;
 
       if (wordAudioPath.isNotEmpty) {
-        if (wordAudioPath.startsWith('http') || wordAudioPath.startsWith('data:')) {
+        if (wordAudioPath.startsWith('http') ||
+            wordAudioPath.startsWith('data:')) {
           await _audioPlayer.play(UrlSource(wordAudioPath));
         } else {
           await _audioPlayer.play(DeviceFileSource(wordAudioPath));
@@ -282,7 +338,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
       if (currentSeq != _audioSequenceId || !mounted) return;
 
       if (exampleAudioPath != null && exampleAudioPath.isNotEmpty) {
-        if (exampleAudioPath.startsWith('http') || exampleAudioPath.startsWith('data:')) {
+        if (exampleAudioPath.startsWith('http') ||
+            exampleAudioPath.startsWith('data:')) {
           await _audioPlayer.play(UrlSource(exampleAudioPath));
         } else {
           await _audioPlayer.play(DeviceFileSource(exampleAudioPath));
@@ -293,7 +350,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   void _submitAnswer(int selectedId, bool isCorrect) async {
     if (_currentDictWord == null || _selectedOptionId != null) return;
-    
+
     setState(() {
       _selectedOptionId = selectedId;
       _wasCorrect = isCorrect;
@@ -301,7 +358,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
     final p = _progressService.getProgress(_currentDictWord!.id);
     final count = p?.rememberCount ?? 0;
-    
+    _initialRememberCount = count;
+
     if (isCorrect && count >= 11) {
       _audioPlayer.play(AssetSource('sounds/finish.mp3'));
     } else if (isCorrect) {
@@ -311,20 +369,28 @@ class _ReviewScreenState extends State<ReviewScreen> {
     }
 
     await _progressService.recordReview(_currentDictWord!.id, isCorrect);
-    
+
     // Ensure rich data with illustrations is available for the overlay
-    if (_currentWordData == null || !_currentWordData!.senses.any((s) => s.imageUrl != null && s.imageUrl!.isNotEmpty)) {
+    if (_currentWordData == null ||
+        !_currentWordData!.senses.any(
+          (s) => s.imageUrl != null && s.imageUrl!.isNotEmpty,
+        )) {
       WordupApi.fetchWordData(
-        _currentDictWord!.id.toString(),
-        wordText: _currentDictWord!.text,
-        isPrefetch: true,
-      ).then((json) {
-        if (mounted && json.isNotEmpty) {
-          setState(() {
-            _currentWordData = WordData.fromJson(_currentDictWord!.id, json);
-          });
-        }
-      }).catchError((_) {});
+            _currentDictWord!.id.toString(),
+            wordText: _currentDictWord!.text,
+            isPrefetch: true,
+          )
+          .then((json) {
+            if (mounted && json.isNotEmpty) {
+              setState(() {
+                _currentWordData = WordData.fromJson(
+                  _currentDictWord!.id,
+                  json,
+                );
+              });
+            }
+          })
+          .catchError((_) {});
     }
 
     await Future.delayed(Duration(milliseconds: 1200));
@@ -350,27 +416,125 @@ class _ReviewScreenState extends State<ReviewScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Review Session', style: TextStyle(fontWeight: FontWeight.w800)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      extendBodyBehindAppBar: true,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.scaffoldBackgroundColor,
-              Color(0xFF1E1B4B), // Deep indigo
-            ],
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(
+          kToolbarHeight +
+              (defaultTargetPlatform == TargetPlatform.windows ? 16.0 : 0.0),
+        ),
+        child: Padding(
+          padding: EdgeInsets.only(
+            top: defaultTargetPlatform == TargetPlatform.windows ? 16.0 : 0.0,
+          ),
+          child: AppBar(
+            title: Text(
+              'Review Session',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
           ),
         ),
-        child: SafeArea(
-          child: _isLoading 
-            ? Center(child: CircularProgressIndicator())
-            : _buildContent(),
+      ),
+      extendBodyBehindAppBar: true,
+      body: Focus(
+        autofocus: true,
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent) {
+            if (event.logicalKey == LogicalKeyboardKey.escape) {
+              Navigator.maybePop(context);
+              return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.space) {
+              if (_showWordDetails) {
+                _playAudio(
+                  _currentDictWord!.id.toString(),
+                  _currentDictWord!.text,
+                );
+              } else {
+                if (_currentQuestionType == 'meaning' ||
+                    _currentQuestionType == 'listening' ||
+                    _currentQuestionType == 'synonym' ||
+                    _currentQuestionType == 'antonym' ||
+                    _currentQuestionType == 'misspelling') {
+                  if (_activePreparedQuestion?.wordAudioPath != null &&
+                      _activePreparedQuestion!.wordAudioPath!.isNotEmpty) {
+                    _playAudioPathDirectly(
+                      _activePreparedQuestion!.wordAudioPath!,
+                    );
+                  } else if (_activePreparedQuestion != null) {
+                    _playAudio(
+                      _activePreparedQuestion!.word.id.toString(),
+                      _activePreparedQuestion!.word.text,
+                    );
+                  }
+                }
+              }
+              return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.enter ||
+                event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+              if (_showWordDetails) {
+                _proceedToNext();
+                return KeyEventResult.handled;
+              }
+            }
+            if (!_showWordDetails) {
+              if (event.logicalKey == LogicalKeyboardKey.digit1 ||
+                  event.logicalKey == LogicalKeyboardKey.numpad1) {
+                if (_currentOptions.isNotEmpty && _selectedOptionId == null)
+                  _submitAnswer(
+                    _currentOptions[0].id,
+                    _currentOptions[0].isCorrect,
+                  );
+                return KeyEventResult.handled;
+              }
+              if (event.logicalKey == LogicalKeyboardKey.digit2 ||
+                  event.logicalKey == LogicalKeyboardKey.numpad2) {
+                if (_currentOptions.length > 1 && _selectedOptionId == null)
+                  _submitAnswer(
+                    _currentOptions[1].id,
+                    _currentOptions[1].isCorrect,
+                  );
+                return KeyEventResult.handled;
+              }
+              if (event.logicalKey == LogicalKeyboardKey.digit3 ||
+                  event.logicalKey == LogicalKeyboardKey.numpad3) {
+                if (_currentOptions.length > 2 && _selectedOptionId == null)
+                  _submitAnswer(
+                    _currentOptions[2].id,
+                    _currentOptions[2].isCorrect,
+                  );
+                return KeyEventResult.handled;
+              }
+              if (event.logicalKey == LogicalKeyboardKey.digit4 ||
+                  event.logicalKey == LogicalKeyboardKey.numpad4) {
+                if (_currentOptions.length > 3 && _selectedOptionId == null)
+                  _submitAnswer(
+                    _currentOptions[3].id,
+                    _currentOptions[3].isCorrect,
+                  );
+                return KeyEventResult.handled;
+              }
+            }
+          }
+          return KeyEventResult.ignored;
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.scaffoldBackgroundColor,
+                Color(0xFF1E1B4B), // Deep indigo
+              ],
+            ),
+          ),
+          child: SafeArea(
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator())
+                : _buildContent(),
+          ),
         ),
       ),
     );
@@ -384,14 +548,19 @@ class _ReviewScreenState extends State<ReviewScreen> {
           children: [
             Icon(Icons.celebration, size: 64, color: Colors.yellow),
             SizedBox(height: 16),
-            Text('Review Complete!', style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: Colors.white)),
+            Text(
+              'Review Complete!',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(color: Colors.white),
+            ),
             SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
               child: Text('Return Home'),
-            )
+            ),
           ],
-        )
+        ),
       );
     }
 
@@ -400,22 +569,22 @@ class _ReviewScreenState extends State<ReviewScreen> {
     }
 
     final currentProgress = _dueWords[_currentIndex];
-    String stepText = 'Step ${currentProgress.rememberCount}';
+    bool isMastered = _progressService.knownWordIds.contains(
+      _currentDictWord!.id,
+    );
+    final p = _progressService.getProgress(_currentDictWord!.id);
+    final count = p?.rememberCount ?? currentProgress.rememberCount;
+    String stepText = isMastered ? 'Mastered' : 'Step $count';
     String nextStepText = '';
-    
-    bool isMastered = _progressService.knownWordIds.contains(_currentDictWord!.id);
-    
+
     if (isMastered) {
       nextStepText = 'Mastered!';
     } else {
-      final p = _progressService.getProgress(_currentDictWord!.id);
-      final count = p?.rememberCount ?? currentProgress.rememberCount;
-      
       // If count is 12, it is technically mastered (but handled by isMastered).
       // Here count is <= 11.
       final interval = _progressService.stepIntervals[count];
       final days = interval.inDays;
-      
+
       if (days == 0) {
         nextStepText = 'Next: 1 day';
       } else if (days == 1) {
@@ -450,17 +619,32 @@ class _ReviewScreenState extends State<ReviewScreen> {
               LinearProgressIndicator(
                 value: _currentIndex / _dueWords.length,
                 backgroundColor: Colors.white24,
-                valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).primaryColor,
+                ),
               ),
-              SizedBox(height: 32),
+              SizedBox(
+                height: 32,
+                child: Center(
+                  child: Text(
+                    '${_currentIndex + 1}/${_dueWords.length}',
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
               Expanded(
                 child: AnimatedSwitcher(
                   duration: Duration(milliseconds: 300),
-                  transitionBuilder: (Widget child, Animation<double> animation) {
-                    return FadeTransition(opacity: animation, child: child);
-                  },
-                  child: _showWordDetails 
-                      ? _buildWordDetailsOverlay(nextStepText) 
+                  transitionBuilder:
+                      (Widget child, Animation<double> animation) {
+                        return FadeTransition(opacity: animation, child: child);
+                      },
+                  child: _showWordDetails
+                      ? _buildWordDetailsOverlay(nextStepText)
                       : _buildQuestionArea(),
                 ),
               ),
@@ -472,7 +656,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   children: [
                     Text(
                       stepText,
-                      style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       nextStepText,
@@ -480,7 +668,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     ),
                   ],
                 ),
-              ]
+              ],
             ],
           ),
         ),
@@ -507,7 +695,12 @@ class _ReviewScreenState extends State<ReviewScreen> {
       case 'antonym':
         return _buildAntonymQuestion();
       default:
-        return Center(child: Text('Unknown question type', style: TextStyle(color: Colors.white)));
+        return Center(
+          child: Text(
+            'Unknown question type',
+            style: TextStyle(color: Colors.white),
+          ),
+        );
     }
   }
 
@@ -517,6 +710,13 @@ class _ReviewScreenState extends State<ReviewScreen> {
     if (len <= 16) return 30;
     if (len <= 25) return 24;
     return 20;
+  }
+
+  double _getPassageFontSize(String text) {
+    final len = text.length;
+    if (len <= 100) return 19;
+    if (len <= 200) return 17;
+    return 15;
   }
 
   Widget _buildWordWithAudioPrompt() {
@@ -535,6 +735,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   child: Text(
                     wordText,
                     textAlign: TextAlign.center,
+                    maxLines: 1,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: fontSize,
@@ -556,8 +757,15 @@ class _ReviewScreenState extends State<ReviewScreen> {
         ),
         SizedBox(width: 8),
         IconButton(
-          icon: Icon(Icons.volume_up_rounded, color: Colors.cyanAccent, size: 28),
-          onPressed: () => _playAudio(_currentDictWord!.id.toString(), _currentDictWord!.text),
+          icon: Icon(
+            Icons.volume_up_rounded,
+            color: Colors.cyanAccent,
+            size: 28,
+          ),
+          onPressed: () => _playAudio(
+            _currentDictWord!.id.toString(),
+            _currentDictWord!.text,
+          ),
           tooltip: 'Listen to pronunciation',
         ),
       ],
@@ -576,14 +784,39 @@ class _ReviewScreenState extends State<ReviewScreen> {
   Widget _buildQuoteQuestion() {
     final quote = _questionData as WordQuote;
     final author = quote.authorName;
-    
-    final pattern = RegExp(RegExp.escape(_currentDictWord!.text), caseSensitive: false);
+
+    final pattern = RegExp(
+      RegExp.escape(_currentDictWord!.text),
+      caseSensitive: false,
+    );
     final maskedQuote = quote.text.replaceAll(pattern, '_______');
 
     return _buildQuestionContainer(
       'Complete the quote by $author:',
-      '\"$maskedQuote\"',
-      true
+      '"$maskedQuote"',
+      true,
+      customMainWidget: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.format_quote_rounded,
+            color: Colors.cyanAccent.withValues(alpha: 0.6),
+            size: 36,
+          ),
+          SizedBox(height: 8),
+          Text(
+            '"$maskedQuote"',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: _getPassageFontSize(maskedQuote),
+              fontStyle: FontStyle.italic,
+              fontWeight: FontWeight.w500,
+              height: 1.38,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -592,7 +825,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
       'Listen and select the correct spelling',
       null,
       false,
-      onTapPrompt: () => _playAudio(_currentDictWord!.id.toString(), _currentDictWord!.text),
+      onTapPrompt: () =>
+          _playAudio(_currentDictWord!.id.toString(), _currentDictWord!.text),
       customMainWidget: Center(
         child: Container(
           padding: EdgeInsets.all(32),
@@ -600,7 +834,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
             color: Colors.white.withValues(alpha: 0.05),
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.volume_up_rounded, size: 72, color: Colors.blueAccent),
+          child: Icon(
+            Icons.volume_up_rounded,
+            size: 72,
+            color: Colors.blueAccent,
+          ),
         ),
       ),
     );
@@ -608,14 +846,28 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   Widget _buildExampleQuestion() {
     final example = _questionData as String;
-    
-    final pattern = RegExp(RegExp.escape(_currentDictWord!.text), caseSensitive: false);
+
+    final pattern = RegExp(
+      RegExp.escape(_currentDictWord!.text),
+      caseSensitive: false,
+    );
     final maskedExample = example.replaceAll(pattern, '_______');
 
     return _buildQuestionContainer(
       'Fill in the blank:',
-      '\"$maskedExample\"',
-      true
+      '"$maskedExample"',
+      true,
+      customMainWidget: Text(
+        '"$maskedExample"',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: _getPassageFontSize(maskedExample),
+          fontStyle: FontStyle.italic,
+          fontWeight: FontWeight.w500,
+          height: 1.38,
+        ),
+      ),
     );
   }
 
@@ -638,7 +890,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 decoration: BoxDecoration(
                   color: Colors.cyanAccent.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.5)),
+                  border: Border.all(
+                    color: Colors.cyanAccent.withValues(alpha: 0.5),
+                  ),
                 ),
                 child: Text(
                   'synonym',
@@ -680,7 +934,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 decoration: BoxDecoration(
                   color: Colors.redAccent.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
+                  border: Border.all(
+                    color: Colors.redAccent.withValues(alpha: 0.5),
+                  ),
                 ),
                 child: Text(
                   'antonym (opposite)',
@@ -708,7 +964,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
       'Listen and select the meaning',
       null,
       false,
-      onTapPrompt: () => _playAudio(_currentDictWord!.id.toString(), _currentDictWord!.text),
+      onTapPrompt: () =>
+          _playAudio(_currentDictWord!.id.toString(), _currentDictWord!.text),
       customMainWidget: Center(
         child: Container(
           padding: EdgeInsets.all(32),
@@ -716,7 +973,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
             color: Colors.white.withValues(alpha: 0.05),
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.volume_up_rounded, size: 72, color: Colors.blueAccent),
+          child: Icon(
+            Icons.volume_up_rounded,
+            size: 72,
+            color: Colors.blueAccent,
+          ),
         ),
       ),
     );
@@ -724,22 +985,55 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   Widget _buildCompareQuestion() {
     final comp = _questionData as WordComparison;
-    
-    final pattern = RegExp(r'\b' + RegExp.escape(_currentDictWord!.text) + r'(s|es|ed|ing|d)?\b', caseSensitive: false);
+
+    final pattern = RegExp(
+      r'\b' + RegExp.escape(_currentDictWord!.text) + r'(s|es|ed|ing|d)?\b',
+      caseSensitive: false,
+    );
     final masked = comp.text.replaceAll(pattern, '_______');
 
     return _buildQuestionContainer(
       'Fill in the blank for this comparison:',
       masked,
-      false
+      false,
+      customMainWidget: Container(
+        padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Text(
+          masked,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: _getPassageFontSize(masked),
+            height: 1.4,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildQuestionContainer(String subtitle, String? mainText, bool isItalic, {VoidCallback? onTapPrompt, Widget? customMainWidget, Widget? customSubtitleWidget}) {
+  Widget _buildQuestionContainer(
+    String subtitle,
+    String? mainText,
+    bool isItalic, {
+    VoidCallback? onTapPrompt,
+    Widget? customMainWidget,
+    Widget? customSubtitleWidget,
+  }) {
+    final isPassage =
+        (mainText != null && mainText.length > 35) || customMainWidget != null;
     return Center(
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 800), // Slightly wider for long quotes
+        constraints: BoxConstraints(
+          maxWidth: 800,
+        ), // Slightly wider for long quotes
         child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -750,63 +1044,81 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   Spacer(),
                   Expanded(
                     flex: 8,
-                    child: customSubtitleWidget ?? Text(
-                      subtitle,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70, fontSize: 18),
-                    ),
+                    child:
+                        customSubtitleWidget ??
+                        Text(
+                          subtitle,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white70, fontSize: 18),
+                        ),
                   ),
                   Expanded(
                     flex: 1,
                     child: IconButton(
-                      icon: Icon(Icons.shuffle, color: Colors.white54, size: 20),
+                      icon: Icon(
+                        Icons.shuffle,
+                        color: Colors.white54,
+                        size: 20,
+                      ),
                       onPressed: _shuffleQuestionType,
                       tooltip: 'Change Question Type',
                     ),
                   ),
                 ],
               ),
-            SizedBox(height: 16),
-            GestureDetector(
-              onTap: onTapPrompt,
-              child: customMainWidget ?? Builder(
-                builder: (context) {
-                  final text = mainText ?? '';
-                  final fontSize = _getAdaptiveFontSize(text);
-                  final isSingleLongWord = !text.contains(' ') && text.length > 11;
-                  
-                  if (isSingleLongWord) {
-                    return FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        text,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: onTapPrompt != null ? Colors.blueAccent : Colors.white,
-                          fontSize: fontSize,
-                          fontWeight: FontWeight.bold,
-                          fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
-                        ),
-                      ),
-                    );
-                  }
-                  
-                  return Text(
-                    text,
-                    textAlign: TextAlign.center,
-                    maxLines: 4,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: onTapPrompt != null ? Colors.blueAccent : Colors.white,
-                      fontSize: fontSize,
-                      fontWeight: FontWeight.bold,
-                      fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+              SizedBox(height: 16),
+              GestureDetector(
+                onTap: onTapPrompt,
+                child:
+                    customMainWidget ??
+                    Builder(
+                      builder: (context) {
+                        final text = mainText ?? '';
+                        final isSingleLongWord =
+                            !text.contains(' ') && text.length > 11;
+
+                        if (isSingleLongWord) {
+                          return FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              text,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: onTapPrompt != null
+                                    ? Colors.blueAccent
+                                    : Colors.white,
+                                fontSize: _getAdaptiveFontSize(text),
+                                fontWeight: FontWeight.bold,
+                                fontStyle: isItalic
+                                    ? FontStyle.italic
+                                    : FontStyle.normal,
+                              ),
+                            ),
+                          );
+                        }
+
+                        final passageFontSize = _getPassageFontSize(text);
+                        return Text(
+                          text,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: onTapPrompt != null
+                                ? Colors.blueAccent
+                                : Colors.white,
+                            fontSize: passageFontSize,
+                            fontWeight: isItalic
+                                ? FontWeight.w600
+                                : FontWeight.bold,
+                            fontStyle: isItalic
+                                ? FontStyle.italic
+                                : FontStyle.normal,
+                            height: 1.38,
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
               ),
-            ),
-              SizedBox(height: 48),
+              SizedBox(height: isPassage ? 20 : 36),
               ..._buildOptionsList(),
             ],
           ),
@@ -835,7 +1147,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
             backgroundColor: bgColor,
             foregroundColor: Colors.white,
             padding: EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             alignment: Alignment.center,
           ),
           onPressed: () {
@@ -843,36 +1157,61 @@ class _ReviewScreenState extends State<ReviewScreen> {
               _submitAnswer(option.id, option.isCorrect);
             }
           },
-          child: Text(option.text, textAlign: TextAlign.center, style: TextStyle(fontSize: 16)),
+          child: Text(
+            option.text,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16),
+          ),
         ),
       );
     }).toList();
   }
+
   Widget _buildWordDetailsOverlay(String nextStepText) {
     String example = _getCurrentExample();
     String meaning = _currentDictWord!.meaning;
-    
+
     if (_currentWordData != null) {
       if (_currentWordData!.senses.isNotEmpty) {
-        meaning = _currentWordData!.senses.first.de;
+        WordSense? matchingSense;
+        if (example.isNotEmpty) {
+          try {
+            matchingSense = _currentWordData!.senses.firstWhere(
+              (s) => s.ex.trim() == example,
+            );
+          } catch (_) {}
+        }
+        if (matchingSense == null) {
+          final senses = _currentWordData!.senses.toList()..shuffle();
+          matchingSense = senses.first;
+        }
+        meaning = matchingSense.de;
+        if (example.isEmpty) {
+          example = matchingSense.ex.trim();
+        }
       }
     }
 
     List<String> availableImages = [];
     if (_currentWordData != null) {
-      if (_currentWordData!.imageUrl != null && _currentWordData!.imageUrl!.isNotEmpty) {
+      if (_currentWordData!.imageUrl != null &&
+          _currentWordData!.imageUrl!.isNotEmpty) {
         availableImages.add(_currentWordData!.imageUrl!);
       }
       for (var sense in _currentWordData!.senses) {
-        if (sense.imageUrl != null && sense.imageUrl!.isNotEmpty) availableImages.add(sense.imageUrl!);
+        if (sense.imageUrl != null && sense.imageUrl!.isNotEmpty)
+          availableImages.add(sense.imageUrl!);
         for (var tip in sense.tips) {
-          if (tip.imageUrl != null && tip.imageUrl!.isNotEmpty) availableImages.add(tip.imageUrl!);
+          if (tip.imageUrl != null && tip.imageUrl!.isNotEmpty)
+            availableImages.add(tip.imageUrl!);
         }
       }
     }
     availableImages = availableImages.toSet().toList();
 
-    String? preferredUrl = _progressService.getPreferredImage(_currentDictWord!.id);
+    String? preferredUrl = _progressService.getPreferredImage(
+      _currentDictWord!.id,
+    );
     String? displayImageUrl;
     if (availableImages.isNotEmpty) {
       if (preferredUrl != null && availableImages.contains(preferredUrl)) {
@@ -886,7 +1225,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
     final rank = DatabaseService.getWordRank(_currentDictWord!.id);
 
     final wordText = _currentDictWord!.text;
-    final pos = (_currentWordData != null && _currentWordData!.senses.isNotEmpty)
+    final pos =
+        (_currentWordData != null && _currentWordData!.senses.isNotEmpty)
         ? _currentWordData!.senses.first.ty
         : null;
 
@@ -895,13 +1235,15 @@ class _ReviewScreenState extends State<ReviewScreen> {
         color: Color(0xFF1E1E1E), // Dark background for the card
         borderRadius: BorderRadius.circular(16),
         border: isMastered ? Border.all(color: Colors.amber, width: 2) : null,
-        boxShadow: isMastered ? [
-          BoxShadow(
-            color: Colors.amber.withValues(alpha: 0.3),
-            blurRadius: 20,
-            spreadRadius: 2,
-          )
-        ] : null,
+        boxShadow: isMastered
+            ? [
+                BoxShadow(
+                  color: Colors.amber.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ]
+            : null,
       ),
       padding: EdgeInsets.all(24),
       child: Column(
@@ -931,7 +1273,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   decoration: BoxDecoration(
                     color: Colors.purpleAccent.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.purpleAccent.withValues(alpha: 0.5)),
+                    border: Border.all(
+                      color: Colors.purpleAccent.withValues(alpha: 0.5),
+                    ),
                   ),
                   child: Text(
                     '#$rank',
@@ -951,7 +1295,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   decoration: BoxDecoration(
                     color: Colors.tealAccent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.tealAccent.withValues(alpha: 0.4)),
+                    border: Border.all(
+                      color: Colors.tealAccent.withValues(alpha: 0.4),
+                    ),
                   ),
                   child: Text(
                     pos,
@@ -965,8 +1311,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
               ],
               Spacer(),
               IconButton(
-                icon: Icon(Icons.volume_up_rounded, color: isMastered ? Colors.amber : Colors.cyanAccent),
-                onPressed: () => _playAudio(_currentDictWord!.id.toString(), _currentDictWord!.text),
+                icon: Icon(
+                  Icons.volume_up_rounded,
+                  color: isMastered ? Colors.amber : Colors.cyanAccent,
+                ),
+                onPressed: () => _playAudio(
+                  _currentDictWord!.id.toString(),
+                  _currentDictWord!.text,
+                ),
                 tooltip: 'Listen to pronunciation',
               ),
               IconButton(
@@ -990,7 +1342,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
           SizedBox(height: 20),
           Text(
             meaning,
-            style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           if (example.isNotEmpty) ...[
             SizedBox(height: 16),
@@ -1005,12 +1361,20 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   Expanded(
                     child: Text(
                       example,
-                      style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic, color: Colors.white70),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.white70,
+                      ),
                     ),
                   ),
                   SizedBox(width: 8),
                   IconButton(
-                    icon: Icon(Icons.volume_up_rounded, color: Colors.cyanAccent.shade100, size: 22),
+                    icon: Icon(
+                      Icons.volume_up_rounded,
+                      color: Colors.cyanAccent.shade100,
+                      size: 22,
+                    ),
                     padding: EdgeInsets.zero,
                     constraints: BoxConstraints(),
                     onPressed: () => _playExampleAudio(example),
@@ -1018,7 +1382,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   ),
                 ],
               ),
-            )
+            ),
           ],
           if (displayImageUrl != null) ...[
             SizedBox(height: 16),
@@ -1049,9 +1413,15 @@ class _ReviewScreenState extends State<ReviewScreen> {
                           icon: Icon(Icons.refresh, color: Colors.white),
                           tooltip: 'Change Picture',
                           onPressed: () async {
-                            int currentIdx = availableImages.indexOf(displayImageUrl!);
-                            int nextIdx = (currentIdx + 1) % availableImages.length;
-                            await _progressService.setPreferredImage(_currentDictWord!.id, availableImages[nextIdx]);
+                            int currentIdx = availableImages.indexOf(
+                              displayImageUrl!,
+                            );
+                            int nextIdx =
+                                (currentIdx + 1) % availableImages.length;
+                            await _progressService.setPreferredImage(
+                              _currentDictWord!.id,
+                              availableImages[nextIdx],
+                            );
                             if (mounted) setState(() {});
                           },
                         ),
@@ -1068,15 +1438,31 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.03),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.06),
+                  ),
                 ),
-                child: _currentWordData != null && _currentWordData!.senses.length > 1
+                child:
+                    _currentWordData != null &&
+                        _currentWordData!.senses.length > 1
                     ? ListView(
                         padding: EdgeInsets.zero,
                         children: [
-                          Text('OTHER DEFINITIONS', style: TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                          Text(
+                            'OTHER DEFINITIONS',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                            ),
+                          ),
                           SizedBox(height: 8),
-                          for (int sIdx = 1; sIdx < _currentWordData!.senses.length; sIdx++) ...[
+                          for (
+                            int sIdx = 1;
+                            sIdx < _currentWordData!.senses.length;
+                            sIdx++
+                          ) ...[
                             Container(
                               margin: EdgeInsets.only(bottom: 8),
                               padding: EdgeInsets.all(10),
@@ -1089,13 +1475,24 @@ class _ReviewScreenState extends State<ReviewScreen> {
                                 children: [
                                   Text(
                                     '${sIdx + 1}. ${_currentWordData!.senses[sIdx].de}',
-                                    style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
-                                  if (_currentWordData!.senses[sIdx].ex.isNotEmpty) ...[
+                                  if (_currentWordData!
+                                      .senses[sIdx]
+                                      .ex
+                                      .isNotEmpty) ...[
                                     SizedBox(height: 4),
                                     Text(
                                       '“${_currentWordData!.senses[sIdx].ex}”',
-                                      style: TextStyle(color: Colors.white38, fontSize: 12, fontStyle: FontStyle.italic),
+                                      style: TextStyle(
+                                        color: Colors.white38,
+                                        fontSize: 12,
+                                        fontStyle: FontStyle.italic,
+                                      ),
                                     ),
                                   ],
                                 ],
@@ -1108,9 +1505,19 @@ class _ReviewScreenState extends State<ReviewScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.auto_stories_rounded, size: 40, color: Colors.white24),
+                            Icon(
+                              Icons.auto_stories_rounded,
+                              size: 40,
+                              color: Colors.white24,
+                            ),
                             SizedBox(height: 8),
-                            Text('No illustration in dictionary', style: TextStyle(color: Colors.white38, fontSize: 13)),
+                            Text(
+                              'No illustration in dictionary',
+                              style: TextStyle(
+                                color: Colors.white38,
+                                fontSize: 13,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -1120,11 +1527,23 @@ class _ReviewScreenState extends State<ReviewScreen> {
           SizedBox(height: 16),
           Container(
             decoration: BoxDecoration(
-              color: isMastered ? Colors.amber.shade600 : Color(0xFFC043FF), // Gold if mastered
+              color: isMastered
+                  ? Colors.amber.shade600
+                  : Color(0xFFC043FF), // Gold if mastered
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
-                if (isMastered) BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))
-                else BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1)),
+                if (isMastered)
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
+                  )
+                else
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 2,
+                    offset: Offset(0, 1),
+                  ),
               ],
             ),
             child: Row(
@@ -1132,7 +1551,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 Expanded(
                   child: InkWell(
                     onTap: _proceedToNext,
-                    borderRadius: BorderRadius.horizontal(left: Radius.circular(12)),
+                    borderRadius: BorderRadius.horizontal(
+                      left: Radius.circular(12),
+                    ),
                     child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 20),
                       child: Row(
@@ -1143,12 +1564,16 @@ class _ReviewScreenState extends State<ReviewScreen> {
                             SizedBox(width: 8),
                           ],
                           Text(
-                            isMastered 
-                                ? 'MASTERED!' 
-                                : nextStepText == 'Next: Mastered!' 
-                                    ? 'Move to Mastered!' 
-                                    : 'Review in ${nextStepText.replaceAll('Next: ', '')}',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isMastered ? Colors.black87 : Colors.white),
+                            isMastered
+                                ? 'MASTERED!'
+                                : nextStepText == 'Next: Mastered!'
+                                ? 'Move to Mastered!'
+                                : 'Review in ${nextStepText.replaceAll('Next: ', '')}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: isMastered ? Colors.black87 : Colors.white,
+                            ),
                           ),
                           if (isMastered) ...[
                             SizedBox(width: 8),
@@ -1166,16 +1591,146 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       await ProgressService().markAsKnown(_currentDictWord!.id);
                       _proceedToNext();
                     } else if (value == 'learn') {
-                      await ProgressService().markAsToLearn(_currentDictWord!.id);
+                      await ProgressService().markAsToLearn(
+                        _currentDictWord!.id,
+                      );
                       _proceedToNext();
+                    } else if (value == 'override') {
+                      final wordId = _currentDictWord!.id;
+                      final initialStep = _initialRememberCount ?? 0;
+                      final newTreatedAsCorrect = !(_wasCorrect ?? false);
+
+                      await _progressService.overrideReviewOutcome(
+                        wordId,
+                        initialStep,
+                        newTreatedAsCorrect,
+                      );
+
+                      if (mounted) {
+                        setState(() {
+                          _wasCorrect = newTreatedAsCorrect;
+                        });
+
+                        final isNowMastered = _progressService.knownWordIds
+                            .contains(wordId);
+                        final currentProg = _progressService.getProgress(
+                          wordId,
+                        );
+                        final stepNum = isNowMastered
+                            ? 12
+                            : (currentProg?.rememberCount ?? 1);
+
+                        final String msg = newTreatedAsCorrect
+                            ? (isNowMastered
+                                  ? 'Result inverted: Mastered!'
+                                  : 'Result inverted: Advanced to Step $stepNum')
+                            : (stepNum == 1
+                                  ? 'Result inverted: Reset to Step 1'
+                                  : 'Result inverted: Moved back to Step $stepNum');
+
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                Icon(
+                                  newTreatedAsCorrect
+                                      ? Icons.check_circle_rounded
+                                      : Icons.replay_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    msg,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: newTreatedAsCorrect
+                                ? Colors.green.shade800
+                                : Colors.indigo.shade800,
+                            behavior: SnackBarBehavior.floating,
+                            duration: Duration(seconds: 2),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        );
+                      }
                     }
                   },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(value: 'known', child: Text('Mark as Known')),
-                    PopupMenuItem(value: 'learn', child: Text('Move to should learn')),
-                  ],
-                  icon: Icon(Icons.keyboard_arrow_down, color: isMastered ? Colors.black87 : Colors.white),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  itemBuilder: (context) {
+                    final wasCorrect = _wasCorrect ?? false;
+                    final isResetMode =
+                        SettingsService().reviewMistakePenalty != 'oneStep';
+                    return [
+                      PopupMenuItem(
+                        value: 'override',
+                        child: Row(
+                          children: [
+                            Icon(
+                              wasCorrect
+                                  ? Icons.arrow_downward_rounded
+                                  : Icons.arrow_upward_rounded,
+                              color: wasCorrect
+                                  ? Colors.orangeAccent
+                                  : Colors.greenAccent,
+                              size: 20,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              wasCorrect
+                                  ? (isResetMode
+                                        ? 'Treat as Incorrect (Reset to Step 1)'
+                                        : 'Treat as Incorrect (Previous Step)')
+                                  : 'Treat as Correct (Next Step)',
+                            ),
+                          ],
+                        ),
+                      ),
+                      PopupMenuDivider(),
+                      PopupMenuItem(
+                        value: 'known',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.done_all_rounded,
+                              color: Colors.cyanAccent,
+                              size: 20,
+                            ),
+                            SizedBox(width: 8),
+                            Text('Mark as Known'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'learn',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.bookmark_outline_rounded,
+                              color: Colors.amberAccent,
+                              size: 20,
+                            ),
+                            SizedBox(width: 8),
+                            Text('Move to should learn'),
+                          ],
+                        ),
+                      ),
+                    ];
+                  },
+                  icon: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: isMastered ? Colors.black87 : Colors.white,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ],
             ),

@@ -41,5 +41,21 @@ After running `flutter build apk --release`:
    Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath $dest
    ```
 
-### 2. Build Cache & Disk Management
-- Do **not** automatically run `flutter clean` after builds unless explicitly requested by the user. Preserving the `build/` cache allows for fast incremental compilations.
+### 2. Build Cache & Disk Space Reclaim Procedure
+
+- **Incremental Builds Invariant**:
+  Do **not** automatically run `flutter clean` after routine builds unless explicitly requested by the user, preserving the `build/` cache for fast incremental compilation.
+
+- **"Reclaim Disk" / "Clean Disk" Preference & Workflow**:
+  Whenever the user asks to "reclaim disk", "clean disk", "free disk space", or clean up the project directory:
+  1. **Purge Firebase C++ SDK Artifacts (~9.5 GB)**:
+     - Delete `firebase_cpp_sdk_windows/` directory.
+     - Delete `firebase_cpp_sdk_windows_13.11.0.zip` (user maintains an external backup).
+  2. **Purge Flutter Compilation Caches (~3.5 GB)**:
+     - Run `flutter clean` (deletes `build/`, `.dart_tool/`, and `windows/flutter/ephemeral`).
+     - Run `flutter pub get` immediately after to keep package references resolved.
+  3. **Purge Legacy & Scratch Folders (~16 MB)**:
+     - Delete `node_modules/` and `scratch/` directories if present.
+  4. **Strict Safety Invariants (DO NOT TOUCH)**:
+     - **NEVER** delete or alter `releases/` (all compiled APK, Android ZIP, and Windows ZIP release bundles must remain intact).
+     - **NEVER** touch SQLite databases (`my_wordup_v3.db`), progress files (`local_progress.json`, `current_progress.json`), assets, or source code.

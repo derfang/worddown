@@ -31,10 +31,14 @@ class SettingsService {
   // Word card layout preference for Word View ('list', 'grid', or 'slide')
   String? wordCardLayout;
 
+  // Review mistake penalty: 'step1' (reset to step 1 / 1 day) or 'oneStep' (demote 1 step)
+  String reviewMistakePenalty = 'step1';
+
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     
     wordCardLayout = _prefs.getString('wordCardLayout');
+    reviewMistakePenalty = _prefs.getString('reviewMistakePenalty') ?? 'step1';
     
     enableMeaningQuestion = _prefs.getBool('enableMeaningQuestion') ?? true;
     enableQuoteQuestion = _prefs.getBool('enableQuoteQuestion') ?? true;
@@ -55,6 +59,11 @@ class SettingsService {
     audioFocusMode = _prefs.getString('audioFocusMode') ?? 'duck';
     translationLanguage = _prefs.getString('translationLanguage') ?? 'fa';
     updateGlobalAudioContext();
+  }
+
+  Future<void> setReviewMistakePenalty(String penalty) async {
+    reviewMistakePenalty = penalty;
+    await _prefs.setString('reviewMistakePenalty', penalty);
   }
 
   Future<void> setTranslationLanguage(String lang) async {

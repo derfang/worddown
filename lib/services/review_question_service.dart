@@ -53,7 +53,8 @@ class PreparedReviewQuestion {
 }
 
 class ReviewQuestionService {
-  static final ReviewQuestionService _instance = ReviewQuestionService._internal();
+  static final ReviewQuestionService _instance =
+      ReviewQuestionService._internal();
   factory ReviewQuestionService() => _instance;
   ReviewQuestionService._internal();
 
@@ -63,7 +64,8 @@ class ReviewQuestionService {
 
   List<WordProgress> get currentSessionQueue => _currentSessionQueue;
 
-  PreparedReviewQuestion? getCachedQuestion(int index) => _completedQuestions[index];
+  PreparedReviewQuestion? getCachedQuestion(int index) =>
+      _completedQuestions[index];
 
   /// Starts or maintains a deterministic review queue and pre-makes questions
   void prepareReviewSession({BuildContext? context}) {
@@ -80,7 +82,9 @@ class ReviewQuestionService {
     final dueIds = due.map((e) => e.wordId).toSet();
     final currentIds = _currentSessionQueue.map((e) => e.wordId).toSet();
 
-    if (_currentSessionQueue.isEmpty || dueIds.difference(currentIds).isNotEmpty || currentIds.difference(dueIds).isNotEmpty) {
+    if (_currentSessionQueue.isEmpty ||
+        dueIds.difference(currentIds).isNotEmpty ||
+        currentIds.difference(dueIds).isNotEmpty) {
       // Re-initialize queue with a single shuffle
       _currentSessionQueue = List<WordProgress>.from(due)..shuffle();
       _preparedQuestions.clear();
@@ -93,10 +97,17 @@ class ReviewQuestionService {
     }
   }
 
-  Future<PreparedReviewQuestion?> getOrPrepareQuestion(int index, {BuildContext? context}) {
+  Future<PreparedReviewQuestion?> getOrPrepareQuestion(
+    int index, {
+    BuildContext? context,
+  }) {
     if (index >= _currentSessionQueue.length) return Future.value(null);
-    if (_completedQuestions.containsKey(index)) return Future.value(_completedQuestions[index]);
-    return _preparedQuestions.putIfAbsent(index, () => _buildPreparedQuestion(index, context: context));
+    if (_completedQuestions.containsKey(index))
+      return Future.value(_completedQuestions[index]);
+    return _preparedQuestions.putIfAbsent(
+      index,
+      () => _buildPreparedQuestion(index, context: context),
+    );
   }
 
   void deleteExampleAudio(int index) {
@@ -107,7 +118,12 @@ class ReviewQuestionService {
   }
 
   void _deleteAudioFile(String? path) {
-    if (kIsWeb || path == null || path.isEmpty || path.startsWith('http') || path.startsWith('data:')) return;
+    if (kIsWeb ||
+        path == null ||
+        path.isEmpty ||
+        path.startsWith('http') ||
+        path.startsWith('data:'))
+      return;
     try {
       final file = File(path);
       if (file.existsSync()) {
@@ -125,7 +141,11 @@ class ReviewQuestionService {
     _completedQuestions.clear();
   }
 
-  List<DictWord> getRelevantDistractors(int count, {required int excludeId, Set<String>? excludeWords}) {
+  List<DictWord> getRelevantDistractors(
+    int count, {
+    required int excludeId,
+    Set<String>? excludeWords,
+  }) {
     final progress = ProgressService();
     final Set<int> candidateIds = {};
 
@@ -136,13 +156,15 @@ class ReviewQuestionService {
       if (qId != excludeId) candidateIds.add(qId);
     }
 
-    final lowerExcludeWords = excludeWords?.map((e) => e.trim().toLowerCase()).toSet() ?? {};
+    final lowerExcludeWords =
+        excludeWords?.map((e) => e.trim().toLowerCase()).toSet() ?? {};
     lowerExcludeWords.addAll({'none', 'null', 'n/a', 'na'});
 
     final List<DictWord> pool = [];
     for (var id in candidateIds) {
       final w = DatabaseService.getWordById(id);
-      if (w != null && !lowerExcludeWords.contains(w.text.trim().toLowerCase())) {
+      if (w != null &&
+          !lowerExcludeWords.contains(w.text.trim().toLowerCase())) {
         pool.add(w);
       }
     }
@@ -152,9 +174,12 @@ class ReviewQuestionService {
 
     if (results.length < count) {
       final existingIds = results.map((w) => w.id).toSet()..add(excludeId);
-      final randomTop = DatabaseService.getRandomWords(count - results.length + 15);
+      final randomTop = DatabaseService.getRandomWords(
+        count - results.length + 15,
+      );
       for (var rw in randomTop) {
-        if (!existingIds.contains(rw.id) && !lowerExcludeWords.contains(rw.text.trim().toLowerCase())) {
+        if (!existingIds.contains(rw.id) &&
+            !lowerExcludeWords.contains(rw.text.trim().toLowerCase())) {
           results.add(rw);
           existingIds.add(rw.id);
           if (results.length >= count) break;
@@ -165,7 +190,10 @@ class ReviewQuestionService {
     return results;
   }
 
-  Future<PreparedReviewQuestion?> _buildPreparedQuestion(int index, {BuildContext? context}) async {
+  Future<PreparedReviewQuestion?> _buildPreparedQuestion(
+    int index, {
+    BuildContext? context,
+  }) async {
     if (index >= _currentSessionQueue.length) return null;
     final p = _currentSessionQueue[index];
     final word = DatabaseService.getWordById(p.wordId);
@@ -174,7 +202,11 @@ class ReviewQuestionService {
     // 1. Fetch / resolve WordData JSON
     WordData? wordData;
     try {
-      final json = await WordupApi.fetchWordData(word.id.toString(), wordText: word.text, isPrefetch: true);
+      final json = await WordupApi.fetchWordData(
+        word.id.toString(),
+        wordText: word.text,
+        isPrefetch: true,
+      );
       if (json.isNotEmpty) {
         wordData = WordData.fromJson(word.id, json);
       }
@@ -182,7 +214,9 @@ class ReviewQuestionService {
 
     // If cloud data could not be fetched or has no senses, skip this word from review
     if (wordData == null || wordData.senses.isEmpty) {
-      print('⚠️ [ReviewQuestionService] Word ${word.id} ("${word.text}") has no rich definitions/senses. Skipping.');
+      print(
+        '⚠️ [ReviewQuestionService] Word ${word.id} ("${word.text}") has no rich definitions/senses. Skipping.',
+      );
       return null;
     }
 
@@ -194,21 +228,27 @@ class ReviewQuestionService {
         availableImages.add(wordData.imageUrl!);
       }
       for (var sense in wordData.senses) {
-        if (sense.imageUrl != null && sense.imageUrl!.isNotEmpty) availableImages.add(sense.imageUrl!);
+        if (sense.imageUrl != null && sense.imageUrl!.isNotEmpty)
+          availableImages.add(sense.imageUrl!);
         for (var tip in sense.tips) {
-          if (tip.imageUrl != null && tip.imageUrl!.isNotEmpty) availableImages.add(tip.imageUrl!);
+          if (tip.imageUrl != null && tip.imageUrl!.isNotEmpty)
+            availableImages.add(tip.imageUrl!);
         }
       }
       availableImages = availableImages.toSet().toList();
 
       if (availableImages.isNotEmpty) {
         final preferredUrl = ProgressService().getPreferredImage(word.id);
-        displayImageUrl = (preferredUrl != null && availableImages.contains(preferredUrl))
+        displayImageUrl =
+            (preferredUrl != null && availableImages.contains(preferredUrl))
             ? preferredUrl
             : availableImages.first;
 
         try {
-          final cachedFile = await MediaCacheService.ensureMediaCached(word.id, displayImageUrl);
+          final cachedFile = await MediaCacheService.ensureMediaCached(
+            word.id,
+            displayImageUrl,
+          );
           ImageProvider provider;
           if (cachedFile != null && cachedFile.existsSync()) {
             provider = FileImage(cachedFile);
@@ -216,7 +256,9 @@ class ReviewQuestionService {
             provider = NetworkImage(displayImageUrl);
           }
           final stream = provider.resolve(ImageConfiguration.empty);
-          stream.addListener(ImageStreamListener((_, _) {}, onError: (_, _) {}));
+          stream.addListener(
+            ImageStreamListener((_, _) {}, onError: (_, _) {}),
+          );
           if (context != null && context.mounted) {
             await precacheImage(provider, context).catchError((_) {});
           }
@@ -238,11 +280,12 @@ class ReviewQuestionService {
     String? exampleText;
     String? exampleAudioPath;
     if (wordData != null) {
-      for (final sense in wordData.senses) {
-        if (sense.ex.trim().isNotEmpty) {
-          exampleText = sense.ex.trim();
-          break;
-        }
+      final sensesWithEx = wordData.senses
+          .where((s) => s.ex.trim().isNotEmpty)
+          .toList();
+      if (sensesWithEx.isNotEmpty) {
+        sensesWithEx.shuffle();
+        exampleText = sensesWithEx.first.ex.trim();
       }
       if (exampleText != null && exampleText.isNotEmpty) {
         final sentenceText = 'For example, $exampleText';
@@ -259,13 +302,22 @@ class ReviewQuestionService {
     final settings = SettingsService();
     List<String> types = [];
     if (settings.enableMeaningQuestion) types.add('meaning');
-    if (settings.enableQuoteQuestion && wordData.quotes.isNotEmpty) types.add('quote');
-    if (settings.enableSynonymQuestion && wordData.senses.any((s) => s.sy.isNotEmpty)) types.add('synonym');
-    if (settings.enableAntonymQuestion && wordData.senses.any((s) => s.op.isNotEmpty)) types.add('antonym');
-    if (settings.enableExampleQuestion && wordData.senses.any((s) => s.ex.isNotEmpty)) types.add('example');
-    if (settings.enableMisspellingQuestion && wordData.misspellings.isNotEmpty) types.add('misspelling');
+    if (settings.enableQuoteQuestion && wordData.quotes.isNotEmpty)
+      types.add('quote');
+    if (settings.enableSynonymQuestion &&
+        wordData.senses.any((s) => s.sy.isNotEmpty))
+      types.add('synonym');
+    if (settings.enableAntonymQuestion &&
+        wordData.senses.any((s) => s.op.isNotEmpty))
+      types.add('antonym');
+    if (settings.enableExampleQuestion &&
+        wordData.senses.any((s) => s.ex.isNotEmpty))
+      types.add('example');
+    if (settings.enableMisspellingQuestion && wordData.misspellings.isNotEmpty)
+      types.add('misspelling');
     if (settings.enableSpellingQuestion) types.add('listening');
-    if (settings.enableCompareQuestion && wordData.comparisons.isNotEmpty) types.add('compare');
+    if (settings.enableCompareQuestion && wordData.comparisons.isNotEmpty)
+      types.add('compare');
 
     if (types.isEmpty) types.add('meaning');
     types.shuffle();
@@ -297,7 +349,11 @@ class ReviewQuestionService {
     return prepared;
   }
 
-  Future<QuestionTypeVariant?> _generateVariant(String type, DictWord word, WordData? data) async {
+  Future<QuestionTypeVariant?> _generateVariant(
+    String type,
+    DictWord word,
+    WordData? data,
+  ) async {
     dynamic questionData;
     List<ReviewOption> options = [];
     final distractors = getRelevantDistractors(3, excludeId: word.id);
@@ -314,8 +370,11 @@ class ReviewQuestionService {
         final quote = (data.quotes.toList()..shuffle()).first;
         questionData = quote;
       } else {
-        if (data == null || !data.senses.any((s) => s.ex.isNotEmpty)) return null;
-        final sense = data.senses.firstWhere((s) => s.ex.isNotEmpty);
+        if (data == null || !data.senses.any((s) => s.ex.isNotEmpty))
+          return null;
+        final sensesWithEx = data.senses.where((s) => s.ex.isNotEmpty).toList();
+        sensesWithEx.shuffle();
+        final sense = sensesWithEx.first;
         questionData = sense.ex;
       }
       options.add(ReviewOption(word.id, word.text, true));
@@ -324,53 +383,92 @@ class ReviewQuestionService {
       }
     } else if (type == 'synonym' || type == 'antonym') {
       final isSynonym = type == 'synonym';
-      if (data == null || !data.senses.any((s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty)) return null;
-      final sense = data.senses.firstWhere((s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty);
+      if (data == null ||
+          !data.senses.any(
+            (s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty,
+          ))
+        return null;
+      final sense = data.senses.firstWhere(
+        (s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty,
+      );
       final rawList = isSynonym ? sense.sy : sense.op;
-      final targetWords = rawList
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty && e.toLowerCase() != 'none' && e.toLowerCase() != 'null' && e.toLowerCase() != 'n/a')
-          .toList()
-        ..shuffle();
+      final targetWords =
+          rawList
+              .split(',')
+              .map((e) => e.trim())
+              .where(
+                (e) =>
+                    e.isNotEmpty &&
+                    e.toLowerCase() != 'none' &&
+                    e.toLowerCase() != 'null' &&
+                    e.toLowerCase() != 'n/a',
+              )
+              .toList()
+            ..shuffle();
       if (targetWords.isEmpty) return null;
       final correctText = targetWords.take(3).join(', ');
       questionData = correctText;
 
       options.add(ReviewOption(word.id, correctText, true));
 
-      final potentialDistractors = getRelevantDistractors(10, excludeId: word.id);
+      final potentialDistractors = getRelevantDistractors(
+        10,
+        excludeId: word.id,
+      );
       List<String> distractorTexts = [];
-      await Future.wait(potentialDistractors.map((d) async {
-        if (distractorTexts.length >= 3) return;
-        try {
-          final json = await WordupApi.fetchWordData(d.id.toString(), wordText: d.text, isPrefetch: true);
-          if (json.isNotEmpty) {
-            final wd = WordData.fromJson(d.id, json);
-            final dSense = wd.senses.firstWhere((s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty, orElse: () => WordSense(id: '', de: '', ex: '', ty: ''));
-            final dRawList = isSynonym ? dSense.sy : dSense.op;
-            if (dRawList.isNotEmpty) {
-              final dWords = dRawList
-                  .split(',')
-                  .map((e) => e.trim())
-                  .where((w) => w.isNotEmpty && w.toLowerCase() != 'none' && w.toLowerCase() != 'null' && w.toLowerCase() != 'n/a')
-                  .toList()
-                ..shuffle();
-              if (dWords.isNotEmpty) {
-                final text = dWords.take(3).join(', ');
-                if (!distractorTexts.contains(text) && text != correctText && distractorTexts.length < 3) {
-                  distractorTexts.add(text);
+      await Future.wait(
+        potentialDistractors.map((d) async {
+          if (distractorTexts.length >= 3) return;
+          try {
+            final json = await WordupApi.fetchWordData(
+              d.id.toString(),
+              wordText: d.text,
+              isPrefetch: true,
+            );
+            if (json.isNotEmpty) {
+              final wd = WordData.fromJson(d.id, json);
+              final dSense = wd.senses.firstWhere(
+                (s) => isSynonym ? s.sy.isNotEmpty : s.op.isNotEmpty,
+                orElse: () => WordSense(id: '', de: '', ex: '', ty: ''),
+              );
+              final dRawList = isSynonym ? dSense.sy : dSense.op;
+              if (dRawList.isNotEmpty) {
+                final dWords =
+                    dRawList
+                        .split(',')
+                        .map((e) => e.trim())
+                        .where(
+                          (w) =>
+                              w.isNotEmpty &&
+                              w.toLowerCase() != 'none' &&
+                              w.toLowerCase() != 'null' &&
+                              w.toLowerCase() != 'n/a',
+                        )
+                        .toList()
+                      ..shuffle();
+                if (dWords.isNotEmpty) {
+                  final text = dWords.take(3).join(', ');
+                  if (!distractorTexts.contains(text) &&
+                      text != correctText &&
+                      distractorTexts.length < 3) {
+                    distractorTexts.add(text);
+                  }
                 }
               }
             }
-          }
-        } catch (_) {}
-      }));
+          } catch (_) {}
+        }),
+      );
 
       while (distractorTexts.length < 3) {
         final fakes = DatabaseService.getRandomWords(6, excludeId: word.id)
             .map((w) => w.text.trim())
-            .where((w) => w.isNotEmpty && w.toLowerCase() != 'none' && w.toLowerCase() != word.text.toLowerCase())
+            .where(
+              (w) =>
+                  w.isNotEmpty &&
+                  w.toLowerCase() != 'none' &&
+                  w.toLowerCase() != word.text.toLowerCase(),
+            )
             .take(3)
             .toList();
         if (fakes.length == 3) {
@@ -388,25 +486,40 @@ class ReviewQuestionService {
       if (data == null || data.comparisons.isEmpty) return null;
 
       // Only keep comparisons whose text actually contains the target word
-      final pattern = RegExp(r'\b' + RegExp.escape(word.text) + r'(s|es|ed|ing|d)?\b', caseSensitive: false);
-      final validComps = data.comparisons.where((c) => pattern.hasMatch(c.text)).toList();
+      final pattern = RegExp(
+        r'\b' + RegExp.escape(word.text) + r'(s|es|ed|ing|d)?\b',
+        caseSensitive: false,
+      );
+      final validComps = data.comparisons
+          .where((c) => pattern.hasMatch(c.text))
+          .toList();
       if (validComps.isEmpty) return null;
 
       final comp = (validComps..shuffle()).first;
       questionData = comp;
 
       // Exclude ALL compared words from the options so options aren't confusingly similar
-      final Set<String> excludeWords = data.comparisons.map((c) => c.word.trim().toLowerCase()).toSet();
+      final Set<String> excludeWords = data.comparisons
+          .map((c) => c.word.trim().toLowerCase())
+          .toSet();
       excludeWords.add(word.text.trim().toLowerCase());
 
       options.add(ReviewOption(word.id, word.text, true));
-      final dist = getRelevantDistractors(3, excludeId: word.id, excludeWords: excludeWords);
+      final dist = getRelevantDistractors(
+        3,
+        excludeId: word.id,
+        excludeWords: excludeWords,
+      );
       for (var d in dist) {
         options.add(ReviewOption(d.id, d.text, false));
       }
     } else if (type == 'misspelling') {
       if (data == null || data.misspellings.isEmpty) return null;
-      List<String> miss = data.misspellings.split(RegExp(r'[,|]')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      List<String> miss = data.misspellings
+          .split(RegExp(r'[,|]'))
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
       miss.shuffle();
       List<String> selectedMiss = miss.take(3).toList();
       while (selectedMiss.length < 3) {
@@ -422,13 +535,19 @@ class ReviewQuestionService {
     }
 
     options.shuffle();
-    return QuestionTypeVariant(type: type, options: options, questionData: questionData);
+    return QuestionTypeVariant(
+      type: type,
+      options: options,
+      questionData: questionData,
+    );
   }
 
   String _generateFakeMisspelling(String word, int seed) {
     if (word.length <= 3) return word + 'e';
     final chars = word.split('');
-    final idx = 1 + ((DateTime.now().millisecondsSinceEpoch + seed) % (chars.length - 2));
+    final idx =
+        1 +
+        ((DateTime.now().millisecondsSinceEpoch + seed) % (chars.length - 2));
     final tmp = chars[idx];
     chars[idx] = chars[idx + 1];
     chars[idx + 1] = tmp;

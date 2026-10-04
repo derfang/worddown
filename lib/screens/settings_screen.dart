@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/settings_service.dart';
 import '../services/encryption_service.dart';
@@ -135,10 +136,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Settings', style: TextStyle(fontWeight: FontWeight.w800)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(kToolbarHeight + (defaultTargetPlatform == TargetPlatform.windows ? 16.0 : 0.0)),
+        child: Padding(
+          padding: EdgeInsets.only(top: defaultTargetPlatform == TargetPlatform.windows ? 16.0 : 0.0),
+          child: AppBar(
+            title: Text('Settings', style: TextStyle(fontWeight: FontWeight.w800)),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+          ),
+        ),
       ),
       extendBodyBehindAppBar: true,
       body: Container(
@@ -292,6 +299,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 (val) {
                   setState(() => _settingsService.setMisspellingQuestion(val));
                 }
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'Review Mistake Penalty',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: theme.primaryColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Choose how WordDown adjusts a word\'s review schedule when you make a mistake on a review quiz.',
+                style: TextStyle(color: Colors.white60, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                color: Colors.white.withOpacity(0.05),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                ),
+                child: Column(
+                  children: [
+                    RadioListTile<String>(
+                      title: const Text('Reset to Step 1 (1 day)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                      subtitle: const Text('Recommended. Return to day 1 to re-learn the forgotten word immediately (traditional Leitner/Anki spaced repetition).', style: TextStyle(color: Colors.white70)),
+                      value: 'step1',
+                      groupValue: _settingsService.reviewMistakePenalty,
+                      activeColor: theme.primaryColor,
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() => _settingsService.setReviewMistakePenalty(val));
+                        }
+                      },
+                    ),
+                    Divider(color: Colors.white12, height: 1),
+                    RadioListTile<String>(
+                      title: const Text('Demote 1 Step', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                      subtitle: const Text('Gentle penalty: decrease interval by one step (e.g. from 6 months to 3 months).', style: TextStyle(color: Colors.white70)),
+                      value: 'oneStep',
+                      groupValue: _settingsService.reviewMistakePenalty,
+                      activeColor: theme.primaryColor,
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() => _settingsService.setReviewMistakePenalty(val));
+                        }
+                      },
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 32),
               Text(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/sync_service.dart';
@@ -40,17 +41,30 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text('Cloud Sync Diagnostics'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            tooltip: 'Pull from Cloud',
-            onPressed: _sync.isSyncing.value ? null : () => _sync.forceSyncDown(),
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(
+          kToolbarHeight +
+              (defaultTargetPlatform == TargetPlatform.windows ? 16.0 : 0.0),
+        ),
+        child: Padding(
+          padding: EdgeInsets.only(
+            top: defaultTargetPlatform == TargetPlatform.windows ? 16.0 : 0.0,
           ),
-        ],
+          child: AppBar(
+            title: Text('Cloud Sync Diagnostics'),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            actions: [
+              IconButton(
+                icon: Icon(Icons.refresh),
+                tooltip: 'Pull from Cloud',
+                onPressed: _sync.isSyncing.value
+                    ? null
+                    : () => _sync.forceSyncDown(),
+              ),
+            ],
+          ),
+        ),
       ),
       body: ListView(
         padding: EdgeInsets.all(16),
@@ -58,7 +72,9 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
           // Account Card
           Card(
             color: Colors.white.withValues(alpha: 0.05),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Padding(
               padding: EdgeInsets.all(16),
               child: Column(
@@ -66,7 +82,11 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.account_circle, color: theme.colorScheme.primary, size: 28),
+                      Icon(
+                        Icons.account_circle,
+                        color: theme.colorScheme.primary,
+                        size: 28,
+                      ),
                       SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -74,11 +94,18 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
                           children: [
                             Text(
                               user?.email ?? 'Not Logged In',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
                             ),
                             Text(
                               'UID: ${user?.uid ?? "N/A"}',
-                              style: TextStyle(fontSize: 11, color: Colors.white54),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.white54,
+                              ),
                             ),
                           ],
                         ),
@@ -94,21 +121,47 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
           // Local Counts Card
           Card(
             color: Colors.white.withValues(alpha: 0.05),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Padding(
               padding: EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Local Device Database', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                  Text(
+                    'Local Device Database',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildStatColumn('Known', '${_progress.knownWordIds.length}', Colors.greenAccent),
-                      _buildStatColumn('In Progress', '${_progress.allProgress.length}', Colors.blueAccent),
-                      _buildStatColumn('To Learn', '${_progress.queuedWordsToLearn.length}', Colors.orangeAccent),
-                      _buildStatColumn('Pending', '${_progress.pendingSyncWordIds.length}', _progress.pendingSyncWordIds.isNotEmpty ? Colors.amberAccent : Colors.white38),
+                      _buildStatColumn(
+                        'Known',
+                        '${_progress.knownWordIds.length}',
+                        Colors.greenAccent,
+                      ),
+                      _buildStatColumn(
+                        'In Progress',
+                        '${_progress.allProgress.length}',
+                        Colors.blueAccent,
+                      ),
+                      _buildStatColumn(
+                        'To Learn',
+                        '${_progress.queuedWordsToLearn.length}',
+                        Colors.orangeAccent,
+                      ),
+                      _buildStatColumn(
+                        'Pending',
+                        '${_progress.pendingSyncWordIds.length}',
+                        _progress.pendingSyncWordIds.isNotEmpty
+                            ? Colors.amberAccent
+                            : Colors.white38,
+                      ),
                     ],
                   ),
                 ],
@@ -124,7 +177,9 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
               decoration: BoxDecoration(
                 color: Colors.amber.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.4)),
+                border: Border.all(
+                  color: Colors.amberAccent.withValues(alpha: 0.4),
+                ),
               ),
               child: Row(
                 children: [
@@ -137,11 +192,19 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
                     ),
                   ),
                   TextButton(
-                    onPressed: _sync.isSyncing.value ? null : () async {
-                      await _sync.flushPendingSync();
-                      if (mounted) setState(() {});
-                    },
-                    child: Text('Sync Now', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amberAccent)),
+                    onPressed: _sync.isSyncing.value
+                        ? null
+                        : () async {
+                            await _sync.flushPendingSync();
+                            if (mounted) setState(() {});
+                          },
+                    child: Text(
+                      'Sync Now',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amberAccent,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -152,7 +215,9 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
           // Sync State Card
           Card(
             color: Colors.white.withValues(alpha: 0.05),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Padding(
               padding: EdgeInsets.all(16),
               child: Column(
@@ -161,21 +226,32 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Sync Status', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                      Text(
+                        'Sync Status',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       Row(
                         children: [
                           if (_sync.isSyncing.value) ...[
                             SizedBox(
                               width: 14,
                               height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: theme.colorScheme.primary),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: theme.colorScheme.primary,
+                              ),
                             ),
                             SizedBox(width: 8),
                           ],
                           Text(
                             _sync.syncStatus.value,
                             style: TextStyle(
-                              color: _sync.isSyncing.value ? theme.colorScheme.primary : Colors.white70,
+                              color: _sync.isSyncing.value
+                                  ? theme.colorScheme.primary
+                                  : Colors.white70,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -195,16 +271,25 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
                       decoration: BoxDecoration(
                         color: Colors.redAccent.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4)),
+                        border: Border.all(
+                          color: Colors.redAccent.withValues(alpha: 0.4),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.error_outline, color: Colors.redAccent, size: 20),
+                          Icon(
+                            Icons.error_outline,
+                            color: Colors.redAccent,
+                            size: 20,
+                          ),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               _sync.lastError.value!,
-                              style: TextStyle(color: Colors.redAccent, fontSize: 12),
+                              style: TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ],
@@ -222,26 +307,34 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: _sync.isSyncing.value ? null : () => _sync.forceSyncDown(),
+                  onPressed: _sync.isSyncing.value
+                      ? null
+                      : () => _sync.forceSyncDown(),
                   icon: Icon(Icons.cloud_download),
                   label: Text('Pull Cloud Data'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
                     padding: EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
               SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: _sync.isSyncing.value ? null : () => _sync.forceSyncUp(),
+                  onPressed: _sync.isSyncing.value
+                      ? null
+                      : () => _sync.forceSyncUp(),
                   icon: Icon(Icons.cloud_upload),
                   label: Text('Push to Cloud'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white.withValues(alpha: 0.1),
                     padding: EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
@@ -254,16 +347,29 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
               if (mounted) {
                 setState(() {});
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(count > 0 ? 'Successfully imported $count database files & synced to cloud!' : 'No backup files found to import.')),
+                  SnackBar(
+                    content: Text(
+                      count > 0
+                          ? 'Successfully imported $count database files & synced to cloud!'
+                          : 'No backup files found to import.',
+                    ),
+                  ),
                 );
               }
             },
             icon: Icon(Icons.file_download, color: Colors.greenAccent),
-            label: Text('Import Local Backup & Push to Cloud', style: TextStyle(color: Colors.greenAccent)),
+            label: Text(
+              'Import Local Backup & Push to Cloud',
+              style: TextStyle(color: Colors.greenAccent),
+            ),
             style: OutlinedButton.styleFrom(
               padding: EdgeInsets.symmetric(vertical: 14),
-              side: BorderSide(color: Colors.greenAccent.withValues(alpha: 0.5)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              side: BorderSide(
+                color: Colors.greenAccent.withValues(alpha: 0.5),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
           SizedBox(height: 20),
@@ -272,7 +378,13 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Live Activity Log', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70)),
+              Text(
+                'Diagnostic Logs',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white70,
+                ),
+              ),
               TextButton.icon(
                 onPressed: () {
                   final logText = _sync.logs.join('\\n');
@@ -296,12 +408,19 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
               border: Border.all(color: Colors.white12),
             ),
             child: _sync.logs.isEmpty
-                ? Center(child: Text('No log entries yet', style: TextStyle(color: Colors.white38)))
+                ? Center(
+                    child: Text(
+                      'No log entries yet',
+                      style: TextStyle(color: Colors.white38),
+                    ),
+                  )
                 : ListView.builder(
                     itemCount: _sync.logs.length,
                     itemBuilder: (context, index) {
                       final line = _sync.logs[_sync.logs.length - 1 - index];
-                      final isError = line.toLowerCase().contains('error') || line.toLowerCase().contains('denied');
+                      final isError =
+                          line.toLowerCase().contains('error') ||
+                          line.toLowerCase().contains('denied');
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 2.0),
                         child: Text(
@@ -324,7 +443,14 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
   Widget _buildStatColumn(String label, String value, Color color) {
     return Column(
       children: [
-        Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
         SizedBox(height: 4),
         Text(label, style: TextStyle(fontSize: 12, color: Colors.white54)),
       ],

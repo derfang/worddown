@@ -15,7 +15,7 @@ class SyncService {
   }
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  
+
   final ValueNotifier<bool> isSyncing = ValueNotifier(false);
   final ValueNotifier<DateTime?> lastSynced = ValueNotifier(null);
   final ValueNotifier<String?> lastError = ValueNotifier(null);
@@ -29,10 +29,25 @@ class SyncService {
     debugPrint('SyncService: $message');
   }
 
+  /// Waits for any in-flight sync operation to complete up to [timeout].
+  /// Returns true if idle, false if timeout was reached.
+  Future<bool> waitForSyncToComplete(Duration timeout) async {
+    if (!isSyncing.value) return true;
+    final stopwatch = Stopwatch()..start();
+    while (isSyncing.value && stopwatch.elapsed < timeout) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    return !isSyncing.value;
+  }
+
   DocumentReference get _syncDoc {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception('Not logged in');
-    return _firestore.collection('users').doc(user.uid).collection('data').doc('syncData');
+    return _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('data')
+        .doc('syncData');
   }
 
   Future<void> forceSyncDown() async {
@@ -61,9 +76,12 @@ class SyncService {
     } catch (e) {
       lastError.value = e.toString();
       addLog('Upload failed: $e');
+      syncStatus.value = 'Error';
     } finally {
       isSyncing.value = false;
-      syncStatus.value = 'Idle';
+      if (lastError.value == null) {
+        syncStatus.value = 'Idle';
+      }
     }
   }
 
@@ -89,63 +107,80 @@ class SyncService {
     addLog('Connecting to cloud (users/$uid/data/syncData)...');
     try {
       final doc = await _syncDoc.get();
-      
+
       if (doc.exists && doc.data() != null) {
         final data = doc.data() as Map<String, dynamic>;
         addLog('Found cloud syncData document.');
-        
+
         final pService = ProgressService();
         final mergeResult = pService.mergeFromCloud(
-          cloudProgressMap: data['progressMap'] is Map ? Map<String, dynamic>.from(data['progressMap'] as Map) : null,
-          cloudKnownWords: data['knownWords'] is List ? data['knownWords'] as List<dynamic> : null,
-          cloudQueuedWords: data['queuedWords'] is List ? data['queuedWords'] as List<dynamic> : null,
-          cloudPreferredImages: data['preferredImages'] is Map ? Map<String, dynamic>.from(data['preferredImages'] as Map) : null,
+          cloudProgressMap: data['progressMap'] is Map
+              ? Map<String, dynamic>.from(data['progressMap'] as Map)
+              : null,
+          cloudKnownWords: data['knownWords'] is List
+              ? data['knownWords'] as List<dynamic>
+              : null,
+          cloudQueuedWords: data['queuedWords'] is List
+              ? data['queuedWords'] as List<dynamic>
+              : null,
+          cloudPreferredImages: data['preferredImages'] is Map
+              ? Map<String, dynamic>.from(data['preferredImages'] as Map)
+              : null,
         );
-        
-        addLog('Merged cloud data: ${mergeResult.localUpdatedFromCloud} updated from cloud, '
-               '${mergeResult.localKeptNewer} local kept ahead, '
-               '${mergeResult.masteredCleaned} mastered cleaned.');
+
+        addLog(
+          'Merged cloud data: ${mergeResult.localUpdatedFromCloud} updated from cloud, '
+          '${mergeResult.localKeptNewer} local kept ahead, '
+          '${mergeResult.masteredCleaned} mastered cleaned.',
+        );
 
         if (mergeResult.hasLocalChangesToUpload) {
-          addLog('Local device has newer/pending progress. Merging back to cloud...');
+          addLog(
+            'Local device has newer/pending progress. Merging back to cloud...',
+          );
           await _syncUp(uid);
         } else {
           addLog('Local and Cloud are in sync.');
         }
         lastError.value = null;
       } else {
-        addLog('Cloud syncData document does not exist yet for this user. Performing initial upload...');
+        addLog(
+          'Cloud syncData document does not exist yet for this user. Performing initial upload...',
+        );
         await _syncUp(uid);
       }
 
       await ProgressService().saveAllLocal();
       addLog('Sync down and local save finished successfully.');
       lastError.value = null;
+      lastSynced.value = DateTime.now();
     } catch (e) {
       lastError.value = e.toString();
       addLog('Error during syncDown: $e');
       print('Error syncing down from Firestore: $e');
+      syncStatus.value = 'Error';
     } finally {
       isSyncing.value = false;
-      syncStatus.value = 'Idle';
-      lastSynced.value = DateTime.now();
+      if (lastError.value == null) {
+        syncStatus.value = 'Idle';
+      }
     }
   }
 
   Future<void> _syncUp(String uid) async {
     try {
       final pService = ProgressService();
-      
+
       final Map<String, dynamic> progressMapData = {};
       for (var p in pService.allProgress) {
         progressMapData[p.wordId.toString()] = p.toJson();
       }
-      
+
       final Map<String, dynamic> imageData = {};
       for (var entry in pService.preferredImages.entries) {
         imageData[entry.key.toString()] = entry.value;
       }
-      
+
       await _syncDoc.set({
         'progressMap': progressMapData,
         'knownWords': pService.knownWordIds.toList(),
@@ -153,7 +188,7 @@ class SyncService {
         'preferredImages': imageData,
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
-      
+
       pService.clearAllPendingSync();
       await pService.savePendingSync();
       lastSynced.value = DateTime.now();
@@ -167,15 +202,11 @@ class SyncService {
     try {
       if (data == null) {
         await _syncDoc.set({
-          'progressMap': {
-            wordId.toString(): FieldValue.delete()
-          }
+          'progressMap': {wordId.toString(): FieldValue.delete()},
         }, SetOptions(merge: true));
       } else {
         await _syncDoc.set({
-          'progressMap': {
-            wordId.toString(): data
-          }
+          'progressMap': {wordId.toString(): data},
         }, SetOptions(merge: true));
       }
       ProgressService().clearPendingSync([wordId]);
@@ -188,7 +219,9 @@ class SyncService {
   Future<void> pushKnownWord(int wordId, bool isKnown) async {
     try {
       await _syncDoc.set({
-        'knownWords': isKnown ? FieldValue.arrayUnion([wordId]) : FieldValue.arrayRemove([wordId])
+        'knownWords': isKnown
+            ? FieldValue.arrayUnion([wordId])
+            : FieldValue.arrayRemove([wordId]),
       }, SetOptions(merge: true));
       ProgressService().clearPendingSync([wordId]);
       await ProgressService().savePendingSync();
@@ -200,7 +233,9 @@ class SyncService {
   Future<void> pushQueuedWord(int wordId, bool isQueued) async {
     try {
       await _syncDoc.set({
-        'queuedWords': isQueued ? FieldValue.arrayUnion([wordId]) : FieldValue.arrayRemove([wordId])
+        'queuedWords': isQueued
+            ? FieldValue.arrayUnion([wordId])
+            : FieldValue.arrayRemove([wordId]),
       }, SetOptions(merge: true));
       ProgressService().clearPendingSync([wordId]);
       await ProgressService().savePendingSync();
@@ -212,9 +247,7 @@ class SyncService {
   Future<void> pushPreferredImage(int wordId, String imageUrl) async {
     try {
       await _syncDoc.set({
-        'preferredImages': {
-          wordId.toString(): imageUrl
-        }
+        'preferredImages': {wordId.toString(): imageUrl},
       }, SetOptions(merge: true));
     } catch (e) {
       addLog('Push preferred image for $wordId failed: $e');

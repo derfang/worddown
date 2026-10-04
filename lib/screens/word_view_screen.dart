@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -30,20 +31,26 @@ class WordViewScreen extends StatefulWidget {
   final int wordId;
   final String? wordText;
   final Widget? bottomNavigationBarOverride;
-  const WordViewScreen({Key? key, required this.wordId, this.wordText, this.bottomNavigationBarOverride}) : super(key: key);
+  const WordViewScreen({
+    Key? key,
+    required this.wordId,
+    this.wordText,
+    this.bottomNavigationBarOverride,
+  }) : super(key: key);
 
   @override
   _WordViewScreenState createState() => _WordViewScreenState();
 }
 
-class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProviderStateMixin {
+class _WordViewScreenState extends State<WordViewScreen>
+    with SingleTickerProviderStateMixin {
   WordData? _wordData;
   WordProgress? _progress;
   bool _isKnown = false;
   bool _isQueued = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
   late AnimationController _shimmerController;
-  
+
   WordVideo? _playingVideo;
   // Windows video controller
   WebviewController? _webviewController;
@@ -120,7 +127,8 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
   }
 
   void _fetchTranslation() {
-    final wordText = widget.wordText ?? DatabaseService.getWordById(widget.wordId)?.text;
+    final wordText =
+        widget.wordText ?? DatabaseService.getWordById(widget.wordId)?.text;
     if (wordText == null || wordText.trim().isEmpty) return;
     TranslationService().translate(wordText).then((trans) {
       if (mounted && trans != null && trans.isNotEmpty) {
@@ -130,7 +138,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
       }
     });
   }
-  
+
   Map<String, int> _getLearningWords() {
     final progress = ProgressService();
     Map<String, int> words = {};
@@ -183,7 +191,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
           }
         },
       );
-      
+
       final data = WordData.fromJson(widget.wordId, json);
 
       if (data.senses.isEmpty) {
@@ -202,7 +210,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
         _pendingZannData = null;
       }
       MediaCacheService.cacheWordMedia(widget.wordId, data);
-      
+
       if (mounted) {
         setState(() {
           _wordData = data;
@@ -212,7 +220,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
           _isLoading = false;
           _error = '';
         });
-        
+
         // Autoplay the audio when the word loads
         _playAudio(isUk: false, useGoogleTts: false);
       }
@@ -233,7 +241,11 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.cloud_off_rounded, color: Colors.amberAccent, size: 20),
+            const Icon(
+              Icons.cloud_off_rounded,
+              color: Colors.amberAccent,
+              size: 20,
+            ),
             const SizedBox(width: 10),
             const Expanded(
               child: Text(
@@ -277,7 +289,9 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
         final imageSrc = zq['ImageSrc']?.toString() ?? '';
         if (imageSrc.isNotEmpty) {
           for (var q in _wordData!.quotes) {
-            if (text.contains(q.text) || q.text.contains(text) || q.authorName == zq['Name']) {
+            if (text.contains(q.text) ||
+                q.text.contains(text) ||
+                q.authorName == zq['Name']) {
               q.imageUrl = imageSrc;
               break;
             }
@@ -289,7 +303,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
     // 2. Merge Senses & Tips Images
     final zannSenses = extraData['ZannSenses'] as List?;
     String? mainImageUrl = extraData['ZannWordImage']?.toString();
-    
+
     if (zannSenses != null && zannSenses.isNotEmpty) {
       if (mainImageUrl == null || mainImageUrl.isEmpty) {
         mainImageUrl = zannSenses.first['ImageSrc']?.toString();
@@ -299,7 +313,10 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
       }
 
       for (var sense in _wordData!.senses) {
-        final zSenseList = zannSenses.cast<Map<String, dynamic>>().where((s) => s['id'] == sense.id).toList();
+        final zSenseList = zannSenses
+            .cast<Map<String, dynamic>>()
+            .where((s) => s['id'] == sense.id)
+            .toList();
         if (zSenseList.isNotEmpty) {
           final zSense = zSenseList.first;
           final img = zSense['ImageSrc']?.toString();
@@ -325,7 +342,6 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
       MediaCacheService.cacheWordMedia(widget.wordId, _wordData!);
     }
   }
-
 
   Future<void> _playSentence(String text, String id) async {
     if (_currentlyPlayingTextId == id && !_isSentenceLoading) {
@@ -367,7 +383,11 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
       if (_isSentenceLoading) {
         return const Padding(
           padding: EdgeInsets.all(12.0),
-          child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
         );
       } else {
         return IconButton(
@@ -377,7 +397,10 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
       }
     }
     return IconButton(
-      icon: Icon(Icons.volume_up_outlined, color: Theme.of(context).colorScheme.primary),
+      icon: Icon(
+        Icons.volume_up_outlined,
+        color: Theme.of(context).colorScheme.primary,
+      ),
       onPressed: () => _playSentence(text, id),
     );
   }
@@ -416,12 +439,15 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
 
       try {
         final yt = YoutubeExplode();
-        final manifest = await yt.videos.streamsClient.getManifest(video.youtubeId);
+        final manifest = await yt.videos.streamsClient.getManifest(
+          video.youtubeId,
+        );
         final streamInfo = _selectOptimizedMuxedStream(manifest);
         final rawUrl = streamInfo.url.toString();
         yt.close();
 
-        final html = '''
+        final html =
+            '''
           <!DOCTYPE html>
           <html>
             <body style="margin:0;padding:0;background-color:black;display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden;">
@@ -443,7 +469,9 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
         controller.webMessage.listen((msg) {
           try {
             final data = jsonDecode(msg);
-            if (data['type'] == 'timeupdate' && mounted && _playingVideo == video) {
+            if (data['type'] == 'timeupdate' &&
+                mounted &&
+                _playingVideo == video) {
               final pos = (data['currentTime'] as num).toInt();
               if ((pos - _currentVideoPositionMs).abs() > 200) {
                 setState(() {
@@ -480,7 +508,9 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
             ''');
           }
         });
-        await controller.loadUrl('https://www.youtube.com/watch?v=${video.youtubeId}&t=${video.startTimeMs ~/ 1000}s');
+        await controller.loadUrl(
+          'https://www.youtube.com/watch?v=${video.youtubeId}&t=${video.startTimeMs ~/ 1000}s',
+        );
       }
 
       if (mounted) setState(() => _webviewController = controller);
@@ -488,7 +518,9 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
       // ── Android / other platforms: use video_player + chewie ───────────
       try {
         final yt = YoutubeExplode();
-        final manifest = await yt.videos.streamsClient.getManifest(video.youtubeId);
+        final manifest = await yt.videos.streamsClient.getManifest(
+          video.youtubeId,
+        );
         final streamInfo = _selectOptimizedMuxedStream(manifest);
         final rawUrl = streamInfo.url.toString();
         yt.close();
@@ -559,7 +591,9 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
 
   Widget _buildVideoSubtitles(WordVideo video, ThemeData theme) {
     final bool isPlaying = _playingVideo == video;
-    final int relativeMs = isPlaying ? (_currentVideoPositionMs - video.startTimeMs) : -1;
+    final int relativeMs = isPlaying
+        ? (_currentVideoPositionMs - video.startTimeMs)
+        : -1;
 
     // If segments exist, build paragraph with active sentence pill and vocabulary highlights
     if (video.segments.isNotEmpty) {
@@ -585,7 +619,9 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
           fontSize: 16,
           height: 1.6,
           letterSpacing: 0.2,
-          backgroundColor: isActive ? const Color(0x406366F1) : Colors.transparent,
+          backgroundColor: isActive
+              ? const Color(0x406366F1)
+              : Colors.transparent,
         );
 
         final segSpans = HighlightText.buildSpans(
@@ -607,7 +643,9 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: Colors.black.withOpacity(0.4),
-          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+          border: Border(
+            top: BorderSide(color: Colors.white.withOpacity(0.05)),
+          ),
         ),
         child: RichText(
           textAlign: TextAlign.center,
@@ -662,13 +700,22 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
     );
   }
 
-  Future<void> _playAudio({required bool isUk, required bool useGoogleTts}) async {
-    setState(() { _lastIsUk = isUk; if (_currentlyPlayingTextId != null) { _audioPlayer.stop(); _currentlyPlayingTextId = null; } });
+  Future<void> _playAudio({
+    required bool isUk,
+    required bool useGoogleTts,
+  }) async {
+    setState(() {
+      _lastIsUk = isUk;
+      if (_currentlyPlayingTextId != null) {
+        _audioPlayer.stop();
+        _currentlyPlayingTextId = null;
+      }
+    });
     try {
       final path = await WordupApi.getAudioPath(
-        widget.wordId.toString(), 
-        wordText: widget.wordText, 
-        isUk: isUk, 
+        widget.wordId.toString(),
+        wordText: widget.wordText,
+        isUk: isUk,
         useGoogleTts: useGoogleTts,
       );
       if (path.startsWith('http') || path.startsWith('data:')) {
@@ -681,13 +728,19 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
         print('Dictionary API failed, falling back to Google TTS...');
         await _playAudio(isUk: isUk, useGoogleTts: true);
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to play audio: ${e.toString()}')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to play audio: ${e.toString()}')),
+        );
       }
     }
   }
 
   Widget _buildAppBarTitle() {
-    final wordText = (widget.wordText ?? DatabaseService.getWordById(widget.wordId)?.text ?? 'WORD').toUpperCase();
+    final wordText =
+        (widget.wordText ??
+                DatabaseService.getWordById(widget.wordId)?.text ??
+                'WORD')
+            .toUpperCase();
     final rank = DatabaseService.getWordRank(widget.wordId);
 
     return Row(
@@ -696,7 +749,12 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
         Flexible(
           child: Text(
             wordText,
-            style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 2, fontSize: 20, color: Colors.white),
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              letterSpacing: 2,
+              fontSize: 20,
+              color: Colors.white,
+            ),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -725,8 +783,13 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
   }
 
   Widget _buildErrorScaffold(ThemeData theme) {
-    final wordName = (widget.wordText ?? DatabaseService.getWordById(widget.wordId)?.text ?? 'Word').toUpperCase();
-    final isNetworkError = _error.toLowerCase().contains('socket') ||
+    final wordName =
+        (widget.wordText ??
+                DatabaseService.getWordById(widget.wordId)?.text ??
+                'Word')
+            .toUpperCase();
+    final isNetworkError =
+        _error.toLowerCase().contains('socket') ||
         _error.toLowerCase().contains('timeout') ||
         _error.toLowerCase().contains('handshake') ||
         _error.toLowerCase().contains('clientexception') ||
@@ -737,26 +800,35 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
       backgroundColor: theme.scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
       extendBody: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          tooltip: 'Back',
-          onPressed: () => Navigator.maybePop(context),
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(
+          kToolbarHeight +
+              (defaultTargetPlatform == TargetPlatform.windows ? 16.0 : 0.0),
         ),
-        title: _buildAppBarTitle(),
+        child: Padding(
+          padding: EdgeInsets.only(
+            top: defaultTargetPlatform == TargetPlatform.windows ? 16.0 : 0.0,
+          ),
+          child: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              tooltip: 'Back',
+              onPressed: () => Navigator.maybePop(context),
+            ),
+            title: _buildAppBarTitle(),
+          ),
+        ),
       ),
-      bottomNavigationBar: widget.bottomNavigationBarOverride ?? _buildBottomActions(),
+      bottomNavigationBar:
+          widget.bottomNavigationBarOverride ?? _buildBottomActions(),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              theme.scaffoldBackgroundColor,
-              const Color(0xFF1E1B4B),
-            ],
+            colors: [theme.scaffoldBackgroundColor, const Color(0xFF1E1B4B)],
           ),
         ),
         child: SafeArea(
@@ -773,7 +845,9 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                       decoration: BoxDecoration(
                         color: Colors.redAccent.withOpacity(0.12),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                        border: Border.all(
+                          color: Colors.redAccent.withOpacity(0.3),
+                        ),
                       ),
                       child: const Icon(
                         Icons.cloud_off_rounded,
@@ -783,7 +857,9 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      isNetworkError ? 'Connection Issue' : 'Failed to Load Word',
+                      isNetworkError
+                          ? 'Connection Issue'
+                          : 'Failed to Load Word',
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -834,8 +910,13 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white70,
                             side: const BorderSide(color: Colors.white24),
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 14,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -853,8 +934,13 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                           style: ElevatedButton.styleFrom(
                             backgroundColor: theme.colorScheme.primary,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 14,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                             elevation: 0,
                           ),
                         ),
@@ -873,11 +959,11 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     if (_error.isNotEmpty && _wordData == null) {
       return _buildErrorScaffold(theme);
     }
-    
+
     final data = _wordData;
 
     List<String> availableImages = [];
@@ -887,9 +973,11 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
         availableImages.add(data.imageUrl!);
       }
       for (var sense in data.senses) {
-        if (sense.imageUrl != null && sense.imageUrl!.isNotEmpty) availableImages.add(sense.imageUrl!);
+        if (sense.imageUrl != null && sense.imageUrl!.isNotEmpty)
+          availableImages.add(sense.imageUrl!);
         for (var tip in sense.tips) {
-          if (tip.imageUrl != null && tip.imageUrl!.isNotEmpty) availableImages.add(tip.imageUrl!);
+          if (tip.imageUrl != null && tip.imageUrl!.isNotEmpty)
+            availableImages.add(tip.imageUrl!);
         }
       }
       availableImages = availableImages.toSet().toList();
@@ -903,542 +991,884 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
         }
       }
     }
-    
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       extendBody: true,
-      bottomNavigationBar: widget.bottomNavigationBarOverride ?? _buildBottomActions(),
+      bottomNavigationBar:
+          widget.bottomNavigationBarOverride ?? _buildBottomActions(),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              theme.scaffoldBackgroundColor,
-              Color(0xFF1E1B4B),
-            ],
+            colors: [theme.scaffoldBackgroundColor, Color(0xFF1E1B4B)],
           ),
         ),
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: 800),
-              child: CustomScrollView(
-                physics: BouncingScrollPhysics(),
-                slivers: [
-                  if (theme.platform == TargetPlatform.android || theme.platform == TargetPlatform.iOS) ...[
-                    SliverAppBar(
-                      pinned: false,
-                      floating: true,
-                      backgroundColor: theme.scaffoldBackgroundColor.withOpacity(0.95),
-                      surfaceTintColor: Colors.transparent,
-                      elevation: 0,
-                      title: _buildAppBarTitle(),
-                    ),
-                    SliverAppBar(
-                      pinned: true,
-                      floating: false,
-                      primary: false,
-                      automaticallyImplyLeading: false,
-                      backgroundColor: theme.scaffoldBackgroundColor.withOpacity(0.95),
-                      surfaceTintColor: Colors.transparent,
-                      elevation: 0,
-                      toolbarHeight: 60,
-                      titleSpacing: 0,
-                      title: Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _buildAudioBtn('🇬🇧', Icons.volume_up, () => _playAudio(isUk: true, useGoogleTts: false)),
-                            _buildAudioBtn('🇺🇸', Icons.volume_up, () => _playAudio(isUk: false, useGoogleTts: false)),
-                            _buildAudioBtn('🇬🇧', Icons.record_voice_over, () => _playAudio(isUk: true, useGoogleTts: true)),
-                            _buildAudioBtn('🇺🇸', Icons.record_voice_over, () => _playAudio(isUk: false, useGoogleTts: true)),
-                          ],
-                        ),
+              child: Focus(
+                autofocus: true,
+                onKeyEvent: (node, event) {
+                  if (event is KeyDownEvent) {
+                    if (event.logicalKey == LogicalKeyboardKey.escape) {
+                      Navigator.maybePop(context);
+                      return KeyEventResult.handled;
+                    }
+                    if (event.logicalKey == LogicalKeyboardKey.space) {
+                      _playAudio(isUk: _lastIsUk, useGoogleTts: false);
+                      return KeyEventResult.handled;
+                    }
+                  }
+                  return KeyEventResult.ignored;
+                },
+                child: CustomScrollView(
+                  physics: BouncingScrollPhysics(),
+                  slivers: [
+                    if (theme.platform == TargetPlatform.android ||
+                        theme.platform == TargetPlatform.iOS) ...[
+                      SliverAppBar(
+                        pinned: false,
+                        floating: true,
+                        backgroundColor: theme.scaffoldBackgroundColor
+                            .withOpacity(0.95),
+                        surfaceTintColor: Colors.transparent,
+                        elevation: 0,
+                        title: _buildAppBarTitle(),
                       ),
-                    ),
-                  ] else ...[
-                    SliverAppBar(
-                      pinned: false,
-                      floating: true,
-                      backgroundColor: theme.scaffoldBackgroundColor.withOpacity(0.95),
-                      elevation: 0,
-                      title: _buildAppBarTitle(),
-                      actions: [
-                        TextButton(onPressed: () => _playAudio(isUk: true, useGoogleTts: false), child: const Text('UK Dict')),
-                        TextButton(onPressed: () => _playAudio(isUk: false, useGoogleTts: false), child: const Text('US Dict')),
-                        TextButton(onPressed: () => _playAudio(isUk: true, useGoogleTts: true), child: const Text('UK TTS')),
-                        TextButton(onPressed: () => _playAudio(isUk: false, useGoogleTts: true), child: const Text('US TTS')),
-                        const SizedBox(width: 8),
-                      ],
-                    ),
-                  ],
-                  if (_isLoading || data == null)
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
-                      sliver: SliverToBoxAdapter(
-                        child: _buildSkeletonBody(theme),
-                      ),
-                    )
-                  else
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
-                      sliver: SliverList(
-                        delegate: SliverChildListDelegate([
-                if (displayImageUrl != null) ...[
-                  ConstrainedBox(
-                    constraints: BoxConstraints(maxHeight: 400),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: CachedMediaImage(
-                        wordId: widget.wordId,
-                        imageUrl: displayImageUrl,
-                        width: double.infinity,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          width: double.infinity,
-                          color: Colors.grey.withOpacity(0.1),
-                          child: Icon(Icons.broken_image, color: Colors.grey, size: 40),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 32),
-                ],
-                if (_translatedWord != null && _translatedWord!.isNotEmpty) ...[
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 20),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.teal.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.tealAccent.withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.translate, color: Colors.tealAccent, size: 16),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              _translatedWord!,
-                              style: const TextStyle(
-                                color: Colors.tealAccent,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                      SliverAppBar(
+                        pinned: true,
+                        floating: false,
+                        primary: false,
+                        automaticallyImplyLeading: false,
+                        backgroundColor: theme.scaffoldBackgroundColor
+                            .withOpacity(0.95),
+                        surfaceTintColor: Colors.transparent,
+                        elevation: 0,
+                        toolbarHeight: 60,
+                        titleSpacing: 0,
+                        title: Container(
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildAudioBtn(
+                                '🇬🇧',
+                                Icons.volume_up,
+                                () =>
+                                    _playAudio(isUk: true, useGoogleTts: false),
                               ),
-                            ),
+                              _buildAudioBtn(
+                                '🇺🇸',
+                                Icons.volume_up,
+                                () => _playAudio(
+                                  isUk: false,
+                                  useGoogleTts: false,
+                                ),
+                              ),
+                              _buildAudioBtn(
+                                '🇬🇧',
+                                Icons.record_voice_over,
+                                () =>
+                                    _playAudio(isUk: true, useGoogleTts: true),
+                              ),
+                              _buildAudioBtn(
+                                '🇺🇸',
+                                Icons.record_voice_over,
+                                () =>
+                                    _playAudio(isUk: false, useGoogleTts: true),
+                              ),
+                            ],
                           ),
+                        ),
+                      ),
+                    ] else ...[
+                      SliverAppBar(
+                        pinned: false,
+                        floating: true,
+                        backgroundColor: theme.scaffoldBackgroundColor
+                            .withOpacity(0.95),
+                        elevation: 0,
+                        title: _buildAppBarTitle(),
+                        actions: [
+                          TextButton(
+                            onPressed: () =>
+                                _playAudio(isUk: true, useGoogleTts: false),
+                            child: const Text('UK Dict'),
+                          ),
+                          TextButton(
+                            onPressed: () =>
+                                _playAudio(isUk: false, useGoogleTts: false),
+                            child: const Text('US Dict'),
+                          ),
+                          TextButton(
+                            onPressed: () =>
+                                _playAudio(isUk: true, useGoogleTts: true),
+                            child: const Text('UK TTS'),
+                          ),
+                          TextButton(
+                            onPressed: () =>
+                                _playAudio(isUk: false, useGoogleTts: true),
+                            child: const Text('US TTS'),
+                          ),
+                          const SizedBox(width: 8),
                         ],
-                      ),
-                    ),
-                  ),
-                ],
-                if (data.usage.isNotEmpty) ...[
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 24),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.amber.withOpacity(0.3)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.info_outline, color: Colors.amber, size: 20),
-                            SizedBox(width: 8),
-                            Text('Usage Note', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                        SizedBox(height: 8),
-                        HighlightText(
-                          text: data.usage,
-                          selfWord: widget.wordText?.toLowerCase() ?? '',
-                          learningWords: _learningWords,
-                          onWordTap: _onWordTap,
-                          normalStyle: TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Definitions', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.view_list),
-                          tooltip: 'List view',
-                          visualDensity: VisualDensity.compact,
-                          color: _cardLayout == WordCardLayout.list ? theme.colorScheme.primary : Colors.white54,
-                          onPressed: () => _setCardLayout(WordCardLayout.list),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.grid_view),
-                          tooltip: 'Grid view',
-                          visualDensity: VisualDensity.compact,
-                          color: _cardLayout == WordCardLayout.grid ? theme.colorScheme.primary : Colors.white54,
-                          onPressed: () => _setCardLayout(WordCardLayout.grid),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.view_carousel),
-                          tooltip: 'Slide view',
-                          visualDensity: VisualDensity.compact,
-                          color: _cardLayout == WordCardLayout.slide ? theme.colorScheme.primary : Colors.white54,
-                          onPressed: () => _setCardLayout(WordCardLayout.slide),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                SizedBox(height: 16),
-                if (_cardLayout == WordCardLayout.grid)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            for (int i = 0; i < data.senses.length; i += 2)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: _buildSenseCard(data.senses[i], theme),
-                              ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            for (int i = 1; i < data.senses.length; i += 2)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: _buildSenseCard(data.senses[i], theme),
-                              ),
-                          ],
-                        ),
                       ),
                     ],
-                  )
-                else if (_cardLayout == WordCardLayout.slide)
-                  SlidingCardsView(
-                    itemCount: data.senses.length,
-                    itemBuilder: (context, index) => _buildSenseCard(data.senses[index], theme),
-                  )
-                else
-                  ...data.senses.map((sense) => Padding(
-                  padding: const EdgeInsets.only(bottom: 24.0),
-                    child: _buildSenseCard(sense, theme),
-                  )),
-                
-                if (data.senses.any((s) => s.tips.isNotEmpty)) ...[
-                  SizedBox(height: 32),
-                  Text('Pro Tips', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
-                  SizedBox(height: 16),
-                  if (_cardLayout == WordCardLayout.grid)
-                    ...() {
-                      final tips = data.senses.expand((sense) => sense.tips).toList();
-                      return [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  for (int i = 0; i < tips.length; i += 2)
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 16),
-                                      child: _buildTipCard(tips[i]),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  for (int i = 1; i < tips.length; i += 2)
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 16),
-                                      child: _buildTipCard(tips[i]),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ],
+                    if (_isLoading || data == null)
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
+                        sliver: SliverToBoxAdapter(
+                          child: _buildSkeletonBody(theme),
                         ),
-                      ];
-                    }()
-                  else if (_cardLayout == WordCardLayout.slide)
-                    ...() {
-                      final tips = data.senses.expand((sense) => sense.tips).toList();
-                      return [
-                        SlidingCardsView(
-                          itemCount: tips.length,
-                          itemBuilder: (context, index) => _buildTipCard(tips[index]),
-                        ),
-                      ];
-                    }()
-                  else
-                    ...data.senses.expand((sense) => sense.tips).map((tip) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildTipCard(tip),
-                    )),
-                ],
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            if (displayImageUrl != null) ...[
+                              ConstrainedBox(
+                                constraints: BoxConstraints(maxHeight: 400),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: CachedMediaImage(
+                                    wordId: widget.wordId,
+                                    imageUrl: displayImageUrl,
+                                    width: double.infinity,
+                                    fit: BoxFit.contain,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            Container(
+                                              width: double.infinity,
+                                              color: Colors.grey.withOpacity(
+                                                0.1,
+                                              ),
+                                              child: Icon(
+                                                Icons.broken_image,
+                                                color: Colors.grey,
+                                                size: 40,
+                                              ),
+                                            ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: 32),
+                            ],
+                            if (_translatedWord != null &&
+                                _translatedWord!.isNotEmpty) ...[
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 20),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.teal.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.tealAccent.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.translate,
+                                        color: Colors.tealAccent,
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          _translatedWord!,
+                                          style: const TextStyle(
+                                            color: Colors.tealAccent,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                            if (data.usage.isNotEmpty) ...[
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 24),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.amber.withOpacity(0.3),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.info_outline,
+                                          color: Colors.amber,
+                                          size: 20,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Usage Note',
+                                          style: TextStyle(
+                                            color: Colors.amber,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 8),
+                                    HighlightText(
+                                      text: data.usage,
+                                      selfWord:
+                                          widget.wordText?.toLowerCase() ?? '',
+                                      learningWords: _learningWords,
+                                      onWordTap: _onWordTap,
+                                      normalStyle: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
 
-                if (data.collocations.isNotEmpty) ...[
-                  SizedBox(height: 32),
-                  Text('Often used with', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
-                  SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: data.collocations.map((c) => Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white24),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Definitions',
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(Icons.view_list),
+                                      tooltip: 'List view',
+                                      visualDensity: VisualDensity.compact,
+                                      color: _cardLayout == WordCardLayout.list
+                                          ? theme.colorScheme.primary
+                                          : Colors.white54,
+                                      onPressed: () =>
+                                          _setCardLayout(WordCardLayout.list),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.grid_view),
+                                      tooltip: 'Grid view',
+                                      visualDensity: VisualDensity.compact,
+                                      color: _cardLayout == WordCardLayout.grid
+                                          ? theme.colorScheme.primary
+                                          : Colors.white54,
+                                      onPressed: () =>
+                                          _setCardLayout(WordCardLayout.grid),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.view_carousel),
+                                      tooltip: 'Slide view',
+                                      visualDensity: VisualDensity.compact,
+                                      color: _cardLayout == WordCardLayout.slide
+                                          ? theme.colorScheme.primary
+                                          : Colors.white54,
+                                      onPressed: () =>
+                                          _setCardLayout(WordCardLayout.slide),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 16),
+                            if (_cardLayout == WordCardLayout.grid)
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        for (
+                                          int i = 0;
+                                          i < data.senses.length;
+                                          i += 2
+                                        )
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 16,
+                                            ),
+                                            child: _buildSenseCard(
+                                              data.senses[i],
+                                              theme,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        for (
+                                          int i = 1;
+                                          i < data.senses.length;
+                                          i += 2
+                                        )
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 16,
+                                            ),
+                                            child: _buildSenseCard(
+                                              data.senses[i],
+                                              theme,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else if (_cardLayout == WordCardLayout.slide)
+                              SlidingCardsView(
+                                itemCount: data.senses.length,
+                                itemBuilder: (context, index) =>
+                                    _buildSenseCard(data.senses[index], theme),
+                              )
+                            else
+                              ...data.senses.map(
+                                (sense) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 24.0),
+                                  child: _buildSenseCard(sense, theme),
+                                ),
+                              ),
+
+                            if (data.senses.any((s) => s.tips.isNotEmpty)) ...[
+                              SizedBox(height: 32),
+                              Text(
+                                'Pro Tips',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              if (_cardLayout == WordCardLayout.grid)
+                                ...() {
+                                  final tips = data.senses
+                                      .expand((sense) => sense.tips)
+                                      .toList();
+                                  return [
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                              for (
+                                                int i = 0;
+                                                i < tips.length;
+                                                i += 2
+                                              )
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        bottom: 16,
+                                                      ),
+                                                  child: _buildTipCard(tips[i]),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                              for (
+                                                int i = 1;
+                                                i < tips.length;
+                                                i += 2
+                                              )
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        bottom: 16,
+                                                      ),
+                                                  child: _buildTipCard(tips[i]),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ];
+                                }()
+                              else if (_cardLayout == WordCardLayout.slide)
+                                ...() {
+                                  final tips = data.senses
+                                      .expand((sense) => sense.tips)
+                                      .toList();
+                                  return [
+                                    SlidingCardsView(
+                                      itemCount: tips.length,
+                                      itemBuilder: (context, index) =>
+                                          _buildTipCard(tips[index]),
+                                    ),
+                                  ];
+                                }()
+                              else
+                                ...data.senses
+                                    .expand((sense) => sense.tips)
+                                    .map(
+                                      (tip) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 16,
+                                        ),
+                                        child: _buildTipCard(tip),
+                                      ),
+                                    ),
+                            ],
+
+                            if (data.collocations.isNotEmpty) ...[
+                              SizedBox(height: 32),
+                              Text(
+                                'Often used with',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: data.collocations
+                                    .map(
+                                      (c) => Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.05),
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.white24,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          c,
+                                          style: TextStyle(
+                                            color: Colors.white70,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                            ],
+
+                            if (data.phrases.isNotEmpty) ...[
+                              SizedBox(height: 32),
+                              Text(
+                                'Phrases & Idioms',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              ...data.phrases
+                                  .map(
+                                    (phrase) => Container(
+                                      margin: EdgeInsets.only(bottom: 12),
+                                      padding: EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.02),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.white12,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          HighlightText(
+                                            text: phrase.doText,
+                                            selfWord:
+                                                widget.wordText
+                                                    ?.toLowerCase() ??
+                                                '',
+                                            learningWords: _learningWords,
+                                            onWordTap: _onWordTap,
+                                            normalStyle: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          if (phrase.de.isNotEmpty) ...[
+                                            SizedBox(height: 6),
+                                            HighlightText(
+                                              text: phrase.de,
+                                              selfWord:
+                                                  widget.wordText
+                                                      ?.toLowerCase() ??
+                                                  '',
+                                              learningWords: _learningWords,
+                                              onWordTap: _onWordTap,
+                                              normalStyle: TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ],
+                                          if (phrase.ex.isNotEmpty) ...[
+                                            SizedBox(height: 8),
+                                            HighlightText(
+                                              text: '"${phrase.ex}"',
+                                              selfWord:
+                                                  widget.wordText
+                                                      ?.toLowerCase() ??
+                                                  '',
+                                              learningWords: _learningWords,
+                                              onWordTap: _onWordTap,
+                                              normalStyle: TextStyle(
+                                                fontStyle: FontStyle.italic,
+                                                color: Colors.white54,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            ],
+
+                            if (data.compounds.isNotEmpty) ...[
+                              SizedBox(height: 32),
+                              Text(
+                                'Compound Words',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              ...data.compounds
+                                  .map(
+                                    (comp) => Container(
+                                      margin: EdgeInsets.only(bottom: 12),
+                                      padding: EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.02),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.white12,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          HighlightText(
+                                            text: comp.doText,
+                                            selfWord:
+                                                widget.wordText
+                                                    ?.toLowerCase() ??
+                                                '',
+                                            learningWords: _learningWords,
+                                            onWordTap: _onWordTap,
+                                            normalStyle: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          if (comp.de.isNotEmpty) ...[
+                                            SizedBox(height: 6),
+                                            HighlightText(
+                                              text: comp.de,
+                                              selfWord:
+                                                  widget.wordText
+                                                      ?.toLowerCase() ??
+                                                  '',
+                                              learningWords: _learningWords,
+                                              onWordTap: _onWordTap,
+                                              normalStyle: TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ],
+                                          if (comp.ex.isNotEmpty) ...[
+                                            SizedBox(height: 8),
+                                            HighlightText(
+                                              text: '"${comp.ex}"',
+                                              selfWord:
+                                                  widget.wordText
+                                                      ?.toLowerCase() ??
+                                                  '',
+                                              learningWords: _learningWords,
+                                              onWordTap: _onWordTap,
+                                              normalStyle: TextStyle(
+                                                fontStyle: FontStyle.italic,
+                                                color: Colors.white54,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            ],
+
+                            if (data.comparisons.isNotEmpty)
+                              CompareWithSection(
+                                comparisons: data.comparisons,
+                                selfWord: widget.wordText?.toLowerCase() ?? '',
+                                learningWords: _learningWords,
+                                onWordTap: _onWordTap,
+                                buildAudioButton: _buildInlineAudioButton,
+                              ),
+
+                            // Extended Content (Wisdom, Facts, Quotes, Videos)
+                            ...() {
+                              final bool hasExtendedContent =
+                                  data.wisdom.isNotEmpty ||
+                                  data.facts.isNotEmpty ||
+                                  data.quotes.isNotEmpty ||
+                                  data.videos.isNotEmpty;
+                              if (!hasExtendedContent) return <Widget>[];
+
+                              if (_isShuffledContent) {
+                                final quotes = List.from(data.quotes)
+                                  ..shuffle(
+                                    math.Random(
+                                      widget.wordId + _shuffleSeedOffset,
+                                    ),
+                                  );
+                                final wisdoms = List.from(data.wisdom)
+                                  ..shuffle(
+                                    math.Random(
+                                      widget.wordId + 1 + _shuffleSeedOffset,
+                                    ),
+                                  );
+                                final videos = List.from(data.videos)
+                                  ..shuffle(
+                                    math.Random(
+                                      widget.wordId + 2 + _shuffleSeedOffset,
+                                    ),
+                                  );
+                                final facts = List.from(data.facts)
+                                  ..shuffle(
+                                    math.Random(
+                                      widget.wordId + 3 + _shuffleSeedOffset,
+                                    ),
+                                  );
+
+                                final List<Widget> items = [];
+                                int qIdx = 0, wIdx = 0, vIdx = 0, fIdx = 0;
+                                while (qIdx < quotes.length ||
+                                    wIdx < wisdoms.length ||
+                                    vIdx < videos.length ||
+                                    fIdx < facts.length) {
+                                  if (qIdx < quotes.length) {
+                                    items.add(
+                                      _buildQuoteCard(quotes[qIdx++], theme),
+                                    );
+                                  }
+                                  if (wIdx < wisdoms.length) {
+                                    items.add(
+                                      _buildWisdomCard(wisdoms[wIdx++], theme),
+                                    );
+                                  }
+                                  if (vIdx < videos.length) {
+                                    items.add(
+                                      _buildVideoCard(videos[vIdx++], theme),
+                                    );
+                                  }
+                                  if (fIdx < facts.length) {
+                                    items.add(
+                                      _buildFactCard(
+                                        facts[fIdx++],
+                                        theme,
+                                        showBadge: true,
+                                      ),
+                                    );
+                                  }
+                                }
+
+                                return <Widget>[
+                                  const SizedBox(height: 32),
+                                  _buildExtendedContentHeader(theme, 'Explore'),
+                                  const SizedBox(height: 16),
+                                  ...items,
+                                ];
+                              } else {
+                                // Grouped Mode
+                                bool headerShown = false;
+                                final List<Widget> grouped = [];
+
+                                if (data.wisdom.isNotEmpty) {
+                                  grouped.add(const SizedBox(height: 32));
+                                  grouped.add(
+                                    _buildExtendedContentHeader(
+                                      theme,
+                                      'Wisdom',
+                                    ),
+                                  );
+                                  grouped.add(const SizedBox(height: 16));
+                                  for (var w in data.wisdom) {
+                                    grouped.add(_buildWisdomCard(w, theme));
+                                  }
+                                  headerShown = true;
+                                }
+
+                                if (data.facts.isNotEmpty) {
+                                  grouped.add(const SizedBox(height: 32));
+                                  if (!headerShown) {
+                                    grouped.add(
+                                      _buildExtendedContentHeader(
+                                        theme,
+                                        'Did you know?',
+                                      ),
+                                    );
+                                    headerShown = true;
+                                  } else {
+                                    grouped.add(
+                                      Text(
+                                        'Did you know?',
+                                        style: theme.textTheme.titleLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                      ),
+                                    );
+                                  }
+                                  grouped.add(const SizedBox(height: 16));
+                                  for (var f in data.facts) {
+                                    grouped.add(
+                                      _buildFactCard(
+                                        f,
+                                        theme,
+                                        showBadge: false,
+                                      ),
+                                    );
+                                  }
+                                }
+
+                                if (data.quotes.isNotEmpty) {
+                                  grouped.add(const SizedBox(height: 32));
+                                  if (!headerShown) {
+                                    grouped.add(
+                                      _buildExtendedContentHeader(
+                                        theme,
+                                        'Famous Quotes',
+                                      ),
+                                    );
+                                    headerShown = true;
+                                  } else {
+                                    grouped.add(
+                                      Text(
+                                        'Famous Quotes',
+                                        style: theme.textTheme.titleLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                      ),
+                                    );
+                                  }
+                                  grouped.add(const SizedBox(height: 16));
+                                  for (var q in data.quotes) {
+                                    grouped.add(_buildQuoteCard(q, theme));
+                                  }
+                                }
+
+                                if (data.videos.isNotEmpty) {
+                                  grouped.add(const SizedBox(height: 32));
+                                  if (!headerShown) {
+                                    grouped.add(
+                                      _buildExtendedContentHeader(
+                                        theme,
+                                        'Video Clips',
+                                      ),
+                                    );
+                                    headerShown = true;
+                                  } else {
+                                    grouped.add(
+                                      Text(
+                                        'Video Clips',
+                                        style: theme.textTheme.titleLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                      ),
+                                    );
+                                  }
+                                  grouped.add(const SizedBox(height: 16));
+                                  for (var v in data.videos) {
+                                    grouped.add(_buildVideoCard(v, theme));
+                                  }
+                                }
+
+                                return grouped;
+                              }
+                            }(),
+
+                            // Misspellings
+                            if (data.misspellings.isNotEmpty) ...[
+                              SizedBox(height: 48),
+                              Center(
+                                child: Text(
+                                  'Common misspellings: ${data.misspellings.replaceAll('|', ', ')}',
+                                  style: TextStyle(
+                                    color: Colors.white38,
+                                    fontSize: 13,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                            ],
+                          ]),
+                        ),
                       ),
-                      child: Text(c, style: TextStyle(color: Colors.white70)),
-                    )).toList(),
-                  ),
-                ],
-
-                if (data.phrases.isNotEmpty) ...[
-                  SizedBox(height: 32),
-                  Text('Phrases & Idioms', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
-                  SizedBox(height: 16),
-                  ...data.phrases.map((phrase) => Container(
-                    margin: EdgeInsets.only(bottom: 12),
-                    padding: EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.02),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        HighlightText(
-                          text: phrase.doText,
-                          selfWord: widget.wordText?.toLowerCase() ?? '',
-                          learningWords: _learningWords,
-                          onWordTap: _onWordTap,
-                          normalStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
-                        ),
-                        if (phrase.de.isNotEmpty) ...[
-                          SizedBox(height: 6),
-                          HighlightText(
-                            text: phrase.de,
-                            selfWord: widget.wordText?.toLowerCase() ?? '',
-                            learningWords: _learningWords,
-                          onWordTap: _onWordTap,
-                            normalStyle: TextStyle(color: Colors.white70, fontSize: 14),
-                          ),
-                        ],
-                        if (phrase.ex.isNotEmpty) ...[
-                          SizedBox(height: 8),
-                          HighlightText(
-                            text: '"${phrase.ex}"',
-                            selfWord: widget.wordText?.toLowerCase() ?? '',
-                            learningWords: _learningWords,
-                          onWordTap: _onWordTap,
-                            normalStyle: TextStyle(fontStyle: FontStyle.italic, color: Colors.white54, fontSize: 14),
-                          ),
-                        ],
-                      ],
-                    ),
-                  )).toList(),
-                ],
-
-                if (data.compounds.isNotEmpty) ...[
-                  SizedBox(height: 32),
-                  Text('Compound Words', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
-                  SizedBox(height: 16),
-                  ...data.compounds.map((comp) => Container(
-                    margin: EdgeInsets.only(bottom: 12),
-                    padding: EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.02),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        HighlightText(
-                          text: comp.doText,
-                          selfWord: widget.wordText?.toLowerCase() ?? '',
-                          learningWords: _learningWords,
-                          onWordTap: _onWordTap,
-                          normalStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
-                        ),
-                        if (comp.de.isNotEmpty) ...[
-                          SizedBox(height: 6),
-                          HighlightText(
-                            text: comp.de,
-                            selfWord: widget.wordText?.toLowerCase() ?? '',
-                            learningWords: _learningWords,
-                          onWordTap: _onWordTap,
-                            normalStyle: TextStyle(color: Colors.white70, fontSize: 14),
-                          ),
-                        ],
-                        if (comp.ex.isNotEmpty) ...[
-                          SizedBox(height: 8),
-                          HighlightText(
-                            text: '"${comp.ex}"',
-                            selfWord: widget.wordText?.toLowerCase() ?? '',
-                            learningWords: _learningWords,
-                          onWordTap: _onWordTap,
-                            normalStyle: TextStyle(fontStyle: FontStyle.italic, color: Colors.white54, fontSize: 14),
-                          ),
-                        ],
-                      ],
-                    ),
-                  )).toList(),
-                ],
-
-                if (data.comparisons.isNotEmpty)
-                  CompareWithSection(
-                    comparisons: data.comparisons,
-                    selfWord: widget.wordText?.toLowerCase() ?? '',
-                    learningWords: _learningWords,
-                    onWordTap: _onWordTap,
-                  ),
-
-                // Extended Content (Wisdom, Facts, Quotes, Videos)
-                ...() {
-                  final bool hasExtendedContent = data.wisdom.isNotEmpty ||
-                      data.facts.isNotEmpty ||
-                      data.quotes.isNotEmpty ||
-                      data.videos.isNotEmpty;
-                  if (!hasExtendedContent) return <Widget>[];
-
-                  if (_isShuffledContent) {
-                    final quotes = List.from(data.quotes)..shuffle(math.Random(widget.wordId + _shuffleSeedOffset));
-                    final wisdoms = List.from(data.wisdom)..shuffle(math.Random(widget.wordId + 1 + _shuffleSeedOffset));
-                    final videos = List.from(data.videos)..shuffle(math.Random(widget.wordId + 2 + _shuffleSeedOffset));
-                    final facts = List.from(data.facts)..shuffle(math.Random(widget.wordId + 3 + _shuffleSeedOffset));
-
-                    final List<Widget> items = [];
-                    int qIdx = 0, wIdx = 0, vIdx = 0, fIdx = 0;
-                    while (qIdx < quotes.length ||
-                        wIdx < wisdoms.length ||
-                        vIdx < videos.length ||
-                        fIdx < facts.length) {
-                      if (qIdx < quotes.length) {
-                        items.add(_buildQuoteCard(quotes[qIdx++], theme));
-                      }
-                      if (wIdx < wisdoms.length) {
-                        items.add(_buildWisdomCard(wisdoms[wIdx++], theme));
-                      }
-                      if (vIdx < videos.length) {
-                        items.add(_buildVideoCard(videos[vIdx++], theme));
-                      }
-                      if (fIdx < facts.length) {
-                        items.add(_buildFactCard(facts[fIdx++], theme, showBadge: true));
-                      }
-                    }
-
-                    return <Widget>[
-                      const SizedBox(height: 32),
-                      _buildExtendedContentHeader(theme, 'Explore'),
-                      const SizedBox(height: 16),
-                      ...items,
-                    ];
-                  } else {
-                    // Grouped Mode
-                    bool headerShown = false;
-                    final List<Widget> grouped = [];
-
-                    if (data.wisdom.isNotEmpty) {
-                      grouped.add(const SizedBox(height: 32));
-                      grouped.add(_buildExtendedContentHeader(theme, 'Wisdom'));
-                      grouped.add(const SizedBox(height: 16));
-                      for (var w in data.wisdom) {
-                        grouped.add(_buildWisdomCard(w, theme));
-                      }
-                      headerShown = true;
-                    }
-
-                    if (data.facts.isNotEmpty) {
-                      grouped.add(const SizedBox(height: 32));
-                      if (!headerShown) {
-                        grouped.add(_buildExtendedContentHeader(theme, 'Did you know?'));
-                        headerShown = true;
-                      } else {
-                        grouped.add(Text('Did you know?', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)));
-                      }
-                      grouped.add(const SizedBox(height: 16));
-                      for (var f in data.facts) {
-                        grouped.add(_buildFactCard(f, theme, showBadge: false));
-                      }
-                    }
-
-                    if (data.quotes.isNotEmpty) {
-                      grouped.add(const SizedBox(height: 32));
-                      if (!headerShown) {
-                        grouped.add(_buildExtendedContentHeader(theme, 'Famous Quotes'));
-                        headerShown = true;
-                      } else {
-                        grouped.add(Text('Famous Quotes', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)));
-                      }
-                      grouped.add(const SizedBox(height: 16));
-                      for (var q in data.quotes) {
-                        grouped.add(_buildQuoteCard(q, theme));
-                      }
-                    }
-
-                    if (data.videos.isNotEmpty) {
-                      grouped.add(const SizedBox(height: 32));
-                      if (!headerShown) {
-                        grouped.add(_buildExtendedContentHeader(theme, 'Video Clips'));
-                        headerShown = true;
-                      } else {
-                        grouped.add(Text('Video Clips', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)));
-                      }
-                      grouped.add(const SizedBox(height: 16));
-                      for (var v in data.videos) {
-                        grouped.add(_buildVideoCard(v, theme));
-                      }
-                    }
-
-                    return grouped;
-                  }
-                }(),
-
-                // Misspellings
-                if (data.misspellings.isNotEmpty) ...[
-                  SizedBox(height: 48),
-                  Center(
-                    child: Text(
-                      'Common misspellings: ${data.misspellings.replaceAll('|', ', ')}',
-                      style: TextStyle(color: Colors.white38, fontSize: 13, fontStyle: FontStyle.italic),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                ]
-                      ]),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -1466,7 +1896,10 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
             if (_translatedWord != null && _translatedWord!.isNotEmpty) ...[
               Container(
                 margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.teal.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
@@ -1475,7 +1908,11 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.translate, color: Colors.tealAccent, size: 16),
+                    const Icon(
+                      Icons.translate,
+                      color: Colors.tealAccent,
+                      size: 16,
+                    ),
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
@@ -1622,21 +2059,31 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
+        Text(
+          title,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
         Row(
           children: [
             IconButton(
               icon: const Icon(Icons.view_agenda_outlined),
               tooltip: 'Grouped',
               visualDensity: VisualDensity.compact,
-              color: !_isShuffledContent ? theme.colorScheme.primary : Colors.white54,
+              color: !_isShuffledContent
+                  ? theme.colorScheme.primary
+                  : Colors.white54,
               onPressed: () => setState(() => _isShuffledContent = false),
             ),
             IconButton(
               icon: const Icon(Icons.shuffle_rounded),
               tooltip: _isShuffledContent ? 'Re-shuffle' : 'Shuffled',
               visualDensity: VisualDensity.compact,
-              color: _isShuffledContent ? theme.colorScheme.primary : Colors.white54,
+              color: _isShuffledContent
+                  ? theme.colorScheme.primary
+                  : Colors.white54,
               onPressed: () {
                 setState(() {
                   if (_isShuffledContent) {
@@ -1658,7 +2105,9 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: const Border(left: BorderSide(color: Colors.blueAccent, width: 4)),
+        border: const Border(
+          left: BorderSide(color: Colors.blueAccent, width: 4),
+        ),
         color: Colors.blueAccent.withOpacity(0.1),
       ),
       child: Row(
@@ -1669,7 +2118,12 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
               selfWord: widget.wordText?.toLowerCase() ?? '',
               learningWords: _learningWords,
               onWordTap: _onWordTap,
-              normalStyle: const TextStyle(fontStyle: FontStyle.italic, color: Colors.white, fontSize: 15, height: 1.4),
+              normalStyle: const TextStyle(
+                fontStyle: FontStyle.italic,
+                color: Colors.white,
+                fontSize: 15,
+                height: 1.4,
+              ),
             ),
           ),
           _buildInlineAudioButton(w, 'wisdom_${w.hashCode}'),
@@ -1692,7 +2146,11 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
           if (showBadge) ...[
             Row(
               children: [
-                const Icon(Icons.lightbulb_outline, color: Colors.greenAccent, size: 16),
+                const Icon(
+                  Icons.lightbulb_outline,
+                  color: Colors.greenAccent,
+                  size: 16,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   'Did you know?',
@@ -1711,7 +2169,11 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (!showBadge) ...[
-                const Icon(Icons.lightbulb_outline, color: Colors.greenAccent, size: 20),
+                const Icon(
+                  Icons.lightbulb_outline,
+                  color: Colors.greenAccent,
+                  size: 20,
+                ),
                 const SizedBox(width: 12),
               ],
               Expanded(
@@ -1723,7 +2185,11 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                         selfWord: widget.wordText?.toLowerCase() ?? '',
                         learningWords: _learningWords,
                         onWordTap: _onWordTap,
-                        normalStyle: const TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
+                        normalStyle: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          height: 1.4,
+                        ),
                       ),
                     ),
                     _buildInlineAudioButton(f, 'fact_${f.hashCode}'),
@@ -1755,9 +2221,16 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
         children: [
           Row(
             children: [
-              Icon(Icons.format_quote_rounded, color: theme.colorScheme.primary, size: 32),
+              Icon(
+                Icons.format_quote_rounded,
+                color: theme.colorScheme.primary,
+                size: 32,
+              ),
               const Spacer(),
-              _buildInlineAudioButton(quote.text, 'quote_${quote.text.hashCode}'),
+              _buildInlineAudioButton(
+                quote.text,
+                'quote_${quote.text.hashCode}',
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -1766,27 +2239,39 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
             selfWord: widget.wordText?.toLowerCase() ?? '',
             learningWords: _learningWords,
             onWordTap: _onWordTap,
-            normalStyle: const TextStyle(fontStyle: FontStyle.italic, fontSize: 17, color: Colors.white, height: 1.5),
+            normalStyle: const TextStyle(
+              fontStyle: FontStyle.italic,
+              fontSize: 17,
+              color: Colors.white,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              quote.imageUrl != null 
-                ? ClipOval(child: CachedMediaImage(
-                    wordId: widget.wordId,
-                    imageUrl: quote.imageUrl!, 
-                    width: 40, 
-                    height: 40, 
-                    fit: BoxFit.cover,
-                  ))
-                : CircleAvatar(
-                    backgroundColor: theme.colorScheme.secondary.withOpacity(0.2),
-                    radius: 20,
-                    child: Text(
-                      quote.authorName.isNotEmpty ? quote.authorName[0] : '?',
-                      style: TextStyle(color: theme.colorScheme.secondary, fontWeight: FontWeight.bold),
+              quote.imageUrl != null
+                  ? ClipOval(
+                      child: CachedMediaImage(
+                        wordId: widget.wordId,
+                        imageUrl: quote.imageUrl!,
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : CircleAvatar(
+                      backgroundColor: theme.colorScheme.secondary.withOpacity(
+                        0.2,
+                      ),
+                      radius: 20,
+                      child: Text(
+                        quote.authorName.isNotEmpty ? quote.authorName[0] : '?',
+                        style: TextStyle(
+                          color: theme.colorScheme.secondary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1794,12 +2279,19 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                   children: [
                     Text(
                       quote.authorName,
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 15,
+                      ),
                     ),
                     if (quote.authorRole.isNotEmpty)
                       Text(
                         quote.authorRole,
-                        style: const TextStyle(color: Colors.white54, fontSize: 13),
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 13,
+                        ),
                       ),
                   ],
                 ),
@@ -1813,7 +2305,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
 
   Widget _buildVideoCard(WordVideo video, ThemeData theme) {
     final bool isPlaying = _playingVideo == video;
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
@@ -1841,15 +2333,30 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                 children: [
                   const Text(
                     'Playing Video',
-                    style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       TextButton.icon(
-                        onPressed: () => launchUrl(Uri.parse('https://www.youtube.com/watch?v=${video.youtubeId}&t=${video.startTimeMs ~/ 1000}s')),
-                        icon: const Icon(Icons.open_in_browser, color: Colors.blueAccent, size: 20),
-                        label: const Text('Open in Browser', style: TextStyle(color: Colors.blueAccent)),
+                        onPressed: () => launchUrl(
+                          Uri.parse(
+                            'https://www.youtube.com/watch?v=${video.youtubeId}&t=${video.startTimeMs ~/ 1000}s',
+                          ),
+                        ),
+                        icon: const Icon(
+                          Icons.open_in_browser,
+                          color: Colors.blueAccent,
+                          size: 20,
+                        ),
+                        label: const Text(
+                          'Open in Browser',
+                          style: TextStyle(color: Colors.blueAccent),
+                        ),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           minimumSize: Size.zero,
@@ -1858,8 +2365,15 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                       const SizedBox(width: 8),
                       TextButton.icon(
                         onPressed: _closeVideo,
-                        icon: const Icon(Icons.close, color: Colors.white, size: 20),
-                        label: const Text('Close', style: TextStyle(color: Colors.white)),
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        label: const Text(
+                          'Close',
+                          style: TextStyle(color: Colors.white),
+                        ),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           minimumSize: Size.zero,
@@ -1876,17 +2390,32 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                 width: double.infinity,
                 color: Colors.black,
                 child: theme.platform == TargetPlatform.windows
-                    ? (_webviewController != null && _webviewController!.value.isInitialized
-                        ? Webview(_webviewController!)
-                        : Center(child: CircularProgressIndicator(color: theme.colorScheme.primary)))
+                    ? (_webviewController != null &&
+                              _webviewController!.value.isInitialized
+                          ? Webview(_webviewController!)
+                          : Center(
+                              child: CircularProgressIndicator(
+                                color: theme.colorScheme.primary,
+                              ),
+                            ))
                     : (_videoError != null
-                        ? Center(child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(_videoError!, style: const TextStyle(color: Colors.white70), textAlign: TextAlign.center),
-                          ))
-                        : _chewieController != null
-                            ? Chewie(controller: _chewieController!)
-                            : Center(child: CircularProgressIndicator(color: theme.colorScheme.primary))),
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Text(
+                                  _videoError!,
+                                  style: const TextStyle(color: Colors.white70),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            )
+                          : _chewieController != null
+                          ? Chewie(controller: _chewieController!)
+                          : Center(
+                              child: CircularProgressIndicator(
+                                color: theme.colorScheme.primary,
+                              ),
+                            )),
               ),
             ),
           ] else ...[
@@ -1900,13 +2429,18 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                   children: [
                     CachedMediaImage(
                       wordId: widget.wordId,
-                      imageUrl: 'https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg',
+                      imageUrl:
+                          'https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg',
                       fit: BoxFit.cover,
                     ),
                     Container(
                       color: Colors.black.withOpacity(0.4),
                       child: Center(
-                        child: Icon(Icons.play_circle_fill, size: 64, color: Colors.white.withOpacity(0.9)),
+                        child: Icon(
+                          Icons.play_circle_fill,
+                          size: 64,
+                          color: Colors.white.withOpacity(0.9),
+                        ),
                       ),
                     ),
                   ],
@@ -1914,10 +2448,9 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
               ),
             ),
           ],
-          
+
           // Synchronized & Highlighted Subtitles below the frame
-          if (video.subtitles.isNotEmpty)
-            _buildVideoSubtitles(video, theme),
+          if (video.subtitles.isNotEmpty) _buildVideoSubtitles(video, theme),
         ],
       ),
     );
@@ -1934,18 +2467,20 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-            if (sense.imageUrl != null && sense.imageUrl!.isNotEmpty)
-              Container(
-                margin: const EdgeInsets.only(top: 16),
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
-                constraints: BoxConstraints(maxHeight: 300),
-                child: SelectableImage(
-                  imageUrl: sense.imageUrl!,
-                  wordId: widget.wordId,
-                  onPreferredSelected: () => setState(() {}),
-                ),
+          if (sense.imageUrl != null && sense.imageUrl!.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 16),
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
               ),
+              constraints: BoxConstraints(maxHeight: 300),
+              child: SelectableImage(
+                imageUrl: sense.imageUrl!,
+                wordId: widget.wordId,
+                onPreferredSelected: () => setState(() {}),
+              ),
+            ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1957,7 +2492,11 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                 ),
                 child: Text(
                   sense.ty,
-                  style: TextStyle(color: theme.colorScheme.secondary, fontWeight: FontWeight.bold, fontSize: 12),
+                  style: TextStyle(
+                    color: theme.colorScheme.secondary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
               ),
               SizedBox(width: 12),
@@ -1967,7 +2506,12 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                   selfWord: widget.wordText?.toLowerCase() ?? '',
                   learningWords: _learningWords,
                   onWordTap: _onWordTap,
-                  normalStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: Colors.white, height: 1.4),
+                  normalStyle: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    color: Colors.white,
+                    height: 1.4,
+                  ),
                 ),
               ),
               _buildInlineAudioButton(sense.de, 'sense_${sense.de.hashCode}'),
@@ -1978,19 +2522,26 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                border: Border(left: BorderSide(color: theme.colorScheme.primary, width: 3)),
+                border: Border(
+                  left: BorderSide(color: theme.colorScheme.primary, width: 3),
+                ),
                 color: Colors.black.withOpacity(0.2),
               ),
               child: Row(
                 children: [
                   Expanded(
                     child: HighlightText(
-                text: '"${sense.ex}"',
-                selfWord: widget.wordText?.toLowerCase() ?? '',
-                learningWords: _learningWords,
-                onWordTap: _onWordTap,
-                normalStyle: TextStyle(fontStyle: FontStyle.italic, color: Colors.white70, fontSize: 15, height: 1.4),
-              ),
+                      text: '"${sense.ex}"',
+                      selfWord: widget.wordText?.toLowerCase() ?? '',
+                      learningWords: _learningWords,
+                      onWordTap: _onWordTap,
+                      normalStyle: TextStyle(
+                        fontStyle: FontStyle.italic,
+                        color: Colors.white70,
+                        fontSize: 15,
+                        height: 1.4,
+                      ),
+                    ),
                   ),
                   _buildInlineAudioButton(sense.ex, 'ex_${sense.ex.hashCode}'),
                 ],
@@ -2004,27 +2555,57 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
               runSpacing: 8,
               children: [
                 if (sense.sy.isNotEmpty)
-                  ...sense.sy.split(',').map((s) => Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.cyan.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.cyan.withOpacity(0.3)),
-                    ),
-                    child: Text(s.trim(), style: TextStyle(color: Colors.cyanAccent, fontSize: 13)),
-                  )),
+                  ...sense.sy
+                      .split(',')
+                      .map(
+                        (s) => Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.cyan.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.cyan.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Text(
+                            s.trim(),
+                            style: TextStyle(
+                              color: Colors.cyanAccent,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
                 if (sense.op.isNotEmpty)
-                  ...sense.op.split(',').map((o) => Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
-                    ),
-                    child: Text(o.trim(), style: TextStyle(color: Colors.redAccent, fontSize: 13)),
-                  )),
+                  ...sense.op
+                      .split(',')
+                      .map(
+                        (o) => Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.redAccent.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Text(
+                            o.trim(),
+                            style: TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
               ],
-            )
+            ),
           ],
         ],
       ),
@@ -2045,7 +2626,9 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
             Container(
               margin: const EdgeInsets.only(top: 16),
               clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+              ),
               constraints: BoxConstraints(maxHeight: 300),
               child: SelectableImage(
                 imageUrl: tip.imageUrl!,
@@ -2059,16 +2642,38 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (tip.title.isNotEmpty)
-                  Text(tip.title, style: TextStyle(color: Colors.purpleAccent.shade200, fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(
+                    tip.title,
+                    style: TextStyle(
+                      color: Colors.purpleAccent.shade200,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 if (tip.description.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0),
-                    child: HighlightText(
-                      text: tip.description,
-                      selfWord: widget.wordText?.toLowerCase() ?? '',
-                      learningWords: _learningWords,
-                      onWordTap: _onWordTap,
-                      normalStyle: TextStyle(color: Colors.white, height: 1.4, fontSize: 15),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: HighlightText(
+                            text: tip.description,
+                            selfWord: widget.wordText?.toLowerCase() ?? '',
+                            learningWords: _learningWords,
+                            onWordTap: _onWordTap,
+                            normalStyle: TextStyle(
+                              color: Colors.white,
+                              height: 1.4,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                        _buildInlineAudioButton(
+                          tip.description,
+                          'tip_desc_${tip.description.hashCode}',
+                        ),
+                      ],
                     ),
                   ),
                 if (tip.example.isNotEmpty)
@@ -2077,14 +2682,34 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                     padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.2),
-                      border: Border(left: BorderSide(color: Colors.purpleAccent.shade200, width: 3)),
+                      border: Border(
+                        left: BorderSide(
+                          color: Colors.purpleAccent.shade200,
+                          width: 3,
+                        ),
+                      ),
                     ),
-                    child: HighlightText(
-                      text: '"${tip.example}"',
-                      selfWord: widget.wordText?.toLowerCase() ?? '',
-                      learningWords: _learningWords,
-                      onWordTap: _onWordTap,
-                      normalStyle: TextStyle(fontStyle: FontStyle.italic, color: Colors.white70, fontSize: 14),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: HighlightText(
+                            text: '"${tip.example}"',
+                            selfWord: widget.wordText?.toLowerCase() ?? '',
+                            learningWords: _learningWords,
+                            onWordTap: _onWordTap,
+                            normalStyle: TextStyle(
+                              fontStyle: FontStyle.italic,
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        _buildInlineAudioButton(
+                          tip.example,
+                          'tip_ex_${tip.example.hashCode}',
+                        ),
+                      ],
                     ),
                   ),
               ],
@@ -2098,7 +2723,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
   String _formatReviewTime(int times) {
     if (times >= ProgressService().stepIntervals.length) return "Mastered";
     final days = ProgressService().stepIntervals[times].inDays;
-    
+
     if (days == 0) return '0 days';
     if (days >= 30) {
       int months = days ~/ 30;
@@ -2131,7 +2756,9 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                     Expanded(
                       child: InkWell(
                         onTap: () => Navigator.pop(context),
-                        borderRadius: BorderRadius.horizontal(left: Radius.circular(20)),
+                        borderRadius: BorderRadius.horizontal(
+                          left: Radius.circular(20),
+                        ),
                         child: Padding(
                           padding: EdgeInsets.all(16),
                           child: Row(
@@ -2139,7 +2766,14 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                             children: [
                               Icon(Icons.check_circle, color: Colors.cyan),
                               SizedBox(width: 8),
-                              Text('Already Known', style: TextStyle(color: Colors.cyan, fontWeight: FontWeight.bold, fontSize: 16)),
+                              Text(
+                                'Already Known',
+                                style: TextStyle(
+                                  color: Colors.cyan,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -2159,10 +2793,15 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                         }
                       },
                       itemBuilder: (context) => [
-                        PopupMenuItem(value: 'learn', child: Text('Move to should learn')),
+                        PopupMenuItem(
+                          value: 'learn',
+                          child: Text('Move to should learn'),
+                        ),
                       ],
                       icon: Icon(Icons.keyboard_arrow_down, color: Colors.cyan),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ],
                 ),
@@ -2172,7 +2811,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
         ),
       );
     }
-    
+
     if (_isQueued) {
       return SafeArea(
         child: Column(
@@ -2192,15 +2831,27 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                     Expanded(
                       child: InkWell(
                         onTap: () => Navigator.pop(context),
-                        borderRadius: BorderRadius.horizontal(left: Radius.circular(20)),
+                        borderRadius: BorderRadius.horizontal(
+                          left: Radius.circular(20),
+                        ),
                         child: Padding(
                           padding: EdgeInsets.all(16),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.queue_play_next, color: Theme.of(context).colorScheme.primary),
+                              Icon(
+                                Icons.queue_play_next,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                               SizedBox(width: 8),
-                              Text('In Learning Queue', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 16)),
+                              Text(
+                                'In Learning Queue',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -2220,10 +2871,18 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                         }
                       },
                       itemBuilder: (context) => [
-                        PopupMenuItem(value: 'known', child: Text('Mark as Known')),
+                        PopupMenuItem(
+                          value: 'known',
+                          child: Text('Mark as Known'),
+                        ),
                       ],
-                      icon: Icon(Icons.keyboard_arrow_down, color: Theme.of(context).colorScheme.primary),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      icon: Icon(
+                        Icons.keyboard_arrow_down,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ],
                 ),
@@ -2233,14 +2892,14 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
         ),
       );
     }
-    
+
     if (_progress != null) {
       // In learning process
       final times = _progress!.rememberCount;
       final totalSteps = 11; // Based on stepIntervals max step 11
-      
+
       final reviewText = 'Review in ${_formatReviewTime(times)}';
-      
+
       return SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -2265,9 +2924,19 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.check_circle, color: Colors.cyan, size: 20),
+                              Icon(
+                                Icons.check_circle,
+                                color: Colors.cyan,
+                                size: 20,
+                              ),
                               SizedBox(width: 6),
-                              Text('$times times', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              Text(
+                                '$times times',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                           SizedBox(height: 12),
@@ -2278,7 +2947,9 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                                   height: 6,
                                   margin: EdgeInsets.only(right: 4),
                                   decoration: BoxDecoration(
-                                    color: index < times ? Colors.cyan : Colors.white24,
+                                    color: index < times
+                                        ? Colors.cyan
+                                        : Colors.white24,
                                     borderRadius: BorderRadius.circular(3),
                                   ),
                                 ),
@@ -2301,25 +2972,44 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                             onTap: () {
                               Navigator.pop(context); // Act like back button
                             },
-                            borderRadius: BorderRadius.horizontal(left: Radius.circular(12)),
+                            borderRadius: BorderRadius.horizontal(
+                              left: Radius.circular(12),
+                            ),
                             child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              child: Text(reviewText, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              child: Text(
+                                reviewText,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
-                          Container(width: 1, height: 20, color: Colors.white24),
+                          Container(
+                            width: 1,
+                            height: 20,
+                            color: Colors.white24,
+                          ),
                           PopupMenuButton<String>(
                             offset: Offset(0, -100),
                             onSelected: (value) async {
                               if (value == 'known') {
-                                await ProgressService().markAsKnown(widget.wordId);
+                                await ProgressService().markAsKnown(
+                                  widget.wordId,
+                                );
                                 setState(() {
                                   _isKnown = true;
                                   _isQueued = false;
                                   _progress = null;
                                 });
                               } else if (value == 'learn') {
-                                await ProgressService().markAsToLearn(widget.wordId);
+                                await ProgressService().markAsToLearn(
+                                  widget.wordId,
+                                );
                                 setState(() {
                                   _isKnown = false;
                                   _isQueued = true;
@@ -2328,14 +3018,29 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                               }
                             },
                             itemBuilder: (context) => [
-                              PopupMenuItem(value: 'known', child: Text('Mark as Known')),
-                              PopupMenuItem(value: 'learn', child: Text('Move to should learn')),
+                              PopupMenuItem(
+                                value: 'known',
+                                child: Text('Mark as Known'),
+                              ),
+                              PopupMenuItem(
+                                value: 'learn',
+                                child: Text('Move to should learn'),
+                              ),
                             ],
                             child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                              child: Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 18),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 12,
+                              ),
+                              child: Icon(
+                                Icons.keyboard_arrow_down,
+                                color: Colors.white,
+                                size: 18,
+                              ),
                             ),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ],
                       ),
@@ -2348,7 +3053,7 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
         ),
       );
     }
-    
+
     // Not known, not learning yet
     return SafeArea(
       child: Column(
@@ -2379,10 +3084,19 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
                         padding: EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         elevation: 0,
                       ),
-                      child: Text('Should Learn', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                      child: Text(
+                        'Should Learn',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
                   ),
                   SizedBox(width: 16),
@@ -2398,10 +3112,18 @@ class _WordViewScreenState extends State<WordViewScreen> with SingleTickerProvid
                         backgroundColor: Colors.cyan.withOpacity(0.15),
                         foregroundColor: Colors.cyanAccent,
                         padding: EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         elevation: 0,
                       ),
-                      child: Text('Already Knew', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      child: Text(
+                        'Already Knew',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -2469,7 +3191,10 @@ class _SelectableImageState extends State<SelectableImage> {
                       foregroundColor: Colors.black,
                     ),
                     onPressed: () async {
-                      await ProgressService().setPreferredImage(widget.wordId, widget.imageUrl);
+                      await ProgressService().setPreferredImage(
+                        widget.wordId,
+                        widget.imageUrl,
+                      );
                       setState(() {
                         _showOverlay = false;
                       });
@@ -2490,6 +3215,7 @@ class CompareWithSection extends StatefulWidget {
   final String selfWord;
   final Map<String, int> learningWords;
   final void Function(int id, String text)? onWordTap;
+  final Widget Function(String text, String id)? buildAudioButton;
 
   const CompareWithSection({
     Key? key,
@@ -2497,6 +3223,7 @@ class CompareWithSection extends StatefulWidget {
     required this.selfWord,
     required this.learningWords,
     required this.onWordTap,
+    this.buildAudioButton,
   }) : super(key: key);
 
   @override
@@ -2522,7 +3249,13 @@ class _CompareWithSectionState extends State<CompareWithSection> {
       children: [
         SizedBox(height: 32),
         Center(
-          child: Text('Compare with', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: Colors.purpleAccent.shade100)),
+          child: Text(
+            'Compare with',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: Colors.purpleAccent.shade100,
+            ),
+          ),
         ),
         SizedBox(height: 16),
         Center(
@@ -2541,7 +3274,9 @@ class _CompareWithSectionState extends State<CompareWithSection> {
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isSelected ? Colors.cyan : Colors.black.withOpacity(0.3),
+                    color: isSelected
+                        ? Colors.cyan
+                        : Colors.black.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white12),
                   ),
@@ -2566,12 +3301,28 @@ class _CompareWithSectionState extends State<CompareWithSection> {
               color: Colors.white.withOpacity(0.02),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: HighlightText(
-              text: _selectedComparison!.text,
-              selfWord: widget.selfWord,
-              learningWords: widget.learningWords,
-              onWordTap: widget.onWordTap,
-              normalStyle: TextStyle(color: Colors.white, fontSize: 16, height: 1.6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: HighlightText(
+                    text: _selectedComparison!.text,
+                    selfWord: widget.selfWord,
+                    learningWords: widget.learningWords,
+                    onWordTap: widget.onWordTap,
+                    normalStyle: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+                if (widget.buildAudioButton != null)
+                  widget.buildAudioButton!(
+                    _selectedComparison!.text,
+                    'comp_${_selectedComparison!.text.hashCode}',
+                  ),
+              ],
             ),
           ),
         ],
@@ -2612,7 +3363,8 @@ class _SlidingCardsViewState extends State<SlidingCardsView> {
   @override
   void didUpdateWidget(SlidingCardsView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.itemCount != widget.itemCount || oldWidget.viewportFraction != widget.viewportFraction) {
+    if (oldWidget.itemCount != widget.itemCount ||
+        oldWidget.viewportFraction != widget.viewportFraction) {
       _heights.clear();
       _currentPage = 0;
       _pageController.dispose();
@@ -2635,7 +3387,10 @@ class _SlidingCardsViewState extends State<SlidingCardsView> {
       return widget.itemBuilder(context, 0);
     }
 
-    double maxHeight = _heights.values.fold(0.0, (prev, h) => h > prev ? h : prev);
+    double maxHeight = _heights.values.fold(
+      0.0,
+      (prev, h) => h > prev ? h : prev,
+    );
     if (maxHeight == 0) maxHeight = 280;
 
     return LayoutBuilder(
@@ -2656,7 +3411,8 @@ class _SlidingCardsViewState extends State<SlidingCardsView> {
                     children: List.generate(widget.itemCount, (index) {
                       return _MeasureSize(
                         onChange: (size) {
-                          if (mounted && (_heights[index] ?? 0) != size.height) {
+                          if (mounted &&
+                              (_heights[index] ?? 0) != size.height) {
                             setState(() {
                               _heights[index] = size.height;
                             });
@@ -2685,7 +3441,8 @@ class _SlidingCardsViewState extends State<SlidingCardsView> {
                     child: PageView.builder(
                       controller: _pageController,
                       itemCount: widget.itemCount,
-                      onPageChanged: (page) => setState(() => _currentPage = page),
+                      onPageChanged: (page) =>
+                          setState(() => _currentPage = page),
                       itemBuilder: (context, index) {
                         return SizedBox(
                           width: cardWidth,
@@ -2709,7 +3466,11 @@ class _SlidingCardsViewState extends State<SlidingCardsView> {
               children: [
                 if (_currentPage > 0)
                   IconButton(
-                    icon: const Icon(Icons.chevron_left, size: 20, color: Colors.white70),
+                    icon: const Icon(
+                      Icons.chevron_left,
+                      size: 20,
+                      color: Colors.white70,
+                    ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     tooltip: 'Previous',
@@ -2735,11 +3496,16 @@ class _SlidingCardsViewState extends State<SlidingCardsView> {
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
-                      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 8,
+                      ),
                       width: isSelected ? 20 : 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: isSelected ? Theme.of(context).colorScheme.primary : Colors.white24,
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.white24,
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
@@ -2748,7 +3514,11 @@ class _SlidingCardsViewState extends State<SlidingCardsView> {
                 const SizedBox(width: 8),
                 if (_currentPage < widget.itemCount - 1)
                   IconButton(
-                    icon: const Icon(Icons.chevron_right, size: 20, color: Colors.white70),
+                    icon: const Icon(
+                      Icons.chevron_right,
+                      size: 20,
+                      color: Colors.white70,
+                    ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     tooltip: 'Next',
@@ -2792,10 +3562,7 @@ class _MeasureSizeRenderObject extends RenderProxyBox {
 class _MeasureSize extends SingleChildRenderObjectWidget {
   final ValueChanged<Size> onChange;
 
-  const _MeasureSize({
-    required this.onChange,
-    required super.child,
-  });
+  const _MeasureSize({required this.onChange, required super.child});
 
   @override
   RenderObject createRenderObject(BuildContext context) {
@@ -2803,7 +3570,10 @@ class _MeasureSize extends SingleChildRenderObjectWidget {
   }
 
   @override
-  void updateRenderObject(BuildContext context, covariant _MeasureSizeRenderObject renderObject) {
+  void updateRenderObject(
+    BuildContext context,
+    covariant _MeasureSizeRenderObject renderObject,
+  ) {
     // Keep renderObject updated
   }
 }
