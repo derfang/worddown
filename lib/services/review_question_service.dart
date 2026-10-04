@@ -106,12 +106,34 @@ class ReviewQuestionService {
       return Future.value(_completedQuestions[index]);
     return _preparedQuestions.putIfAbsent(
       index,
-      () => _buildPreparedQuestion(index, context: context),
+      () => _buildPreparedQuestion(index, _currentSessionQueue[index].wordId, context: context),
     );
   }
 
+  Future<PreparedReviewQuestion?> getOrPrepareQuestionForWord(
+    int wordId, {
+    BuildContext? context,
+  }) {
+    if (_completedQuestionsByWord.containsKey(wordId))
+      return Future.value(_completedQuestionsByWord[wordId]);
+    return _preparedQuestionsByWord.putIfAbsent(
+      wordId,
+      () => _buildPreparedQuestion(null, wordId, context: context),
+    );
+  }
+
+  final Map<int, Future<PreparedReviewQuestion?>> _preparedQuestionsByWord = {};
+  final Map<int, PreparedReviewQuestion> _completedQuestionsByWord = {};
+
   void deleteExampleAudio(int index) {
     final q = _completedQuestions[index];
+    if (q != null && q.exampleAudioPath != null) {
+      _deleteAudioFile(q.exampleAudioPath);
+    }
+  }
+
+  void deleteExampleAudioForWord(int wordId) {
+    final q = _completedQuestionsByWord[wordId];
     if (q != null && q.exampleAudioPath != null) {
       _deleteAudioFile(q.exampleAudioPath);
     }
@@ -136,9 +158,14 @@ class ReviewQuestionService {
     for (final q in _completedQuestions.values) {
       _deleteAudioFile(q.exampleAudioPath);
     }
+    for (final q in _completedQuestionsByWord.values) {
+      _deleteAudioFile(q.exampleAudioPath);
+    }
     _currentSessionQueue.clear();
     _preparedQuestions.clear();
     _completedQuestions.clear();
+    _preparedQuestionsByWord.clear();
+    _completedQuestionsByWord.clear();
   }
 
   List<DictWord> getRelevantDistractors(
@@ -191,12 +218,11 @@ class ReviewQuestionService {
   }
 
   Future<PreparedReviewQuestion?> _buildPreparedQuestion(
-    int index, {
+    int? index,
+    int wordId, {
     BuildContext? context,
   }) async {
-    if (index >= _currentSessionQueue.length) return null;
-    final p = _currentSessionQueue[index];
-    final word = DatabaseService.getWordById(p.wordId);
+    final word = DatabaseService.getWordById(wordId);
     if (word == null) return null;
 
     // 1. Fetch / resolve WordData JSON
@@ -345,7 +371,10 @@ class ReviewQuestionService {
       exampleAudioPath: exampleAudioPath,
       exampleText: exampleText,
     );
-    _completedQuestions[index] = prepared;
+    if (index != null) {
+      _completedQuestions[index] = prepared;
+    }
+    _completedQuestionsByWord[wordId] = prepared;
     return prepared;
   }
 
