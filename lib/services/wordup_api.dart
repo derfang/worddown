@@ -389,36 +389,43 @@ class WordupApi {
     final lang = isUk ? 'en-uk' : 'en-us';
     
     if (useGoogleTts) {
-      return getSentenceAudioPath(text, isUk: isUk);
+      return _fetchGoogleSentenceAudio(text, isUk: isUk);
     } else {
-      // Use Youdao Dictionary API (type=1 for UK, type=2 for US)
-      final type = isUk ? 1 : 2;
-      final dictUrl = '${EncryptionService.decryptString('UukRlyEUJoSVzxGCxzm3tHIBYBUKEQuxolnSdWfJKg02/Iesb2ZnDZWZQWOBtVcp')}${Uri.encodeComponent(text)}&type=$type';
-      
-      if (kIsWeb) return dictUrl;
-      
+      // Use Microsoft Edge Neural TTS with dedicated clear dictionary voices:
+      // en-US-JennyNeural (US) and en-GB-SoniaNeural (UK)
+      final voice = isUk ? 'en-GB-SoniaNeural' : 'en-US-JennyNeural';
+
+      // Check existing cached audio file first
       final file = await _getLocalFile('${wordId}_dict_$lang.mp3');
-      if (await file.exists()) {
+      if (!kIsWeb && await file.exists()) {
         if (await file.length() > 0) {
           return file.path;
         } else {
           try { await file.delete(); } catch (_) {}
         }
       }
-      
+
       try {
-        final response = await http.get(Uri.parse(dictUrl)).timeout(const Duration(seconds: 5));
-        if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
-          await file.writeAsBytes(response.bodyBytes);
+        final audioBytes = await EdgeTtsService.synthesize(
+          text,
+          isUk: isUk,
+          voice: voice,
+          timeout: const Duration(seconds: 7),
+        );
+
+        if (audioBytes.isNotEmpty) {
+          if (kIsWeb) {
+            return 'data:audio/mp3;base64,${base64Encode(audioBytes)}';
+          }
+          await file.writeAsBytes(audioBytes);
           return file.path;
         }
-      } catch (_) {
-        // Fallback to TTS if dictionary times out or is unreachable
-        return getSentenceAudioPath(text, isUk: isUk);
+      } catch (e) {
+        print('Edge Neural TTS failed for "$text" ($e), falling back to Google TTS...');
       }
-      
-      // Fallback to TTS if dictionary audio not found
-      return getSentenceAudioPath(text, isUk: isUk);
+
+      // Fallback to Google Translate TTS if Edge synthesis is unreachable or times out
+      return _fetchGoogleSentenceAudio(text, isUk: isUk);
     }
   }
 

@@ -361,7 +361,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'When both providers are enabled, voices are chosen randomly on each playback for rich natural variety.',
+                'Edge Neural voices power the primary word pronunciations and natural sentence readings. When both providers are enabled, sentence examples alternate naturally.',
                 style: TextStyle(color: Colors.white60, fontSize: 13),
               ),
               const SizedBox(height: 16),

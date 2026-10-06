@@ -677,8 +677,8 @@ class _WordViewScreenState extends State<WordViewScreen>
     );
   }
 
-  Widget _buildAudioBtn(String flag, IconData icon, VoidCallback onTap) {
-    return InkWell(
+  Widget _buildAudioBtn(String flag, IconData icon, VoidCallback onTap, {String? tooltip}) {
+    final btn = InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
@@ -698,6 +698,11 @@ class _WordViewScreenState extends State<WordViewScreen>
         ),
       ),
     );
+
+    if (tooltip != null) {
+      return Tooltip(message: tooltip, child: btn);
+    }
+    return btn;
   }
 
   Future<void> _playAudio({
@@ -725,7 +730,7 @@ class _WordViewScreenState extends State<WordViewScreen>
       }
     } catch (e) {
       if (!useGoogleTts) {
-        print('Dictionary API failed, falling back to Google TTS...');
+        print('Edge Neural TTS failed, falling back to Google TTS...');
         await _playAudio(isUk: isUk, useGoogleTts: true);
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1060,6 +1065,7 @@ class _WordViewScreenState extends State<WordViewScreen>
                                 Icons.volume_up,
                                 () =>
                                     _playAudio(isUk: true, useGoogleTts: false),
+                                tooltip: 'UK Edge Neural',
                               ),
                               _buildAudioBtn(
                                 '🇺🇸',
@@ -1068,18 +1074,21 @@ class _WordViewScreenState extends State<WordViewScreen>
                                   isUk: false,
                                   useGoogleTts: false,
                                 ),
+                                tooltip: 'US Edge Neural',
                               ),
                               _buildAudioBtn(
                                 '🇬🇧',
                                 Icons.record_voice_over,
                                 () =>
                                     _playAudio(isUk: true, useGoogleTts: true),
+                                tooltip: 'UK Google TTS',
                               ),
                               _buildAudioBtn(
                                 '🇺🇸',
                                 Icons.record_voice_over,
                                 () =>
                                     _playAudio(isUk: false, useGoogleTts: true),
+                                tooltip: 'US Google TTS',
                               ),
                             ],
                           ),
@@ -1097,22 +1106,22 @@ class _WordViewScreenState extends State<WordViewScreen>
                           TextButton(
                             onPressed: () =>
                                 _playAudio(isUk: true, useGoogleTts: false),
-                            child: const Text('UK Dict'),
+                            child: const Text('UK Edge'),
                           ),
                           TextButton(
                             onPressed: () =>
                                 _playAudio(isUk: false, useGoogleTts: false),
-                            child: const Text('US Dict'),
+                            child: const Text('US Edge'),
                           ),
                           TextButton(
                             onPressed: () =>
                                 _playAudio(isUk: true, useGoogleTts: true),
-                            child: const Text('UK TTS'),
+                            child: const Text('UK Google'),
                           ),
                           TextButton(
                             onPressed: () =>
                                 _playAudio(isUk: false, useGoogleTts: true),
-                            child: const Text('US TTS'),
+                            child: const Text('US Google'),
                           ),
                           const SizedBox(width: 8),
                         ],
