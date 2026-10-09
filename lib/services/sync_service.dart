@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -101,12 +102,19 @@ class SyncService {
     await forceSyncUp();
   }
 
+  bool get isFullySynced =>
+      lastSynced.value != null &&
+      lastError.value == null &&
+      ProgressService().pendingSyncWordIds.isEmpty;
+
   Future<void> _syncDown(String uid) async {
     isSyncing.value = true;
     syncStatus.value = 'Downloading from Cloud...';
     addLog('Connecting to cloud (users/$uid/data/syncData)...');
     try {
-      final doc = await _syncDoc.get();
+      final doc = await _syncDoc
+          .get()
+          .timeout(const Duration(seconds: 20));
 
       if (doc.exists && doc.data() != null) {
         final data = doc.data() as Map<String, dynamic>;
@@ -155,9 +163,12 @@ class SyncService {
       lastError.value = null;
       lastSynced.value = DateTime.now();
     } catch (e) {
-      lastError.value = e.toString();
-      addLog('Error during syncDown: $e');
-      print('Error syncing down from Firestore: $e');
+      final formattedError = e is TimeoutException
+          ? 'Network timeout: Cloud could not be reached after 20s. Check connection/VPN.'
+          : e.toString();
+      lastError.value = formattedError;
+      addLog('Error during syncDown: $formattedError');
+      print('Error syncing down from Firestore: $formattedError');
       syncStatus.value = 'Error';
     } finally {
       isSyncing.value = false;
@@ -187,14 +198,18 @@ class SyncService {
         'queuedWords': pService.queuedWordsToLearn.toList(),
         'preferredImages': imageData,
         'lastUpdated': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)).timeout(const Duration(seconds: 20));
 
       pService.clearAllPendingSync();
       await pService.savePendingSync();
       lastSynced.value = DateTime.now();
+      lastError.value = null;
     } catch (e) {
-      print('Error syncing up to Firestore: $e');
-      rethrow;
+      final formattedError = e is TimeoutException
+          ? 'Network timeout: Upload timed out after 20s.'
+          : e.toString();
+      print('Error syncing up to Firestore: $formattedError');
+      throw Exception(formattedError);
     }
   }
 
@@ -203,11 +218,11 @@ class SyncService {
       if (data == null) {
         await _syncDoc.set({
           'progressMap': {wordId.toString(): FieldValue.delete()},
-        }, SetOptions(merge: true));
+        }, SetOptions(merge: true)).timeout(const Duration(seconds: 10));
       } else {
         await _syncDoc.set({
           'progressMap': {wordId.toString(): data},
-        }, SetOptions(merge: true));
+        }, SetOptions(merge: true)).timeout(const Duration(seconds: 10));
       }
       ProgressService().clearPendingSync([wordId]);
       await ProgressService().savePendingSync();
@@ -222,7 +237,7 @@ class SyncService {
         'knownWords': isKnown
             ? FieldValue.arrayUnion([wordId])
             : FieldValue.arrayRemove([wordId]),
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)).timeout(const Duration(seconds: 10));
       ProgressService().clearPendingSync([wordId]);
       await ProgressService().savePendingSync();
     } catch (e) {
@@ -236,7 +251,7 @@ class SyncService {
         'queuedWords': isQueued
             ? FieldValue.arrayUnion([wordId])
             : FieldValue.arrayRemove([wordId]),
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)).timeout(const Duration(seconds: 10));
       ProgressService().clearPendingSync([wordId]);
       await ProgressService().savePendingSync();
     } catch (e) {
@@ -248,7 +263,7 @@ class SyncService {
     try {
       await _syncDoc.set({
         'preferredImages': {wordId.toString(): imageUrl},
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)).timeout(const Duration(seconds: 10));
     } catch (e) {
       addLog('Push preferred image for $wordId failed: $e');
     }

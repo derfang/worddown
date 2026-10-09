@@ -41,7 +41,14 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     // FirebaseService.signInAnonymously();
     SyncService().lastSynced.addListener(_onSyncComplete);
+    SyncService().lastError.addListener(_onSyncComplete);
+    ProgressService().pendingSyncCountNotifier.addListener(_onSyncComplete);
     _prefetchUpcomingWords();
+
+    // Auto-sync immediately on app home launch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      SyncService().forceSyncDown();
+    });
   }
 
   void _onSyncComplete() {
@@ -90,6 +97,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     SyncService().lastSynced.removeListener(_onSyncComplete);
+    SyncService().lastError.removeListener(_onSyncComplete);
+    ProgressService().pendingSyncCountNotifier.removeListener(_onSyncComplete);
     _searchController?.dispose();
     _searchFocusNode?.dispose();
     _scrollController.dispose();
@@ -253,48 +262,76 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor: Colors.transparent,
             elevation: 0,
             actions: [
-              IconButton(
-                tooltip: 'Cloud Sync Diagnostics',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => SyncStatusScreen()),
+              AnimatedBuilder(
+                animation: Listenable.merge([
+                  SyncService().isSyncing,
+                  SyncService().lastSynced,
+                  SyncService().lastError,
+                  ProgressService().pendingSyncCountNotifier,
+                ]),
+                builder: (context, _) {
+                  final sync = SyncService();
+                  final isSyncing = sync.isSyncing.value;
+                  final lastError = sync.lastError.value;
+                  final pendingCount = ProgressService().pendingSyncCountNotifier.value;
+                  final lastSynced = sync.lastSynced.value;
+
+                  Widget iconWidget;
+                  String tooltipMsg;
+
+                  if (isSyncing) {
+                    tooltipMsg = 'Syncing with cloud...';
+                    iconWidget = SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Colors.cyanAccent,
+                        ),
+                      ),
+                    );
+                  } else if (lastError != null) {
+                    tooltipMsg = 'Sync Error: $lastError (tap to inspect)';
+                    iconWidget = Icon(
+                      Icons.cloud_off,
+                      size: 22,
+                      color: Colors.redAccent,
+                    );
+                  } else if (pendingCount > 0) {
+                    tooltipMsg = '$pendingCount offline changes pending sync';
+                    iconWidget = Icon(
+                      Icons.cloud_upload_outlined,
+                      size: 22,
+                      color: Colors.amberAccent,
+                    );
+                  } else if (lastSynced != null) {
+                    tooltipMsg = 'Cloud Synced';
+                    iconWidget = Icon(
+                      Icons.cloud_done,
+                      size: 22,
+                      color: Colors.greenAccent,
+                    );
+                  } else {
+                    tooltipMsg = 'Not yet synced';
+                    iconWidget = Icon(
+                      Icons.cloud_queue,
+                      size: 22,
+                      color: Colors.white60,
+                    );
+                  }
+
+                  return IconButton(
+                    tooltip: tooltipMsg,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SyncStatusScreen()),
+                      );
+                    },
+                    icon: iconWidget,
                   );
                 },
-                icon: ValueListenableBuilder<bool>(
-                  valueListenable: SyncService().isSyncing,
-                  builder: (context, isSyncing, child) {
-                    if (isSyncing) {
-                      return SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white70,
-                          ),
-                        ),
-                      );
-                    }
-                    return ValueListenableBuilder<DateTime?>(
-                      valueListenable: SyncService().lastSynced,
-                      builder: (context, lastSynced, child) {
-                        if (lastSynced == null) {
-                          return Icon(
-                            Icons.cloud_queue,
-                            size: 22,
-                            color: Colors.white60,
-                          );
-                        }
-                        return Icon(
-                          Icons.cloud_done,
-                          size: 22,
-                          color: Colors.greenAccent,
-                        );
-                      },
-                    );
-                  },
-                ),
               ),
               IconButton(
                 icon: Icon(Icons.settings),

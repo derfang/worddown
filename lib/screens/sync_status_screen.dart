@@ -20,6 +20,8 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
     _sync.isSyncing.addListener(_onSyncChange);
     _sync.lastSynced.addListener(_onSyncChange);
     _sync.lastError.addListener(_onSyncChange);
+    _sync.syncStatus.addListener(_onSyncChange);
+    _progress.pendingSyncCountNotifier.addListener(_onSyncChange);
   }
 
   @override
@@ -27,6 +29,8 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
     _sync.isSyncing.removeListener(_onSyncChange);
     _sync.lastSynced.removeListener(_onSyncChange);
     _sync.lastError.removeListener(_onSyncChange);
+    _sync.syncStatus.removeListener(_onSyncChange);
+    _progress.pendingSyncCountNotifier.removeListener(_onSyncChange);
     super.dispose();
   }
 
@@ -60,7 +64,10 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
                 tooltip: 'Pull from Cloud',
                 onPressed: _sync.isSyncing.value
                     ? null
-                    : () => _sync.forceSyncDown(),
+                    : () async {
+                        await _sync.forceSyncDown();
+                        if (mounted) setState(() {});
+                      },
               ),
             ],
           ),
@@ -309,7 +316,10 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _sync.isSyncing.value
                       ? null
-                      : () => _sync.forceSyncDown(),
+                      : () async {
+                          await _sync.forceSyncDown();
+                          if (mounted) setState(() {});
+                        },
                   icon: Icon(Icons.cloud_download),
                   label: Text('Pull Cloud Data'),
                   style: ElevatedButton.styleFrom(
@@ -326,7 +336,10 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _sync.isSyncing.value
                       ? null
-                      : () => _sync.forceSyncUp(),
+                      : () async {
+                          await _sync.forceSyncUp();
+                          if (mounted) setState(() {});
+                        },
                   icon: Icon(Icons.cloud_upload),
                   label: Text('Push to Cloud'),
                   style: ElevatedButton.styleFrom(

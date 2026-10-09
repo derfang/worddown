@@ -46,3 +46,8 @@ key.properties
 /releases/
 firebase_cpp_sdk_windows*
 *.db
+node_modules/
+scratch/
+graphify-out/cache/
+graphify-out/2026-*/
+

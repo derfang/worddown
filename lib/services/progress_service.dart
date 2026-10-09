@@ -211,6 +211,8 @@ class ProgressService {
   Future<File> _getPreferredImagesFile() => _resolveFile('local_preferred_images.json');
   Future<File> _getPendingSyncFile() => _resolveFile('local_pending_sync.json');
 
+  final ValueNotifier<int> pendingSyncCountNotifier = ValueNotifier<int>(0);
+
   Future<void> _loadPendingSync() async {
     try {
       final file = await _getPendingSyncFile();
@@ -219,6 +221,7 @@ class ProgressService {
         if (content.isNotEmpty) {
           final List<dynamic> data = json.decode(content);
           _pendingSyncWordIds = data.map((e) => (e as num).toInt()).toSet();
+          pendingSyncCountNotifier.value = _pendingSyncWordIds.length;
         }
       }
     } catch (e) {
@@ -235,14 +238,17 @@ class ProgressService {
 
   void markPendingSync(int wordId) {
     _pendingSyncWordIds.add(wordId);
+    pendingSyncCountNotifier.value = _pendingSyncWordIds.length;
   }
 
   void clearPendingSync(Iterable<int> wordIds) {
     _pendingSyncWordIds.removeAll(wordIds);
+    pendingSyncCountNotifier.value = _pendingSyncWordIds.length;
   }
 
   void clearAllPendingSync() {
     _pendingSyncWordIds.clear();
+    pendingSyncCountNotifier.value = 0;
   }
 
   Future<void> _loadKnownWords() async {
