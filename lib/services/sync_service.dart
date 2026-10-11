@@ -108,17 +108,27 @@ class SyncService {
       ProgressService().pendingSyncWordIds.isEmpty;
 
   Future<void> _syncDown(String uid) async {
+    if (isSyncing.value) {
+      addLog('Sync already in progress, skipping duplicate trigger.');
+      return;
+    }
     isSyncing.value = true;
-    syncStatus.value = 'Downloading from Cloud...';
-    addLog('Connecting to cloud (users/$uid/data/syncData)...');
+    syncStatus.value = 'Connecting to Cloud...';
+    addLog('Connecting to cloud server (users/$uid/data/syncData)...');
     try {
       final doc = await _syncDoc
-          .get()
-          .timeout(const Duration(seconds: 20));
+          .get(const GetOptions(source: Source.server))
+          .timeout(const Duration(seconds: 15));
+
+      if (doc.metadata.isFromCache) {
+        throw Exception(
+          'Cloud unreachable: Read from local cache instead of cloud server.',
+        );
+      }
 
       if (doc.exists && doc.data() != null) {
         final data = doc.data() as Map<String, dynamic>;
-        addLog('Found cloud syncData document.');
+        addLog('Successfully retrieved fresh cloud syncData.');
 
         final pService = ProgressService();
         final mergeResult = pService.mergeFromCloud(
@@ -143,32 +153,40 @@ class SyncService {
         );
 
         if (mergeResult.hasLocalChangesToUpload) {
-          addLog(
-            'Local device has newer/pending progress. Merging back to cloud...',
-          );
+          addLog('Local device has newer changes. Uploading to cloud server...');
           await _syncUp(uid);
         } else {
-          addLog('Local and Cloud are in sync.');
+          addLog('Local device and Cloud server are fully in sync.');
+          lastSynced.value = DateTime.now();
+          lastError.value = null;
         }
-        lastError.value = null;
       } else {
-        addLog(
-          'Cloud syncData document does not exist yet for this user. Performing initial upload...',
-        );
+        addLog('Cloud syncData document does not exist yet. Performing initial upload...');
         await _syncUp(uid);
       }
 
       await ProgressService().saveAllLocal();
-      addLog('Sync down and local save finished successfully.');
-      lastError.value = null;
-      lastSynced.value = DateTime.now();
+      addLog('Sync completed successfully.');
     } catch (e) {
-      final formattedError = e is TimeoutException
-          ? 'Network timeout: Cloud could not be reached after 20s. Check connection/VPN.'
-          : e.toString();
+      final String formattedError;
+      if (e is TimeoutException) {
+        formattedError =
+            'Cloud connection timed out (15s). Check network/VPN.';
+      } else if (e is FirebaseException) {
+        if (e.code == 'unavailable') {
+          formattedError =
+              'Cloud server unavailable. Check internet or VPN.';
+        } else if (e.code == 'permission-denied') {
+          formattedError = 'Firebase permission denied. Please re-login.';
+        } else {
+          formattedError = 'Firebase error (${e.code}): ${e.message ?? e.toString()}';
+        }
+      } else {
+        formattedError = e.toString().replaceFirst('Exception: ', '');
+      }
       lastError.value = formattedError;
-      addLog('Error during syncDown: $formattedError');
-      print('Error syncing down from Firestore: $formattedError');
+      addLog('Sync down failed: $formattedError');
+      debugPrint('SyncService _syncDown error: $formattedError');
       syncStatus.value = 'Error';
     } finally {
       isSyncing.value = false;
@@ -179,6 +197,7 @@ class SyncService {
   }
 
   Future<void> _syncUp(String uid) async {
+    syncStatus.value = 'Uploading to Cloud...';
     try {
       final pService = ProgressService();
 
@@ -192,24 +211,34 @@ class SyncService {
         imageData[entry.key.toString()] = entry.value;
       }
 
+      addLog('Writing progress snapshot to cloud...');
       await _syncDoc.set({
         'progressMap': progressMapData,
         'knownWords': pService.knownWordIds.toList(),
         'queuedWords': pService.queuedWordsToLearn.toList(),
         'preferredImages': imageData,
         'lastUpdated': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true)).timeout(const Duration(seconds: 20));
+      }, SetOptions(merge: true));
 
+      addLog('Awaiting cloud server acknowledgment...');
+      await _firestore
+          .waitForPendingWrites()
+          .timeout(const Duration(seconds: 15));
+
+      addLog('Cloud server confirmed receipt of all writes.');
       pService.clearAllPendingSync();
       await pService.savePendingSync();
       lastSynced.value = DateTime.now();
       lastError.value = null;
     } catch (e) {
       final formattedError = e is TimeoutException
-          ? 'Network timeout: Upload timed out after 20s.'
-          : e.toString();
-      print('Error syncing up to Firestore: $formattedError');
-      throw Exception(formattedError);
+          ? 'Cloud upload timed out (15s). Check network/VPN.'
+          : e.toString().replaceFirst('Exception: ', '');
+      lastError.value = formattedError;
+      addLog('Cloud upload failed: $formattedError');
+      debugPrint('SyncService _syncUp error: $formattedError');
+      syncStatus.value = 'Error';
+      rethrow;
     }
   }
 
@@ -218,16 +247,19 @@ class SyncService {
       if (data == null) {
         await _syncDoc.set({
           'progressMap': {wordId.toString(): FieldValue.delete()},
-        }, SetOptions(merge: true)).timeout(const Duration(seconds: 10));
+        }, SetOptions(merge: true));
       } else {
         await _syncDoc.set({
           'progressMap': {wordId.toString(): data},
-        }, SetOptions(merge: true)).timeout(const Duration(seconds: 10));
+        }, SetOptions(merge: true));
       }
+      await _firestore
+          .waitForPendingWrites()
+          .timeout(const Duration(seconds: 4));
       ProgressService().clearPendingSync([wordId]);
       await ProgressService().savePendingSync();
     } catch (e) {
-      addLog('Word $wordId push failed (queued for sync): $e');
+      addLog('Word $wordId push buffered locally (awaiting cloud sync): $e');
     }
   }
 
@@ -237,11 +269,14 @@ class SyncService {
         'knownWords': isKnown
             ? FieldValue.arrayUnion([wordId])
             : FieldValue.arrayRemove([wordId]),
-      }, SetOptions(merge: true)).timeout(const Duration(seconds: 10));
+      }, SetOptions(merge: true));
+      await _firestore
+          .waitForPendingWrites()
+          .timeout(const Duration(seconds: 4));
       ProgressService().clearPendingSync([wordId]);
       await ProgressService().savePendingSync();
     } catch (e) {
-      addLog('Push known word $wordId failed (queued for sync): $e');
+      addLog('Push known word $wordId buffered locally: $e');
     }
   }
 
@@ -251,11 +286,14 @@ class SyncService {
         'queuedWords': isQueued
             ? FieldValue.arrayUnion([wordId])
             : FieldValue.arrayRemove([wordId]),
-      }, SetOptions(merge: true)).timeout(const Duration(seconds: 10));
+      }, SetOptions(merge: true));
+      await _firestore
+          .waitForPendingWrites()
+          .timeout(const Duration(seconds: 4));
       ProgressService().clearPendingSync([wordId]);
       await ProgressService().savePendingSync();
     } catch (e) {
-      addLog('Push queued word $wordId failed (queued for sync): $e');
+      addLog('Push queued word $wordId buffered locally: $e');
     }
   }
 
@@ -263,9 +301,12 @@ class SyncService {
     try {
       await _syncDoc.set({
         'preferredImages': {wordId.toString(): imageUrl},
-      }, SetOptions(merge: true)).timeout(const Duration(seconds: 10));
+      }, SetOptions(merge: true));
+      await _firestore
+          .waitForPendingWrites()
+          .timeout(const Duration(seconds: 4));
     } catch (e) {
-      addLog('Push preferred image for $wordId failed: $e');
+      addLog('Push preferred image for $wordId buffered locally: $e');
     }
   }
 }

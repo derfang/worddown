@@ -305,15 +305,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       size: 22,
                       color: Colors.amberAccent,
                     );
-                  } else if (lastSynced != null) {
-                    tooltipMsg = 'Cloud Synced';
+                  } else if (sync.isFullySynced) {
+                    tooltipMsg = 'Cloud Synced (All changes verified on server)';
                     iconWidget = Icon(
                       Icons.cloud_done,
                       size: 22,
                       color: Colors.greenAccent,
                     );
                   } else {
-                    tooltipMsg = 'Not yet synced';
+                    tooltipMsg = 'Not yet synced with cloud (tap to sync)';
                     iconWidget = Icon(
                       Icons.cloud_queue,
                       size: 22,
