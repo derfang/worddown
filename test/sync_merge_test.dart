@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:word_down/services/progress_service.dart';
@@ -24,6 +24,7 @@ void main() {
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('worddown_sync_test_');
     PathProviderPlatform.instance = FakePathProviderPlatform(tempDir.path);
+    ProgressService().resetForTesting();
   });
 
   tearDown(() async {
@@ -172,6 +173,74 @@ void main() {
 
       service.clearAllPendingSync();
       expect(service.pendingSyncWordIds.isEmpty, isTrue);
+    });
+  });
+
+  group('Queued Words (To Learn) Synchronization & Invariants', () {
+    test('Cloud queued words are adopted by local device', () {
+      final service = ProgressService();
+      
+      final result = service.mergeFromCloud(
+        cloudQueuedWords: [501, 502, 503],
+      );
+
+      expect(service.queuedWordsToLearn.contains(501), isTrue);
+      expect(service.queuedWordsToLearn.contains(502), isTrue);
+      expect(service.queuedWordsToLearn.contains(503), isTrue);
+      expect(service.toLearnCountNotifier.value >= 3, isTrue);
+    });
+
+    test('Local queued words not present in cloud trigger upload back to cloud', () {
+      final service = ProgressService();
+      service.addQueuedWordFromCloud(601);
+
+      // Cloud sends only 602
+      final result = service.mergeFromCloud(
+        cloudQueuedWords: [602],
+      );
+
+      // Local should now have both 601 and 602
+      expect(service.queuedWordsToLearn.contains(601), isTrue);
+      expect(service.queuedWordsToLearn.contains(602), isTrue);
+      // Because local has words cloud lacked, it must trigger upload
+      expect(result.hasLocalChangesToUpload, isTrue);
+    });
+
+    test('Authoritative newer cloud queue prunes retired words', () {
+      final service = ProgressService();
+      service.addQueuedWordFromCloud(701);
+
+      final futureTime = DateTime.now().add(const Duration(minutes: 5)).toIso8601String();
+      // Cloud has newer timestamp without 701, but with 702
+      final result = service.mergeFromCloud(
+        cloudQueuedWords: [702],
+        cloudQueuedWordsLastUpdated: futureTime,
+      );
+
+      expect(service.queuedWordsToLearn.contains(702), isTrue);
+      expect(service.queuedWordsToLearn.contains(701), isFalse);
+      expect(service.queuedWordsLastUpdated?.toIso8601String(), futureTime);
+    });
+
+    test('Mastered or in-progress words are never kept in queue', () {
+      final service = ProgressService();
+      
+      // Seed 801 as known, 802 as in progress
+      service.mergeFromCloud(
+        cloudKnownWords: [801],
+        cloudProgressMap: {
+          '802': {
+            'WordId': 802,
+            'RememberCount': 2,
+            'PracticeDue': '2026-10-15T00:00:00.000',
+          }
+        },
+        cloudQueuedWords: [801, 802, 803],
+      );
+
+      expect(service.queuedWordsToLearn.contains(801), isFalse);
+      expect(service.queuedWordsToLearn.contains(802), isFalse);
+      expect(service.queuedWordsToLearn.contains(803), isTrue);
     });
   });
 }

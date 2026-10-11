@@ -12,9 +12,9 @@
     "semantic_hash": ""
   },
   "android/app/build.gradle.kts": {
-    "mtime": 1788632355.4310968,
-    "seen": 1788714669.318088,
-    "ast_hash": "cc6acbda5c54e7f7e0666c0b5a519dc6",
+    "mtime": 1791583583.0715103,
+    "seen": 1791583643.7618544,
+    "ast_hash": "0a53abdf00c825afe1dee244d54783f8",
     "semantic_hash": ""
   },
   "android/app/google-services.json": {
@@ -174,9 +174,9 @@
     "semantic_hash": ""
   },
   "lib/screens/home_screen.dart": {
-    "mtime": 1791574034.9785762,
-    "seen": 1791580619.106923,
-    "ast_hash": "397c637b0c6d0f85aae9670850bb70e5",
+    "mtime": 1791747552.3790636,
+    "seen": 1791747796.4625647,
+    "ast_hash": "02a335b1ebbf65490705ef6cff300af7",
     "semantic_hash": ""
   },
   "lib/screens/learning_session_screen.dart": {
@@ -234,9 +234,9 @@
     "semantic_hash": ""
   },
   "lib/services/progress_service.dart": {
-    "mtime": 1791573862.1967099,
-    "seen": 1791580619.106923,
-    "ast_hash": "4ae982e280dba86a9a930735e5daa0b2",
+    "mtime": 1791747653.6063516,
+    "seen": 1791747796.4625647,
+    "ast_hash": "41590c7cbcb0d6c1df5e840602af2b0b",
     "semantic_hash": ""
   },
   "lib/services/settings_service.dart": {
@@ -246,9 +246,9 @@
     "semantic_hash": ""
   },
   "lib/services/sync_service.dart": {
-    "mtime": 1791573912.6312609,
-    "seen": 1791580619.106923,
-    "ast_hash": "f4f39161a3addeb2c636480f860cf53b",
+    "mtime": 1791747472.9002278,
+    "seen": 1791747796.4625647,
+    "ast_hash": "b37a1f16387640069c9313043b193499",
     "semantic_hash": ""
   },
   "lib/services/wordup_api.dart": {
@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "test/widget_test.dart": {
-    "mtime": 1789246648.9923577,
-    "seen": 1789380282.2279603,
-    "ast_hash": "2f8bcec8ca65671f83706090f9fd2181",
+    "mtime": 1791747744.3098347,
+    "seen": 1791747796.4625647,
+    "ast_hash": "aaaf741459638bcf38a0c1e98bafeb88",
     "semantic_hash": ""
   },
   "to_learn_words.json": {
@@ -528,9 +528,9 @@
     "semantic_hash": ""
   },
   "pubspec.yaml": {
-    "mtime": 1791580591.6703978,
-    "seen": 1791580619.106923,
-    "ast_hash": "206d368cd82141f089c204806cf1d73e",
+    "mtime": 1791728678.366955,
+    "seen": 1791728701.4034722,
+    "ast_hash": "57dd4b5f1a1cce07be2a6815191685bd",
     "semantic_hash": ""
   },
   "review_words.txt": {
@@ -900,9 +900,9 @@
     "semantic_hash": ""
   },
   "lib/screens/sync_status_screen.dart": {
-    "mtime": 1791573987.9684322,
-    "seen": 1791580619.106923,
-    "ast_hash": "9adf86b4e8a75ed4db8a09c5c75422ea",
+    "mtime": 1791747522.3274472,
+    "seen": 1791747796.4625647,
+    "ast_hash": "a50a1459e0c992857090788f320b7aab",
     "semantic_hash": ""
   },
   "lib/services/encryption_service.dart": {
@@ -990,9 +990,9 @@
     "semantic_hash": ""
   },
   "test/sync_merge_test.dart": {
-    "mtime": 1789381532.571033,
-    "seen": 1789381633.0424433,
-    "ast_hash": "684a5e09f4fbdb1d0db6f2e7525bee61",
+    "mtime": 1791747686.7534702,
+    "seen": 1791747796.4625647,
+    "ast_hash": "3d0882b48171037f4c1d73ec1050f10a",
     "semantic_hash": ""
   },
   "lib/services/cache_manager_service.dart": {

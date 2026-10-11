@@ -73,6 +73,9 @@ class ProgressService {
   Map<int, WordProgress> _progressMap = {};
   Set<int> _knownWordIds = {};
   Set<int> _queuedWordsToLearn = {};
+  DateTime? _queuedWordsLastUpdated;
+  DateTime? get queuedWordsLastUpdated => _queuedWordsLastUpdated;
+  final ValueNotifier<int> toLearnCountNotifier = ValueNotifier<int>(0);
   Map<int, String> _preferredImages = {};
   Set<int> _pendingSyncWordIds = {};
   // The 11-step ladder
@@ -96,15 +99,28 @@ class ProgressService {
   /// On Windows/desktop we use the application support directory (isolated and stable).
   /// On Android/iOS we use the app documents directory (the only writable location).
   Future<String> _getAppDir() async {
+    final Directory dir;
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      final dir = await getApplicationSupportDirectory();
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-      return dir.path;
+      dir = await getApplicationSupportDirectory();
+    } else {
+      dir = await getApplicationDocumentsDirectory();
     }
-    final dir = await getApplicationDocumentsDirectory();
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
     return dir.path;
+  }
+
+  @visibleForTesting
+  void resetForTesting() {
+    _progressMap.clear();
+    _knownWordIds.clear();
+    _queuedWordsToLearn.clear();
+    _queuedWordsLastUpdated = null;
+    _preferredImages.clear();
+    _pendingSyncWordIds.clear();
+    pendingSyncCountNotifier.value = 0;
+    toLearnCountNotifier.value = 0;
   }
 
   Future<File> _resolveFile(String filename) async {
@@ -278,8 +294,19 @@ class ProgressService {
       if (await file.exists()) {
         final content = await file.readAsString();
         if (content.isNotEmpty) {
-          final List<dynamic> data = json.decode(content);
-          _queuedWordsToLearn = data.map((e) => (e as num).toInt()).toSet();
+          final dynamic data = json.decode(content);
+          if (data is List) {
+            _queuedWordsToLearn = data.map((e) => (e as num).toInt()).toSet();
+          } else if (data is Map) {
+            final list = data['words'] as List?;
+            if (list != null) {
+              _queuedWordsToLearn = list.map((e) => (e as num).toInt()).toSet();
+            }
+            if (data['lastUpdated'] != null) {
+              _queuedWordsLastUpdated = DateTime.tryParse(data['lastUpdated'].toString());
+            }
+          }
+          toLearnCountNotifier.value = _queuedWordsToLearn.length;
         }
       }
     } catch (e) {
@@ -289,7 +316,12 @@ class ProgressService {
 
   Future<void> _saveToLearnWords() async {
     final file = await _getSaveFile('local_to_learn.json');
-    await file.writeAsString(json.encode(_queuedWordsToLearn.toList()));
+    final Map<String, dynamic> data = {
+      'words': _queuedWordsToLearn.toList(),
+      'lastUpdated': _queuedWordsLastUpdated?.toIso8601String() ?? DateTime.now().toIso8601String(),
+    };
+    await file.writeAsString(json.encode(data));
+    toLearnCountNotifier.value = _queuedWordsToLearn.length;
   }
 
   Future<void> _loadPreferredImages() async {
@@ -369,6 +401,7 @@ class ProgressService {
     Map<String, dynamic>? cloudProgressMap,
     List<dynamic>? cloudKnownWords,
     List<dynamic>? cloudQueuedWords,
+    String? cloudQueuedWordsLastUpdated,
     Map<String, dynamic>? cloudPreferredImages,
   }) {
     int updatedFromCloud = 0;
@@ -436,6 +469,7 @@ class ProgressService {
             if (cloudReviewed.isAfter(localReviewed)) {
               // Cloud review happened more recently
               _progressMap[wordId] = cloudProgress;
+              _queuedWordsToLearn.remove(wordId);
               updatedFromCloud++;
             } else if (localReviewed.isAfter(cloudReviewed)) {
               // Local review happened more recently -> keep local and mark to sync back
@@ -445,6 +479,7 @@ class ProgressService {
               // Same timestamp: if intervals or steps differ, preserve the later practiceDue
               if (cloudProgress.practiceDue.isAfter(localProgress.practiceDue)) {
                 _progressMap[wordId] = cloudProgress;
+                _queuedWordsToLearn.remove(wordId);
                 updatedFromCloud++;
               } else if (localProgress.practiceDue.isAfter(cloudProgress.practiceDue)) {
                 keptLocalNewer++;
@@ -454,6 +489,7 @@ class ProgressService {
           } else if (cloudReviewed != null && localReviewed == null) {
             // Cloud has an active review timestamp, local does not
             _progressMap[wordId] = cloudProgress;
+            _queuedWordsToLearn.remove(wordId);
             updatedFromCloud++;
           } else if (localReviewed != null && cloudReviewed == null) {
             // Local has an active review timestamp, cloud does not
@@ -463,12 +499,14 @@ class ProgressService {
             // Neither has lastReviewed (legacy data): fall back to higher count or later due date
             if (cloudProgress.rememberCount > localProgress.rememberCount) {
               _progressMap[wordId] = cloudProgress;
+              _queuedWordsToLearn.remove(wordId);
               updatedFromCloud++;
             } else if (localProgress.rememberCount > cloudProgress.rememberCount) {
               keptLocalNewer++;
               hasLocalChanges = true;
             } else if (cloudProgress.practiceDue.isAfter(localProgress.practiceDue)) {
               _progressMap[wordId] = cloudProgress;
+              _queuedWordsToLearn.remove(wordId);
               updatedFromCloud++;
             } else if (localProgress.practiceDue.isAfter(cloudProgress.practiceDue)) {
               keptLocalNewer++;
@@ -487,14 +525,59 @@ class ProgressService {
       }
     }
 
-    // 3. Process queued words
+    // Invariant: No word in _progressMap or _knownWordIds should EVER be in _queuedWordsToLearn
+    for (var inProgressId in _progressMap.keys) {
+      if (_queuedWordsToLearn.remove(inProgressId)) {
+        hasLocalChanges = true;
+      }
+    }
+
+    // 3. Process queued words with authoritative diff & timestamp reconciliation
     if (cloudQueuedWords != null) {
-      for (var qNum in cloudQueuedWords) {
-        final qId = (qNum as num).toInt();
-        if (!_knownWordIds.contains(qId) && !_progressMap.containsKey(qId)) {
-          _queuedWordsToLearn.add(qId);
+      final cloudSet = cloudQueuedWords
+          .map((e) => (e as num).toInt())
+          .where((id) => !_knownWordIds.contains(id) && !_progressMap.containsKey(id))
+          .toSet();
+
+      final cloudQueueTime = cloudQueuedWordsLastUpdated != null
+          ? DateTime.tryParse(cloudQueuedWordsLastUpdated)
+          : null;
+
+      // If cloud has an explicitly newer queue timestamp than local:
+      if (cloudQueueTime != null &&
+          (_queuedWordsLastUpdated == null || cloudQueueTime.isAfter(_queuedWordsLastUpdated!))) {
+        // Cloud queue is authoritative: accept cloud queue and prune locally removed items
+        if (!setEquals(_queuedWordsToLearn, cloudSet)) {
+          _queuedWordsToLearn = Set<int>.from(cloudSet);
+          _queuedWordsLastUpdated = cloudQueueTime;
+          updatedFromCloud++;
+        }
+      } else if (_queuedWordsLastUpdated != null &&
+          (cloudQueueTime == null || _queuedWordsLastUpdated!.isAfter(cloudQueueTime))) {
+        // Local queue is newer: adopt any new items from cloud, but keep local additions
+        for (var qId in cloudSet) {
+          if (_queuedWordsToLearn.add(qId)) {
+            updatedFromCloud++;
+          }
+        }
+        if (!setEquals(_queuedWordsToLearn, cloudSet)) {
+          hasLocalChanges = true;
+        }
+      } else {
+        // Timestamps equal or not present: symmetric union & reconciliation
+        if (!setEquals(_queuedWordsToLearn, cloudSet)) {
+          for (var qId in cloudSet) {
+            if (_queuedWordsToLearn.add(qId)) {
+              updatedFromCloud++;
+            }
+          }
+          // If local has words cloud lacks, flag upload so cloud learns them
+          if (!cloudSet.containsAll(_queuedWordsToLearn)) {
+            hasLocalChanges = true;
+          }
         }
       }
+      toLearnCountNotifier.value = _queuedWordsToLearn.length;
     }
 
     // 4. Preferred images
@@ -525,7 +608,10 @@ class ProgressService {
   }
 
   void addQueuedWordFromCloud(int wordId) {
-    _queuedWordsToLearn.add(wordId);
+    if (!_knownWordIds.contains(wordId) && !_progressMap.containsKey(wordId)) {
+      _queuedWordsToLearn.add(wordId);
+      toLearnCountNotifier.value = _queuedWordsToLearn.length;
+    }
   }
 
   void addPreferredImageFromCloud(int wordId, String imageUrl) {
@@ -548,6 +634,8 @@ class ProgressService {
   Future<void> addWordToLearn(int wordId) async {
     if (!_progressMap.containsKey(wordId) && !_knownWordIds.contains(wordId)) {
       _queuedWordsToLearn.add(wordId);
+      _queuedWordsLastUpdated = DateTime.now();
+      toLearnCountNotifier.value = _queuedWordsToLearn.length;
       markPendingSync(wordId);
       await _saveToLearnWords();
       await savePendingSync();
@@ -558,6 +646,8 @@ class ProgressService {
   /// Called after answering a word correctly in the Learning Session
   Future<void> graduateWord(int wordId) async {
     _queuedWordsToLearn.remove(wordId);
+    _queuedWordsLastUpdated = DateTime.now();
+    toLearnCountNotifier.value = _queuedWordsToLearn.length;
     markPendingSync(wordId);
     await _saveToLearnWords();
     SyncService().pushQueuedWord(wordId, false);
@@ -587,6 +677,8 @@ class ProgressService {
     _progressMap.remove(wordId);
     _knownWordIds.add(wordId);
     _queuedWordsToLearn.remove(wordId);
+    _queuedWordsLastUpdated = DateTime.now();
+    toLearnCountNotifier.value = _queuedWordsToLearn.length;
     markPendingSync(wordId);
     await _saveKnownWords();
     await _saveToLearnWords();
@@ -603,6 +695,8 @@ class ProgressService {
     _progressMap.remove(wordId);
     _knownWordIds.remove(wordId);
     _queuedWordsToLearn.add(wordId);
+    _queuedWordsLastUpdated = DateTime.now();
+    toLearnCountNotifier.value = _queuedWordsToLearn.length;
     markPendingSync(wordId);
     await _saveKnownWords();
     await _saveToLearnWords();

@@ -141,6 +141,9 @@ class SyncService {
           cloudQueuedWords: data['queuedWords'] is List
               ? data['queuedWords'] as List<dynamic>
               : null,
+          cloudQueuedWordsLastUpdated: data['queuedWordsLastUpdated'] is String
+              ? data['queuedWordsLastUpdated'] as String
+              : null,
           cloudPreferredImages: data['preferredImages'] is Map
               ? Map<String, dynamic>.from(data['preferredImages'] as Map)
               : null,
@@ -216,6 +219,8 @@ class SyncService {
         'progressMap': progressMapData,
         'knownWords': pService.knownWordIds.toList(),
         'queuedWords': pService.queuedWordsToLearn.toList(),
+        'queuedWordsLastUpdated': pService.queuedWordsLastUpdated?.toIso8601String() ??
+            DateTime.now().toIso8601String(),
         'preferredImages': imageData,
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -286,6 +291,7 @@ class SyncService {
         'queuedWords': isQueued
             ? FieldValue.arrayUnion([wordId])
             : FieldValue.arrayRemove([wordId]),
+        'queuedWordsLastUpdated': DateTime.now().toIso8601String(),
       }, SetOptions(merge: true));
       await _firestore
           .waitForPendingWrites()

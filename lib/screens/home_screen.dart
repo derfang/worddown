@@ -43,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
     SyncService().lastSynced.addListener(_onSyncComplete);
     SyncService().lastError.addListener(_onSyncComplete);
     ProgressService().pendingSyncCountNotifier.addListener(_onSyncComplete);
+    ProgressService().toLearnCountNotifier.addListener(_onSyncComplete);
     _prefetchUpcomingWords();
 
     // Auto-sync immediately on app home launch
@@ -99,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
     SyncService().lastSynced.removeListener(_onSyncComplete);
     SyncService().lastError.removeListener(_onSyncComplete);
     ProgressService().pendingSyncCountNotifier.removeListener(_onSyncComplete);
+    ProgressService().toLearnCountNotifier.removeListener(_onSyncComplete);
     _searchController?.dispose();
     _searchFocusNode?.dispose();
     _scrollController.dispose();
@@ -268,13 +270,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   SyncService().lastSynced,
                   SyncService().lastError,
                   ProgressService().pendingSyncCountNotifier,
+                  ProgressService().toLearnCountNotifier,
                 ]),
                 builder: (context, _) {
                   final sync = SyncService();
                   final isSyncing = sync.isSyncing.value;
                   final lastError = sync.lastError.value;
                   final pendingCount = ProgressService().pendingSyncCountNotifier.value;
-                  final lastSynced = sync.lastSynced.value;
 
                   Widget iconWidget;
                   String tooltipMsg;

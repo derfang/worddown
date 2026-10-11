@@ -1,16 +1,16 @@
-# Graph Report - worddown  (2026-10-10)
+# Graph Report - worddown  (2026-10-11)
 
 ## Corpus Check
-- 101 files · ~143,689 words
+- 101 files · ~144,321 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1165 nodes · 1440 edges · 61 communities (45 shown, 12 thin omitted)
+- 1169 nodes · 1447 edges · 60 communities (46 shown, 10 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 18 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8f0a8857`
+- Built from commit: `d7a5fbf5`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -29,24 +29,23 @@
 - my_application.cc
 - wordup_api.dart
 - home_screen.dart
-- image_sync.py
+- stealth_sync.py
 - webview_windows_stub.dart
 - wWinMain
 - main.dart
 - settings_screen.dart
-- firebase_service.dart
+- image_sync.py
 - manifest.json
 - highlight_text.dart
 - android-deployment.md
 - encryption_service.dart
 - server.js
 - package:flutter/material.dart
-- 🤖 Android Release Build & Deployment
+- 3. Singleton Services Layer (`lib/services/`)
 - media_cache_service.dart
-- HomeScreen
+- @visibleForTesting
 - cached_media_image.dart
 - dart:convert
-- ReviewScreen
 - translation_service.dart
 - LearningSessionScreen
 - login_screen.dart
@@ -64,7 +63,7 @@
 - rules/graphify.md
 - workflows/graphify.md
 - LaunchImage.imageset/README.md
-- 3. Singleton Services Layer (`lib/services/`)
+- WordDown Codebase Map & Technical Reference 🗺️
 - bool?
 - String?
 - _MeasureSize
@@ -100,7 +99,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (61 total, 12 thin omitted)
+## Communities (60 total, 10 thin omitted)
 
 ### Community 0 - "Win32Window"
 Cohesion: 0.05
@@ -120,15 +119,15 @@ Nodes (14): 3.1. 11-Stage Spaced Repetition System (SRS), 3.2. Morphological Suf
 
 ### Community 4 - "progress_service.dart"
 Cohesion: 0.03
-Nodes (63): DateTime, addKnownWordFromCloud, addPreferredImageFromCloud, addQueuedWordFromCloud, addWordToLearn, allProgress, clearAllPendingSync, clearPendingSync (+55 more)
+Nodes (66): DateTime, DateTime? get, addKnownWordFromCloud, addPreferredImageFromCloud, addQueuedWordFromCloud, addWordToLearn, allProgress, clearAllPendingSync (+58 more)
 
 ### Community 5 - "review_screen.dart"
 Cohesion: 0.04
 Nodes (50): AudioPlayer, _activePreparedQuestion, _applyQuestion, _audioPlayer, _audioSequenceId, build, _buildAntonymQuestion, _buildCompareQuestion (+42 more)
 
 ### Community 6 - "sync_service.dart"
-Cohesion: 0.08
-Nodes (24): bool get, FirebaseFirestore, addLog, _firestore, flushPendingSync, forceSyncDown, forceSyncUp, _instance (+16 more)
+Cohesion: 0.06
+Nodes (34): bool get, FirebaseFirestore, _auth, FirebaseService, _firestore, getWordProgress, signInAnonymously, syncWordProgress (+26 more)
 
 ### Community 7 - "word.dart"
 Cohesion: 0.04
@@ -158,9 +157,9 @@ Nodes (36): Client, database_service.dart, edge_tts_service.dart, clearLocalCach
 Cohesion: 0.06
 Nodes (32): Color, FocusNode?, learning_session_screen.dart, _buildFilterChip, _buildSortChip, _buildStatCard, createState, _curriculumFilter (+24 more)
 
-### Community 14 - "image_sync.py"
-Cohesion: 0.07
-Nodes (36): Connection, cors, express, node-fetch, dependencies, cors, express, node-fetch (+28 more)
+### Community 14 - "stealth_sync.py"
+Cohesion: 0.10
+Nodes (22): Connection, cors, express, node-fetch, dependencies, cors, express, node-fetch (+14 more)
 
 ### Community 15 - "webview_windows_stub.dart"
 Cohesion: 0.12
@@ -171,16 +170,16 @@ Cohesion: 0.24
 Nodes (9): _In_, _In_opt_, vector, wWinMain(), string, wchar_t, CreateAndAttachConsole(), GetCommandLineArguments() (+1 more)
 
 ### Community 17 - "main.dart"
-Cohesion: 0.11
-Nodes (18): AppLifecycleListener, dart:ui, firebase_options.dart, build, createState, dispose, _errorMessage, _initializeApp (+10 more)
+Cohesion: 0.10
+Nodes (20): AppLifecycleListener, dart:ui, firebase_options.dart, build, createState, dispose, _errorMessage, _initializeApp (+12 more)
 
 ### Community 18 - "settings_screen.dart"
 Cohesion: 0.04
 Nodes (45): int get, _buildCacheManagementCard, _buildCategoryRow, _buildLegendItem, _buildToggle, _cacheStats, _clearMedia, _clearPronunciations (+37 more)
 
-### Community 19 - "firebase_service.dart"
-Cohesion: 0.18
-Nodes (10): _auth, FirebaseService, _firestore, getWordProgress, signInAnonymously, syncWordProgress, package:cloud_firestore/cloud_firestore.dart, package:firebase_auth/firebase_auth.dart (+2 more)
+### Community 19 - "image_sync.py"
+Cohesion: 0.22
+Nodes (14): compute_hf_path(), encrypt_bytes(), extract_image_urls(), fetch_url_bytes(), _load_key_iv(), main(), Returns True only when the JSON payload is structurally sound. All checks are…, Returns a list of dicts describing every image associated with this word. Each… (+6 more)
 
 ### Community 20 - "manifest.json"
 Cohesion: 0.18
@@ -202,13 +201,17 @@ Nodes (8): app, cors, db, dbPath, express, path, sqlite3, zlib
 Cohesion: 0.07
 Nodes (30): Directory, package:flutter/material.dart, package:flutter_test/flutter_test.dart, package:path_provider_platform_interface/path_provider_platform_interface.dart, package:word_down/main.dart, package:word_down/models/word.dart, package:word_down/services/cache_manager_service.dart, package:word_down/services/media_cache_service.dart (+22 more)
 
-### Community 26 - "🤖 Android Release Build & Deployment"
-Cohesion: 0.22
-Nodes (9): 1. Compile Android Release APK, 1. Firebase C++ SDK Invariant Check, 2. Compile Windows Release, 2. Package Android Release, 3. Building Release Binaries & Packaging Invariants, 3. Installing on a Connected Android Device (CRITICAL RULE), 3. Package Windows Release, 🤖 Android Release Build & Deployment (+1 more)
+### Community 26 - "3. Singleton Services Layer (`lib/services/`)"
+Cohesion: 0.29
+Nodes (7): 3. Singleton Services Layer (`lib/services/`), `DatabaseService` (`database_service.dart`), `MediaCacheService` (`media_cache_service.dart`), `ProgressService` (`progress_service.dart`), `SettingsService` (`settings_service.dart`), `SyncService` (`sync_service.dart`), `WordupApi` (`wordup_api.dart`)
 
 ### Community 27 - "media_cache_service.dart"
-Cohesion: 0.11
-Nodes (18): @visibleForTesting, _appDocsPath, cacheSingleMedia, cacheWordMedia, clearWordCache, ensureMediaCached, fetchAndDecryptFromHuggingFace, getAppDocsPath (+10 more)
+Cohesion: 0.12
+Nodes (16): _appDocsPath, cacheSingleMedia, cacheWordMedia, clearWordCache, ensureMediaCached, fetchAndDecryptFromHuggingFace, getAppDocsPath, _getFileNameFromUrl (+8 more)
+
+### Community 28 - "@visibleForTesting"
+Cohesion: 0.67
+Nodes (3): @visibleForTesting, resetAppDocsPathForTesting, resetForTesting
 
 ### Community 29 - "cached_media_image.dart"
 Cohesion: 0.11
@@ -231,8 +234,8 @@ Cohesion: 0.33
 Nodes (5): 1. Overview & Architecture, 2. Current Progress Snapshot, 3. How to Check Progress Remotely, Pipeline Stages per Run, WordUp Database & Media Sync Tracking
 
 ### Community 47 - "State"
-Cohesion: 0.21
-Nodes (13): SplashLoadingScreen, _SplashLoadingScreenState, CompareWithSection, _CompareWithSectionState, SelectableImage, _SelectableImageState, SlidingCardsView, _SlidingCardsViewState (+5 more)
+Cohesion: 0.18
+Nodes (15): HomeScreen, _HomeScreenState, ReviewScreen, _ReviewScreenState, CompareWithSection, _CompareWithSectionState, SelectableImage, _SelectableImageState (+7 more)
 
 ### Community 48 - "review_question_service.dart"
 Cohesion: 0.05
@@ -263,12 +266,12 @@ Cohesion: 0.18
 Nodes (11): 📱 Android Installation, 📸 App Preview, ✨ Core Features, 📚 Curated Word Packs, 📥 Download & Installation, 👩‍💻 For Developers & AI Models, 🚀 How to Learn with WordDown, *Intelligent, Multi-Modal English Vocabulary Acquisition* (+3 more)
 
 ### Community 56 - "WordDown Developer & Build Guide 🚀"
-Cohesion: 0.20
-Nodes (10): 1. Clone & Fetch Dependencies, 1. Prerequisites, 2. Configure Firebase (If Connecting Your Own Backend), 2. Quick Setup & Local Execution, 3. Run Locally in Debug Mode, 4. Build Cache & Disk Management, 5. Running Automated Tests, Platform-Specific Tools (+2 more)
+Cohesion: 0.11
+Nodes (19): 1. Clone & Fetch Dependencies, 1. Compile Android Release APK, 1. Firebase C++ SDK Invariant Check, 1. Prerequisites, 2. Compile Windows Release, 2. Configure Firebase (If Connecting Your Own Backend), 2. Package Android Release, 2. Quick Setup & Local Execution (+11 more)
 
-### Community 66 - "3. Singleton Services Layer (`lib/services/`)"
-Cohesion: 0.12
-Nodes (16): 1. Directory Structure, 2. Core Domain Models (`lib/models/word.dart`), 3. Singleton Services Layer (`lib/services/`), 4. UI Components & Screen Navigation, 5. Developer Recipes (How to Extend WordDown), `DatabaseService` (`database_service.dart`), `HighlightText` Widget (`lib/widgets/highlight_text.dart`), `MediaCacheService` (`media_cache_service.dart`) (+8 more)
+### Community 66 - "WordDown Codebase Map & Technical Reference 🗺️"
+Cohesion: 0.22
+Nodes (9): 1. Directory Structure, 2. Core Domain Models (`lib/models/word.dart`), 4. UI Components & Screen Navigation, 5. Developer Recipes (How to Extend WordDown), `HighlightText` Widget (`lib/widgets/highlight_text.dart`), Recipe 1: Adding a New Curriculum List, Recipe 2: Adding a New Question Type to `ReviewScreen`, Recipe 3: Adjusting Spaced Repetition (SRS) Intervals (+1 more)
 
 ### Community 76 - "docs/README.md"
 Cohesion: 0.36
@@ -283,24 +286,24 @@ Cohesion: 0.09
 Nodes (21): dart:async, dart:math, _chromiumFullVersion, _chromiumMajorVersion, EdgeTtsService, _escapeXml, _generateMuid, _generateSecMsGec (+13 more)
 
 ## Knowledge Gaps
-- **725 isolated node(s):** `main`, `DefaultFirebaseOptions`, `web`, `android`, `windows` (+720 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 867 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **12 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **727 isolated node(s):** `main`, `DefaultFirebaseOptions`, `web`, `android`, `windows` (+722 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 869 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `WebviewController` connect `webview_windows_stub.dart` to `word_view_screen.dart`?**
-  _High betweenness centrality (0.031) - this node is a cross-community bridge._
+  _High betweenness centrality (0.024) - this node is a cross-community bridge._
 - **Why does `WordData` connect `word.dart` to `learning_session_screen.dart`, `word_view_screen.dart`, `review_question_service.dart`, `review_screen.dart`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
-- **Why does `ProgressService` connect `database_service.dart` to `learning_session_screen.dart`, `progress_service.dart`, `review_screen.dart`?**
-  _High betweenness centrality (0.009) - this node is a cross-community bridge._
 - **What connects `main`, `DefaultFirebaseOptions`, `web` to the rest of the system?**
-  _725 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _727 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Win32Window` be split into smaller, more focused modules?**
   _Cohesion score 0.05311676909569798 - nodes in this community are weakly interconnected._
 - **Should `word_view_screen.dart` be split into smaller, more focused modules?**
   _Cohesion score 0.021505376344086023 - nodes in this community are weakly interconnected._
 - **Should `GeneratedPluginRegistrant.swift` be split into smaller, more focused modules?**
   _Cohesion score 0.04846938775510204 - nodes in this community are weakly interconnected._
+- **Should `3. Core Architectural Subsystems` be split into smaller, more focused modules?**
+  _Cohesion score 0.14285714285714285 - nodes in this community are weakly interconnected._

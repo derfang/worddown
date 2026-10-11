@@ -22,6 +22,7 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
     _sync.lastError.addListener(_onSyncChange);
     _sync.syncStatus.addListener(_onSyncChange);
     _progress.pendingSyncCountNotifier.addListener(_onSyncChange);
+    _progress.toLearnCountNotifier.addListener(_onSyncChange);
   }
 
   @override
@@ -31,6 +32,7 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
     _sync.lastError.removeListener(_onSyncChange);
     _sync.syncStatus.removeListener(_onSyncChange);
     _progress.pendingSyncCountNotifier.removeListener(_onSyncChange);
+    _progress.toLearnCountNotifier.removeListener(_onSyncChange);
     super.dispose();
   }
 
