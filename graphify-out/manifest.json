@@ -180,9 +180,9 @@
     "semantic_hash": ""
   },
   "lib/screens/learning_session_screen.dart": {
-    "mtime": 1791142597.0343392,
-    "seen": 1791279587.8605745,
-    "ast_hash": "53975114d51194026cf6cf78b5758551",
+    "mtime": 1792008613.6770432,
+    "seen": 1792008979.4397678,
+    "ast_hash": "4e84adceb234e9e7c85aee2e98a58907",
     "semantic_hash": ""
   },
   "lib/screens/login_screen.dart": {
@@ -252,9 +252,9 @@
     "semantic_hash": ""
   },
   "lib/services/wordup_api.dart": {
-    "mtime": 1791279482.1275191,
-    "seen": 1791279587.8605745,
-    "ast_hash": "50ba0c49c31918e88b333a5d18c0d642",
+    "mtime": 1792006838.9277883,
+    "seen": 1792008979.4397678,
+    "ast_hash": "0387d09f1c06c7a446ae2045c0eb2fd5",
     "semantic_hash": ""
   },
   "lib/stubs/webview_windows_stub.dart": {
@@ -528,9 +528,9 @@
     "semantic_hash": ""
   },
   "pubspec.yaml": {
-    "mtime": 1791728678.366955,
-    "seen": 1791728701.4034722,
-    "ast_hash": "57dd4b5f1a1cce07be2a6815191685bd",
+    "mtime": 1791747815.9333348,
+    "seen": 1792008979.4402905,
+    "ast_hash": "31ac9c2fbb30dcb7ffa28c7ea2daa1ae",
     "semantic_hash": ""
   },
   "review_words.txt": {
@@ -918,9 +918,9 @@
     "semantic_hash": ""
   },
   "lib/services/edge_tts_service.dart": {
-    "mtime": 1788793735.4112952,
-    "seen": 1788793895.9015384,
-    "ast_hash": "c0fc072a55d55f30e98b8af7b81c1770",
+    "mtime": 1792006658.069813,
+    "seen": 1792008979.4397678,
+    "ast_hash": "48c1a8c439a1247d37fd94bfe7cead17",
     "semantic_hash": ""
   },
   "lib/services/translation_service.dart": {
@@ -1029,6 +1029,12 @@
     "mtime": 1791128490.9910493,
     "seen": 1791279587.8605745,
     "ast_hash": "a6e641116b3495fcb14bb1921438e8bf",
+    "semantic_hash": ""
+  },
+  "test/edge_tts_drm_test.dart": {
+    "mtime": 1792006411.3025293,
+    "seen": 1792008979.4397678,
+    "ast_hash": "4fb638482bc41462044a492db42718ff",
     "semantic_hash": ""
   }
 }

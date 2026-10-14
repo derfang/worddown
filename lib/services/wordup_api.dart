@@ -410,7 +410,7 @@ class WordupApi {
           text,
           isUk: isUk,
           voice: voice,
-          timeout: const Duration(seconds: 7),
+          timeout: const Duration(seconds: 4),
         );
 
         if (audioBytes.isNotEmpty) {
@@ -425,7 +425,21 @@ class WordupApi {
       }
 
       // Fallback to Google Translate TTS if Edge synthesis is unreachable or times out
-      return _fetchGoogleSentenceAudio(text, isUk: isUk);
+      try {
+        final googleAudio = await _fetchGoogleSentenceAudio(text, isUk: isUk);
+        if (!kIsWeb && googleAudio.startsWith('data:audio/mp3;base64,')) {
+          final b64 = googleAudio.substring('data:audio/mp3;base64,'.length);
+          final bytes = base64Decode(b64);
+          if (bytes.isNotEmpty) {
+            await file.writeAsBytes(bytes);
+            return file.path;
+          }
+        }
+        return googleAudio;
+      } catch (e) {
+        print('Google TTS fallback failed for "$text" ($e)');
+        return '';
+      }
     }
   }
 
@@ -441,7 +455,6 @@ class WordupApi {
       } else {
         if (current.isNotEmpty) chunks.add(current);
         if (s.length > maxChunkLength) {
-          // If an individual clause is longer than maxChunkLength, split by words
           final words = s.split(' ');
           current = '';
           for (var w in words) {
@@ -464,19 +477,23 @@ class WordupApi {
 
   static Future<String> _fetchGoogleSentenceAudio(String text, {required bool isUk}) async {
     final lang = isUk ? 'en-uk' : 'en-us';
-    final baseUrl = '${EncryptionService.decryptString('GMYdOcvHclMrN1/WjlGrHmOwZw4A0OLl4lrHfVFiDFo5ADRT1LBAE6dONVg+MdLjfWI2EojCarPcBZiHivvBCA==')}$lang&client=tw-ob&q=';
+    final decryptedBase = EncryptionService.decryptString('GMYdOcvHclMrN1/WjlGrHmOwZw4A0OLl4lrHfVFiDFo5ADRT1LBAE6dONVg+MdLjfWI2EojCarPcBZiHivvBCA==');
+    final effectiveBase = decryptedBase.startsWith('http') 
+        ? decryptedBase 
+        : 'https://translate.google.com/translate_tts?ie=UTF-8&tl=';
+    final baseUrl = '$effectiveBase$lang&client=tw-ob&q=';
     
-    if (text.length <= 200) {
-      return '$baseUrl${Uri.encodeComponent(text)}';
-    }
+    final chunks = (text.length <= 200) ? [text] : _splitTextForTts(text, maxChunkLength: 200);
 
-    final chunks = _splitTextForTts(text, maxChunkLength: 200);
+    // Fetch all chunks in parallel with a browser User-Agent to avoid HTTP 403 blocks
+    final headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
+    };
 
-    // Fetch all chunks in parallel for maximum speed
     final responses = await Future.wait(
       chunks.map((chunk) {
         final url = '$baseUrl${Uri.encodeComponent(chunk)}';
-        return http.get(Uri.parse(url)).timeout(const Duration(seconds: 8));
+        return http.get(Uri.parse(url), headers: headers).timeout(const Duration(seconds: 5));
       }),
     );
 
@@ -500,13 +517,12 @@ class WordupApi {
     final enableEdge = settings.enableEdgeTts;
     final enableGoogle = settings.enableGoogleTts;
 
-    // For longer texts/quotes (>120 chars), prioritize Edge TTS since it synthesizes full paragraphs in a single fast WebSocket connection
     bool useEdge = true;
     if (enableEdge && enableGoogle) {
       if (text.trim().length > 120) {
         useEdge = true;
       } else {
-        useEdge = Random().nextBool();
+        useEdge = true; // Prefer Edge Neural for high fidelity
       }
     } else if (enableEdge) {
       useEdge = true;
@@ -516,7 +532,11 @@ class WordupApi {
 
     if (useEdge) {
       try {
-        final audioBytes = await EdgeTtsService.synthesize(text, isUk: isUk);
+        final audioBytes = await EdgeTtsService.synthesize(
+          text,
+          isUk: isUk,
+          timeout: const Duration(seconds: 4),
+        );
         if (audioBytes.isNotEmpty) {
           return 'data:audio/mp3;base64,${base64Encode(audioBytes)}';
         }

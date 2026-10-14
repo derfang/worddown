@@ -45,6 +45,7 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   PreparedReviewQuestion? _activePreparedQuestion;
   int _audioSequenceId = 0;
+  bool _isTransitioning = false;
 
   @override
   void initState() {
@@ -94,6 +95,9 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
   }
 
   void _nextAction() {
+    if (_isTransitioning) return;
+    _isTransitioning = true;
+
     _prefetchUpcomingWords();
     _stopAllAudio();
     _showWordDetails = false;
@@ -135,10 +139,12 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
         setState(() {
           _currentStep = SessionStep.view;
           _currentWordId = newWord;
+          _isTransitioning = false;
         });
       } else {
         setState(() {
           _currentStep = SessionStep.finished;
+          _isTransitioning = false;
         });
       }
     }
@@ -147,27 +153,59 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
   Future<void> _generateQuestionFor(int wordId) async {
     final prepared = await _reviewService.getOrPrepareQuestionForWord(wordId, context: context);
 
-    if (!mounted) return;
+    if (!mounted) {
+      _isTransitioning = false;
+      return;
+    }
 
     if (prepared == null) {
-      print('? [LearningSession] Skipping broken word \.');
+      print('⚠️ [LearningSession] Skipping broken word $wordId.');
       _progressService.graduateWord(wordId);
       _graduated.add(wordId);
       _recentViews.remove(wordId);
       _testQueue.remove(wordId);
+      _isTransitioning = false;
       _nextAction();
       return;
     }
 
+    // Rotate question variant so each appearance of this word challenges a different aspect
+    if (prepared.variants.length > 1) {
+      prepared.currentVariantIndex = (prepared.currentVariantIndex + 1) % prepared.variants.length;
+    }
+    final variant = prepared.currentVariant;
+
+    // Dynamically regenerate and shuffle distractors and examples so questions never feel repetitive
+    List<ReviewOption> options = List<ReviewOption>.from(variant.options);
+    dynamic questionData = variant.questionData;
+
+    if (variant.type == 'meaning' || variant.type == 'listening') {
+      final freshDistractors = _reviewService.getRelevantDistractors(3, excludeId: wordId);
+      options = [
+        ReviewOption(prepared.word.id, prepared.word.meaning, true),
+        ...freshDistractors.map((d) => ReviewOption(d.id, d.meaning, false)),
+      ];
+    } else if (variant.type == 'example' && prepared.wordData != null) {
+      final sensesWithEx = prepared.wordData!.senses.where((s) => s.ex.isNotEmpty).toList();
+      if (sensesWithEx.isNotEmpty) {
+        sensesWithEx.shuffle();
+        questionData = sensesWithEx.first.ex;
+      }
+    } else if (variant.type == 'quote' && prepared.wordData != null && prepared.wordData!.quotes.isNotEmpty) {
+      final quotes = prepared.wordData!.quotes.toList()..shuffle();
+      questionData = quotes.first;
+    }
+    options.shuffle();
+
     setState(() {
       _activePreparedQuestion = prepared;
-      final variant = prepared.currentVariant;
       _currentDictWord = prepared.word;
       _currentWordData = prepared.wordData;
       _currentQuestionType = variant.type;
-      _currentOptions = variant.options;
-      _questionData = variant.questionData;
+      _currentOptions = options;
+      _questionData = questionData;
       _isLoadingTest = false;
+      _isTransitioning = false;
     });
 
     if (['meaning', 'listening', 'synonym', 'antonym', 'misspelling'].contains(_currentQuestionType)) {
@@ -215,6 +253,7 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
     if (mounted) {
       setState(() {
         _showWordDetails = true;
+        _isTransitioning = false;
       });
       _playReviewAutoSequence();
     }
@@ -606,8 +645,16 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
                       backgroundColor: Colors.cyan,
                       padding: EdgeInsets.symmetric(vertical: 18),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 4,
                     ),
-                    child: Text('Next', style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Continue', style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+                        SizedBox(width: 8),
+                        Icon(Icons.arrow_forward_rounded, color: Colors.black),
+                      ],
+                    ),
                   ),
                 ),
             ],
@@ -1278,6 +1325,148 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
                 },
                 tooltip: 'View Full Word Details',
               ),
+              PopupMenuButton<String>(
+                icon: Icon(Icons.more_vert, color: Colors.white70),
+                tooltip: 'Word Options',
+                onSelected: (value) async {
+                  if (value == 'known') {
+                    await ProgressService().markAsKnown(_currentDictWord!.id);
+                    _nextAction();
+                  } else if (value == 'learn') {
+                    await ProgressService().markAsToLearn(
+                      _currentDictWord!.id,
+                    );
+                    _nextAction();
+                  } else if (value == 'override') {
+                    final wordId = _currentDictWord!.id;
+                    final initialStep = 0;
+                    final newTreatedAsCorrect = !(_wasCorrect ?? false);
+
+                    await _progressService.overrideReviewOutcome(
+                      wordId,
+                      initialStep,
+                      newTreatedAsCorrect,
+                    );
+
+                    if (mounted) {
+                      setState(() {
+                        _wasCorrect = newTreatedAsCorrect;
+                      });
+
+                      final isNowMastered = _progressService.knownWordIds
+                          .contains(wordId);
+                      final currentProg = _progressService.getProgress(
+                        wordId,
+                      );
+                      final stepNum = isNowMastered
+                          ? 12
+                          : (currentProg?.rememberCount ?? 1);
+
+                      final String msg = newTreatedAsCorrect
+                          ? (isNowMastered
+                                ? 'Result inverted: Mastered!'
+                                : 'Result inverted: Advanced to Step $stepNum')
+                          : (stepNum == 1
+                                ? 'Result inverted: Reset to Step 1'
+                                : 'Result inverted: Moved back to Step $stepNum');
+
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              Icon(
+                                newTreatedAsCorrect
+                                    ? Icons.check_circle_rounded
+                                    : Icons.replay_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  msg,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          backgroundColor: newTreatedAsCorrect
+                              ? Colors.green.shade800
+                              : Colors.indigo.shade800,
+                          behavior: SnackBarBehavior.floating,
+                          duration: Duration(seconds: 2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                },
+                itemBuilder: (context) {
+                  final wasCorrect = _wasCorrect ?? false;
+                  final isResetMode =
+                      SettingsService().reviewMistakePenalty != 'oneStep';
+                  return [
+                    PopupMenuItem(
+                      value: 'override',
+                      child: Row(
+                        children: [
+                          Icon(
+                            wasCorrect
+                                ? Icons.arrow_downward_rounded
+                                : Icons.arrow_upward_rounded,
+                            color: wasCorrect
+                                ? Colors.orangeAccent
+                                : Colors.greenAccent,
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            wasCorrect
+                                ? (isResetMode
+                                      ? 'Treat as Incorrect (Reset to Step 1)'
+                                      : 'Treat as Incorrect (Previous Step)')
+                                : 'Treat as Correct (Next Step)',
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuDivider(),
+                    PopupMenuItem(
+                      value: 'known',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.done_all_rounded,
+                            color: Colors.cyanAccent,
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          Text('Mark as Known'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'learn',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.bookmark_outline_rounded,
+                            color: Colors.amberAccent,
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          Text('Move to should learn'),
+                        ],
+                      ),
+                    ),
+                  ];
+                },
+              ),
             ],
           ),
           SizedBox(height: 20),
@@ -1465,217 +1654,6 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
               ),
             ),
           ],
-          SizedBox(height: 16),
-          Container(
-            decoration: BoxDecoration(
-              color: isMastered
-                  ? Colors.amber.shade600
-                  : Color(0xFFC043FF), // Gold if mastered
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                if (isMastered)
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 8,
-                    offset: Offset(0, 4),
-                  )
-                else
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 2,
-                    offset: Offset(0, 1),
-                  ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: _nextAction,
-                    borderRadius: BorderRadius.horizontal(
-                      left: Radius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (isMastered) ...[
-                            Icon(Icons.emoji_events, color: Colors.black87),
-                            SizedBox(width: 8),
-                          ],
-                          Text(
-                            isMastered
-                                ? 'MASTERED!'
-                                : nextStepText == 'Next: Mastered!'
-                                ? 'Move to Mastered!'
-                                : 'Review in ${nextStepText.replaceAll('Next: ', '')}',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: isMastered ? Colors.black87 : Colors.white,
-                            ),
-                          ),
-                          if (isMastered) ...[
-                            SizedBox(width: 8),
-                            Icon(Icons.emoji_events, color: Colors.black87),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Container(width: 1, height: 40, color: Colors.white24),
-                PopupMenuButton<String>(
-                  onSelected: (value) async {
-                    if (value == 'known') {
-                      await ProgressService().markAsKnown(_currentDictWord!.id);
-                      _nextAction();
-                    } else if (value == 'learn') {
-                      await ProgressService().markAsToLearn(
-                        _currentDictWord!.id,
-                      );
-                      _nextAction();
-                    } else if (value == 'override') {
-                      final wordId = _currentDictWord!.id;
-                      final initialStep = 0 ?? 0;
-                      final newTreatedAsCorrect = !(_wasCorrect ?? false);
-
-                      await _progressService.overrideReviewOutcome(
-                        wordId,
-                        initialStep,
-                        newTreatedAsCorrect,
-                      );
-
-                      if (mounted) {
-                        setState(() {
-                          _wasCorrect = newTreatedAsCorrect;
-                        });
-
-                        final isNowMastered = _progressService.knownWordIds
-                            .contains(wordId);
-                        final currentProg = _progressService.getProgress(
-                          wordId,
-                        );
-                        final stepNum = isNowMastered
-                            ? 12
-                            : (currentProg?.rememberCount ?? 1);
-
-                        final String msg = newTreatedAsCorrect
-                            ? (isNowMastered
-                                  ? 'Result inverted: Mastered!'
-                                  : 'Result inverted: Advanced to Step $stepNum')
-                            : (stepNum == 1
-                                  ? 'Result inverted: Reset to Step 1'
-                                  : 'Result inverted: Moved back to Step $stepNum');
-
-                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Row(
-                              children: [
-                                Icon(
-                                  newTreatedAsCorrect
-                                      ? Icons.check_circle_rounded
-                                      : Icons.replay_rounded,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                                SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    msg,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            backgroundColor: newTreatedAsCorrect
-                                ? Colors.green.shade800
-                                : Colors.indigo.shade800,
-                            behavior: SnackBarBehavior.floating,
-                            duration: Duration(seconds: 2),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  itemBuilder: (context) {
-                    final wasCorrect = _wasCorrect ?? false;
-                    final isResetMode =
-                        SettingsService().reviewMistakePenalty != 'oneStep';
-                    return [
-                      PopupMenuItem(
-                        value: 'override',
-                        child: Row(
-                          children: [
-                            Icon(
-                              wasCorrect
-                                  ? Icons.arrow_downward_rounded
-                                  : Icons.arrow_upward_rounded,
-                              color: wasCorrect
-                                  ? Colors.orangeAccent
-                                  : Colors.greenAccent,
-                              size: 20,
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              wasCorrect
-                                  ? (isResetMode
-                                        ? 'Treat as Incorrect (Reset to Step 1)'
-                                        : 'Treat as Incorrect (Previous Step)')
-                                  : 'Treat as Correct (Next Step)',
-                            ),
-                          ],
-                        ),
-                      ),
-                      PopupMenuDivider(),
-                      PopupMenuItem(
-                        value: 'known',
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.done_all_rounded,
-                              color: Colors.cyanAccent,
-                              size: 20,
-                            ),
-                            SizedBox(width: 8),
-                            Text('Mark as Known'),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'learn',
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.bookmark_outline_rounded,
-                              color: Colors.amberAccent,
-                              size: 20,
-                            ),
-                            SizedBox(width: 8),
-                            Text('Move to should learn'),
-                          ],
-                        ),
-                      ),
-                    ];
-                  },
-                  icon: Icon(
-                    Icons.keyboard_arrow_down,
-                    color: isMastered ? Colors.black87 : Colors.white,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
