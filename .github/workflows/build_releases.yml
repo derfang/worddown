@@ -63,11 +63,6 @@ jobs:
             echo "::warning ::Android signing secrets (ANDROID_KEYSTORE_BASE64 / ANDROID_KEY_PROPERTIES) not found. Build will proceed without custom release keystore."
           fi
 
-      - name: Ensure Android NDK
-        run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "ndk;27.0.12077973" || true
-
       - name: Build Universal Release APK
         run: flutter build apk --release
 
